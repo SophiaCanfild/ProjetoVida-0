@@ -8,8 +8,8 @@ const APP_CONFIG = {
   VERSAO: "2.0",
 
   /* ---- SUPABASE ---- */
-  SUPABASE_URL: "",
-  SUPABASE_ANON_KEY: "",
+  SUPABASE_URL: "https://ofqyqorsedxveersqful.supabase.com",
+  SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mcXlxb3JzZWR4dmVlcnNxZnVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NjYwNTUsImV4cCI6MjA5NjQ0MjA1NX0.ZKz40dXHnloi0w8n87MvExq1RQZe_nyThfxqvGIj-lc",
 
   /* ---- ONESIGNAL (push notifications) ---- */
   ONESIGNAL_APP_ID: "",
