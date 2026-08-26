@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0B6E4F">
+  <title>Meus dados — Vida+ Paciente</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg>
+      Vida+ Paciente
+    </div>
+    <div class="espaco"></div>
+    <button class="sino" id="btn-notif" title="Notificações">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9a6 6 0 1 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>
+      <span class="badge-sino escondido" id="badge-notif">0</span>
+    </button>
+    <button class="sino" id="btn-sair" title="Sair">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+    </button>
+  </header>
+
+  <main class="pagina">
+    <div style="text-align:center; margin-bottom:16px;">
+      <div class="avatar" style="width:76px; height:76px; font-size:1.8rem; margin:0 auto 10px; background:var(--verde-claro); color:var(--verde);" id="avatar">—</div>
+      <h1 id="nome-perfil">—</h1>
+      <p class="suave" id="meta-perfil">—</p>
+    </div>
+
+    <div class="card">
+      <span class="tag-secao">Dados pessoais</span>
+      <div class="linha"><span class="rotulo">Nome</span><span class="valor" id="v-nome">—</span></div>
+      <div class="linha"><span class="rotulo">CPF</span><span class="valor" id="v-cpf">—</span></div>
+      <div class="linha"><span class="rotulo">Nascimento</span><span class="valor" id="v-nasc">—</span></div>
+      <div class="linha"><span class="rotulo">Sexo</span><span class="valor" id="v-sexo">—</span></div>
+      <div class="linha"><span class="rotulo">Telefone</span><span class="valor" id="v-tel">—</span></div>
+      <div class="linha"><span class="rotulo">E-mail</span><span class="valor" id="v-email">—</span></div>
+      <div class="linha"><span class="rotulo">Endereço</span><span class="valor" id="v-end">—</span></div>
+    </div>
+
+    <div class="card">
+      <span class="tag-secao">Dados de saúde</span>
+      <div class="linha"><span class="rotulo">Tipo sanguíneo</span><span class="valor" id="v-sangue">—</span></div>
+      <div class="linha"><span class="rotulo">Alergias</span><span class="valor" id="v-alergias">—</span></div>
+      <div class="linha"><span class="rotulo">Doenças crônicas</span><span class="valor" id="v-doencas">—</span></div>
+      <div class="linha"><span class="rotulo">Medicamentos em uso</span><span class="valor" id="v-meds">—</span></div>
+    </div>
+
+    <div class="card">
+      <span class="tag-secao">Contato de emergência</span>
+      <div class="linha"><span class="rotulo">Nome</span><span class="valor" id="v-resp">—</span></div>
+      <div class="linha"><span class="rotulo">Telefone</span><span class="valor" id="v-resp-tel">—</span></div>
+    </div>
+
+    <button class="btn btn-contorno" id="btn-editar">✏️ Editar meus dados</button>
+
+    <!-- Modo edição -->
+    <div id="modo-edicao" class="escondido mt-16">
+      <div class="card">
+        <span class="tag-secao">Editar dados</span>
+        <div class="campo"><label>Telefone</label><input id="ed-tel"></div>
+        <div class="campo"><label>E-mail</label><input id="ed-email" type="email"></div>
+        <div class="campo"><label>Endereço</label><input id="ed-end"></div>
+        <div class="campo"><label>Medicamentos em uso</label><input id="ed-meds" placeholder="Separe por vírgula"></div>
+        <div style="display:flex; gap:10px;">
+          <button class="btn btn-contorno" id="ed-cancelar" style="flex:1;">Cancelar</button>
+          <button class="btn btn-primario" id="ed-salvar" style="flex:2;">💾 Salvar</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="banner-demo" class="banner-demo escondido mt-16" style="background:linear-gradient(135deg,#6B4FA0,#4A3573);">
+      <b>🎛️ Área de demonstração</b>
+      <p style="margin-bottom:10px;">Carregue um paciente de exemplo (com consultas, exames, agendamentos e notificações) para testar o app completo na banca.</p>
+      <div class="botoes">
+        <button class="btn" id="btn-seed">✨ Carregar paciente de exemplo</button>
+        <button class="btn" id="btn-limpar">🗑️ Limpar dados demo</button>
+      </div>
+    </div>
+  </main>
+
+  <nav class="bottomnav">
+    <a href="index.html" data-ir-home><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>Início</a>
+    <a href="historico.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Histórico</a>
+    <a href="exames.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3h6M10 3v6.5L5.5 18a3 3 0 0 0 3 4h7a3 3 0 0 0 3-4L14 9.5V3"/><path d="M7.5 15h9"/></svg>Exames</a>
+    <a href="agendamentos.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Agenda</a>
+    <a href="#" class="ativo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>Perfil</a>
+  </nav>
+
+  <div class="toast"></div>
+  <div class="modal-fundo"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../shared/js/config.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="../shared/js/db.js"></script>
+  <script src="js/nav.js"></script>
+  <script>
+    const cpf = DB.getSessao();
+    if (!cpf) { location.href = 'index.html'; }
+
+    let paciente = null;
+
+    function fmtCPF(c) {
+      if (!c) return '—';
+      c = c.replace(/\D/g, '');
+      return c.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+    }
+
+    async function carregar() {
+      paciente = await DB.getPaciente(cpf);
+      if (!paciente) { location.href = 'index.html'; return; }
+      document.getElementById('nome-perfil').textContent = paciente.nome;
+      document.getElementById('avatar').textContent = paciente.nome.split(' ').map(p => p[0]).slice(0, 2).join('');
+      document.getElementById('meta-perfil').textContent =
+        (paciente.nascimento ? UI.idade(paciente.nascimento) + ' anos' : '') + ' • Cadastro pela recepção';
+
+      const set = (id, v) => document.getElementById(id).textContent = v || '—';
+      set('v-nome', paciente.nome);
+      set('v-cpf', fmtCPF(paciente.cpf || cpf));
+      set('v-nasc', UI.fmtData(paciente.nascimento));
+      set('v-sexo', paciente.sexo === 'F' ? 'Feminino' : paciente.sexo === 'M' ? 'Masculino' : '—');
+      set('v-tel', paciente.telefone);
+      set('v-email', paciente.email);
+      set('v-end', paciente.endereco);
+      set('v-sangue', paciente.tipo_sanguineo);
+      set('v-alergias', (paciente.alergias || []).join(', ') || 'Nenhuma');
+      set('v-doencas', (paciente.doencas_cronicas || []).join(', ') || 'Nenhuma');
+      set('v-meds', paciente.medicamentos_uso || 'Nenhum');
+      set('v-resp', paciente.responsavel_nome);
+      set('v-resp-tel', paciente.responsavel_telefone);
+
+      // preenche formulário de edição
+      document.getElementById('ed-tel').value = paciente.telefone || '';
+      document.getElementById('ed-email').value = paciente.email || '';
+      document.getElementById('ed-end').value = paciente.endereco || '';
+      document.getElementById('ed-meds').value = paciente.medicamentos_uso || '';
+
+      document.getElementById('banner-demo').classList.toggle('escondido', SUPABASE_CONFIGURADO);
+    }
+
+    document.getElementById('btn-editar').onclick = () => {
+      document.getElementById('modo-edicao').classList.toggle('escondido');
+    };
+    document.getElementById('ed-cancelar').onclick = () => {
+      document.getElementById('modo-edicao').classList.add('escondido');
+    };
+    document.getElementById('ed-salvar').onclick = async () => {
+      const novos = {
+        telefone: document.getElementById('ed-tel').value.trim(),
+        email: document.getElementById('ed-email').value.trim(),
+        endereco: document.getElementById('ed-end').value.trim(),
+        medicamentos_uso: document.getElementById('ed-meds').value.trim()
+      };
+      try {
+        await DB.atualizarPaciente({ ...paciente, ...novos });
+        UI.toast('Dados atualizados ✓', 'sucesso');
+        document.getElementById('modo-edicao').classList.add('escondido');
+        carregar();
+      } catch (e) { UI.toast('Erro: ' + e.message, 'erro'); }
+    };
+
+    UI.mascararTelefone(document.getElementById('ed-tel'));
+
+    /* Demo */
+    document.getElementById('btn-seed').onclick = () => {
+      DB.seedDemo();
+      DB.setSessao('12345678909');
+      UI.toast('Paciente de exemplo carregado ✨', 'sucesso');
+      setTimeout(() => location.href = 'index.html', 1000);
+    };
+    document.getElementById('btn-limpar').onclick = () => {
+      UI.modalConfirmar({
+        titulo: 'Limpar dados demo?', texto: 'Todos os dados locais serão apagados.',
+        botao: 'Limpar', perigo: true,
+        onConfirmar: () => { DB.limparDemo(); DB.clearSessao(); location.href = 'index.html'; }
+      });
+    };
+
+    carregar();
+  </script>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3091264aaf293a8',t:'MTc4NzY0NDkxOA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3167ad8c8036ea3',t:'MTc4Nzc4NTUxMQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

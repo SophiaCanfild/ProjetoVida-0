@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0B6E4F">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Vida+ Paciente</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body class="tela-login">
+
+  <div class="marca">
+    <div class="logo-g" id="logo-svg"></div>
+    <h1>Vida+ Paciente</h1>
+    <p>Pré-atendimento digital na palma da mão</p>
+  </div>
+
+  <div class="caixa-login">
+
+    <!-- Visitante (não logado) -->
+    <div id="area-visitante" class="escondido">
+      <h2>👋 Bem-vindo(a)!</h2>
+      <p class="suave" style="margin-bottom:18px;">
+        Seu cadastro é feito pela recepção da unidade. É só entrar com seu CPF para acompanhar tudo.
+      </p>
+
+      <button class="btn btn-primario" id="btn-entrar">🔐 Entrar com meu CPF</button>
+
+      <a class="btn btn-contorno btn-bloco" href="../index.html" style="text-align:center;">← Voltar ao Portal Vida+</a>
+
+      <div class="banner-demo mt-16" style="background:linear-gradient(135deg,#6B4FA0,#4A3573);">
+        <b>🎬 MODO DEMONSTRAÇÃO</b>
+        <p style="margin-bottom:10px;">Para testar na banca, carregue um paciente de exemplo (cadastrado pela recepção) e entre com um toque.</p>
+        <div class="botoes">
+          <button class="btn" id="btn-demo-entrar">✨ Entrar como paciente demo</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Logado -->
+    <div id="area-logado" class="escondido">
+      <h2 id="saudacao-logado">Olá! 👋</h2>
+      <p class="suave" style="margin-bottom:14px;">Como podemos ajudar hoje?</p>
+
+      <!-- Atendimento ativo (senha) -->
+      <div id="cartao-ativo"></div>
+
+      <!-- Aviso de atendimento iniciado / nenhum -->
+      <div id="faixa-status"></div>
+
+      <!-- Área demo: recepção inicia atendimento -->
+      <div id="banner-demo-logado" class="banner-demo escondido" style="background:linear-gradient(135deg,#6B4FA0,#4A3573);">
+        <b>🎬 MODO DEMONSTRAÇÃO</b>
+        <p style="margin-bottom:10px;">Simule a equipe da unidade trabalhando:</p>
+        <div class="botoes">
+          <button class="btn" id="btn-demo-iniciar">🩺 Simular: recepção iniciou atendimento</button>
+          <button class="btn" id="btn-demo-agendar">🗓️ Simular: agendamento de consulta</button>
+        </div>
+      </div>
+
+      <!-- Atalhos -->
+      <a class="mini-card" href="fila.html">
+        <div class="icone-mini" id="ic-1"></div>
+        <div class="txt-mini"><div class="t">Meu atendimento</div><div class="s">Fila, senha, chamada</div></div>
+        <div class="seta-mini" id="seta-1"></div>
+      </a>
+      <a class="mini-card" href="historico.html">
+        <div class="icone-mini" id="ic-2"></div>
+        <div class="txt-mini"><div class="t">Histórico de consultas</div><div class="s">Todas as suas consultas passadas</div></div>
+        <div class="seta-mini" id="seta-2"></div>
+      </a>
+      <a class="mini-card" href="exames.html">
+        <div class="icone-mini" id="ic-3"></div>
+        <div class="txt-mini"><div class="t">Exames solicitados</div><div class="s">Solicitações e resultados</div></div>
+        <div class="seta-mini" id="seta-3"></div>
+      </a>
+      <a class="mini-card" href="agendamentos.html">
+        <div class="icone-mini" id="ic-4"></div>
+        <div class="txt-mini"><div class="t">Próximas consultas</div><div class="s">Agendar, confirmar ou desmarcar</div></div>
+        <div class="seta-mini" id="seta-4"></div>
+      </a>
+      <a class="mini-card" href="perfil.html">
+        <div class="icone-mini" id="ic-5"></div>
+        <div class="txt-mini"><div class="t">Meus dados</div><div class="s">Telefone, endereço, informações de saúde</div></div>
+        <div class="seta-mini" id="seta-5"></div>
+      </a>
+
+      <button class="btn btn-perigo btn-bloco" id="btn-sair-home">🚪 Sair da conta</button>
+      <a class="btn btn-contorno btn-bloco" href="../index.html" style="text-align:center;">← Voltar ao Portal Vida+</a>
+    </div>
+
+  </div>
+
+  <div class="rodape">
+    Projeto TCC • Sistema de Saúde<br>
+    <small>Integrado ao Sistema Médico Vida+</small>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../shared/js/config.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="../shared/js/db.js"></script>
+  <script src="js/nav.js"></script>
+  <script>
+    // ⚠️ Service worker DESATIVADO durante o desenvolvimento
+    // (o nav.js remove registros antigos). Reative na versão final.
+
+    const icones = {
+      fila: 'coracao', historico: 'historico', exame: 'tube',
+      agenda: 'agendamento', perfil: 'usuario', seta: 'seta'
+    };
+
+    document.getElementById('logo-svg').innerHTML =
+      '<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg>';
+
+    ['ic-1','ic-2','ic-3','ic-4','ic-5'].forEach((id, i) => {
+      const chaves = ['fila','historico','exame','agenda','perfil'];
+      document.getElementById(id).innerHTML = UI.icone(icones[chaves[i]]);
+    });
+    ['seta-1','seta-2','seta-3','seta-4','seta-5'].forEach(id => {
+      document.getElementById(id).innerHTML = UI.icone('seta');
+    });
+
+    function montarCartaoAtivo(ativa) {
+      const el = document.getElementById('cartao-ativo');
+      if (!ativa) { el.innerHTML = ''; return; }
+      el.innerHTML = `
+        <div class="rot">Atendimento em andamento</div>
+        <div class="senha-g">${ativa.senha}</div>
+        <div class="inf">${ativa.unidade} • Aguardando ${ativa.triagem ? 'consulta' : 'triagem'}</div>
+        <a class="link" href="fila.html">Ver minha fila →</a>`;
+    }
+
+    function montarFaixa(ativa) {
+      const el = document.getElementById('faixa-status');
+      if (ativa) {
+        el.innerHTML = `<div class="faixa faixa-ok">🩺 Seu atendimento foi iniciado pela recepção. Senha <b>${ativa.senha}</b>.</div>`;
+      } else {
+        el.innerHTML = `<div class="faixa faixa-info">Quando a recepção iniciar seu atendimento, ele aparece aqui automaticamente, com sua senha e posição na fila.</div>`;
+      }
+    }
+
+    async function initHome() {
+      const cpf = DB.getSessao();
+      const areaVisitante = document.getElementById('area-visitante');
+      const areaLogado = document.getElementById('area-logado');
+
+      document.getElementById('btn-entrar').onclick = () => location.href = 'login.html';
+      document.getElementById('btn-demo-entrar').onclick = () => {
+        DB.seedDemo();
+        DB.setSessao('12345678909');
+        location.reload();
+      };
+
+      if (!cpf) { areaVisitante.classList.remove('escondido'); return; }
+
+      // Logado
+      areaLogado.classList.remove('escondido');
+      try {
+        const p = await DB.getPaciente(cpf);
+        if (p && p.nome) {
+          document.getElementById('saudacao-logado').textContent =
+            'Olá, ' + p.nome.split(' ')[0] + '! 👋';
+        }
+        const fila = await DB.getMinhaFila(cpf);
+        montarCartaoAtivo(fila.ativa);
+        montarFaixa(fila.ativa);
+        document.getElementById('banner-demo-logado').classList.toggle('escondido', SUPABASE_CONFIGURADO);
+
+        document.getElementById('btn-demo-iniciar').onclick = async () => {
+          const btn = document.getElementById('btn-demo-iniciar');
+          btn.disabled = true;
+          try {
+            await DB.iniciarAtendimentoDemo(cpf);
+            UI.toast('Recepção iniciou seu atendimento ✓', 'sucesso');
+            montarCartaoAtivo(await DB.getMinhaFila(cpf).then(f => f.ativa));
+            montarFaixa(await DB.getMinhaFila(cpf).then(f => f.ativa));
+            Nav.atualizarBadge();
+            setTimeout(() => location.href = 'fila.html', 900);
+          } catch (e) { UI.toast('Erro: ' + e.message, 'erro'); btn.disabled = false; }
+        };
+
+        document.getElementById('btn-demo-agendar').onclick = async () => {
+          try {
+            await DB.agendarDemo(cpf);
+            UI.toast('Consulta agendada + lembrete criado ✓', 'sucesso');
+            Nav.atualizarBadge();
+          } catch (e) { UI.toast('Erro: ' + e.message, 'erro'); }
+        };
+      } catch (e) { /* mantém padrão */ }
+
+      document.getElementById('btn-sair-home').onclick = () => {
+        UI.modalConfirmar({
+          titulo: 'Sair da conta?',
+          texto: 'Você voltará ao portal principal do Vida+.',
+          botao: 'Sair', perigo: true,
+          onConfirmar: () => { DB.clearSessao(); location.href = '../index.html'; }
+        });
+      };
+    }
+
+    initHome();
+  </script>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a308d60d3a9ace20',t:'MTc4NzY0MjQ0Ng=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a31679533f4797d0',t:'MTc4Nzc4NTQ0OQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

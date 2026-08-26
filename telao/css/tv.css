@@ -1,0 +1,433 @@
+/* ============================================================
+   VIDA+ TELÃO — Design system (modo TV, tela grande)
+   Tema escuro elegante, fontes grandes e legíveis de longe.
+   ============================================================ */
+
+:root {
+  --verde: #12C98A;
+  --verde-vivo: #2EF0A6;
+  --verde-escuro: #0B6E4F;
+  --azul: #4DA3FF;
+  --fundo-1: #061A13;
+  --fundo-2: #0A2A1E;
+  --painel: #0E3326;
+  --painel-2: #123D2D;
+  --borda: rgba(46, 240, 166, 0.16);
+  --texto: #E8FFF6;
+  --texto-suave: #9FC9B8;
+  --amarelo: #FFD166;
+  --vermelho: #FF6B6B;
+  --sombra: 0 10px 40px rgba(0,0,0,0.45);
+  --raio: 20px;
+  --fonte: 'Segoe UI', system-ui, -apple-system, Roboto, 'Helvetica Neue', sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body { height: 100%; overflow: hidden; }
+
+body {
+  font-family: var(--fonte);
+  background: radial-gradient(1200px 600px at 20% -10%, var(--fundo-2), var(--fundo-1));
+  color: var(--texto);
+  min-height: 100vh;
+  display: flex;
+}
+
+/* ============ Layout principal ============ */
+.tv-app {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 22px 30px;
+  gap: 18px;
+  max-height: 100vh;
+}
+
+/* ============ Topo ============ */
+.tv-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.tv-marca {
+  display: flex; align-items: center; gap: 14px;
+}
+.tv-marca .logo-tv {
+  width: 54px; height: 54px; border-radius: 15px;
+  background: linear-gradient(135deg, var(--verde-escuro), var(--verde));
+  display: grid; place-items: center;
+  box-shadow: 0 0 24px rgba(18, 201, 138, 0.45);
+}
+.tv-marca .logo-tv svg { width: 30px; height: 30px; }
+.tv-marca .nome-sistema { font-size: 1.35rem; font-weight: 800; letter-spacing: 0.5px; }
+.tv-marca .nome-unidade { font-size: 0.95rem; color: var(--texto-suave); }
+.tv-relogio { text-align: right; }
+.tv-relogio .hora { font-size: 2.6rem; font-weight: 800; line-height: 1; letter-spacing: 1px; font-variant-numeric: tabular-nums; }
+.tv-relogio .data { font-size: 0.95rem; color: var(--texto-suave); margin-top: 4px; }
+
+/* ============ Destaque: última chamada ============ */
+.tv-destaque {
+  flex: 1;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  text-align: center;
+  background: linear-gradient(135deg, var(--painel), var(--painel-2));
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  box-shadow: var(--sombra);
+  padding: 20px 40px;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+}
+.tv-destaque::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(500px 200px at 50% 0%, rgba(18,201,138,0.12), transparent);
+  pointer-events: none;
+}
+.tv-destaque .rotulo-chamada {
+  font-size: 1rem; text-transform: uppercase; letter-spacing: 6px;
+  color: var(--verde-vivo); font-weight: 700;
+  animation: pisca 2.4s infinite;
+}
+@keyframes pisca { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }
+.tv-destaque .senha-chamada {
+  font-size: clamp(4rem, 9vw, 7.5rem);
+  font-weight: 900; letter-spacing: 8px;
+  color: var(--verde-vivo);
+  text-shadow: 0 0 40px rgba(46,240,166,0.5);
+  line-height: 1.05;
+  margin: 6px 0;
+}
+.tv-destaque .nome-chamada {
+  font-size: clamp(1.6rem, 3.4vw, 2.6rem);
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+.tv-destaque .guiche-chamada {
+  display: inline-block;
+  font-size: 1.15rem; font-weight: 700;
+  color: var(--fundo-1);
+  background: var(--amarelo);
+  padding: 8px 26px; border-radius: 40px;
+  letter-spacing: 1px;
+}
+.tv-destaque .pista-chamada { font-size: 0.9rem; color: var(--texto-suave); margin-top: 12px; }
+
+/* Animação de entrada da chamada */
+.tv-destaque.animando .anim-item {
+  animation: entra 0.7s cubic-bezier(0.2, 0.9, 0.3, 1.2) backwards;
+}
+.tv-destaque.animando .rotulo-chamada { animation-delay: 0.05s; }
+.tv-destaque.animando .senha-chamada { animation-delay: 0.15s; }
+.tv-destaque.animando .nome-chamada { animation-delay: 0.3s; }
+.tv-destaque.animando .guiche-chamada { animation-delay: 0.45s; }
+@keyframes entra {
+  from { opacity: 0; transform: translateY(40px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Estado "aguardando" */
+.tv-destaque .aguardando { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.tv-destaque .aguardando .icone-espera { font-size: 4rem; animation: flutua 3s ease-in-out infinite; }
+@keyframes flutua { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-14px); } }
+.tv-destaque .aguardando h2 { font-size: clamp(1.6rem, 3vw, 2.4rem); font-weight: 800; }
+.tv-destaque .aguardando p { color: var(--texto-suave); font-size: 1.1rem; }
+
+/* ============ Painéis inferiores ============ */
+.tv-paineis {
+  display: grid;
+  grid-template-columns: 1.1fr 1.4fr;
+  gap: 18px;
+  min-height: 0;
+  max-height: 42vh;
+}
+.tv-painel {
+  background: var(--painel);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: 16px 18px;
+  display: flex; flex-direction: column;
+  min-height: 0;
+}
+.tv-painel .painel-titulo {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 0.95rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 2px;
+  color: var(--verde-vivo);
+  margin-bottom: 12px;
+}
+.tv-painel .painel-titulo .contador {
+  background: rgba(46,240,166,0.15); color: var(--verde-vivo);
+  border-radius: 30px; padding: 2px 12px; font-size: 0.8rem;
+}
+.lista-tv { flex: 1; overflow: hidden; display: flex; flex-direction: column; gap: 8px; }
+
+/* Item da fila */
+.item-fila {
+  display: flex; align-items: center; gap: 14px;
+  background: var(--painel-2);
+  border-radius: 14px;
+  padding: 10px 16px;
+  border-left: 5px solid var(--verde-escuro);
+}
+.item-fila .pos {
+  width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
+  display: grid; place-items: center;
+  font-weight: 900; font-size: 1.15rem;
+  background: rgba(46,240,166,0.14); color: var(--verde-vivo);
+}
+.item-fila .senha {
+  font-weight: 800; font-size: 1.2rem; letter-spacing: 1px;
+  color: var(--texto); min-width: 78px;
+}
+.item-fila .nome { flex: 1; font-size: 1.02rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.item-fila .status {
+  font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+  padding: 4px 12px; border-radius: 20px; flex-shrink: 0;
+}
+.item-fila .status.na-fila { background: rgba(255,209,102,0.14); color: var(--amarelo); }
+.item-fila .status.chamado { background: rgba(46,240,166,0.16); color: var(--verde-vivo); }
+.item-fila.chamado { border-left-color: var(--verde-vivo); animation: destaque-fila 2s ease infinite; }
+@keyframes destaque-fila { 0%,100% { box-shadow: 0 0 0 0 rgba(46,240,166,0.35); } 50% { box-shadow: 0 0 0 6px rgba(46,240,166,0.08); } }
+
+/* Chamada recente */
+.item-recente {
+  display: flex; align-items: center; gap: 14px;
+  padding: 8px 4px;
+  border-bottom: 1px solid rgba(159,201,184,0.12);
+}
+.item-recente:last-child { border-bottom: none; }
+.item-recente .senha { font-weight: 800; font-size: 1.05rem; min-width: 70px; color: var(--verde-vivo); }
+.item-recente .nome { flex: 1; font-size: 0.95rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.item-recente .hora { color: var(--texto-suave); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+.item-recente .guiche { font-size: 0.75rem; font-weight: 700; color: var(--fundo-1); background: var(--amarelo); border-radius: 20px; padding: 2px 10px; }
+
+/* Vazio */
+.vazio-tv { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: var(--texto-suave); text-align: center; }
+.vazio-tv .icone { font-size: 2.6rem; }
+.vazio-tv h3 { color: var(--texto); font-size: 1.1rem; }
+
+/* ============ Rodapé ============ */
+.tv-rodape {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  color: var(--texto-suave); font-size: 0.9rem;
+  padding-top: 4px;
+}
+.tv-rodape .ponto { width: 8px; height: 8px; border-radius: 50%; background: var(--verde); animation: pisca 2s infinite; }
+
+/* ============================================================
+   PAINEL DE CONTROLE (operador)
+   ============================================================ */
+.ctrl-body {
+  background: #F2F6F4;
+  color: #17281F;
+  font-family: var(--fonte);
+  overflow: auto;
+  display: block;
+}
+.ctrl-topo {
+  background: linear-gradient(135deg, #0A5A41, #0B6E4F);
+  color: #fff;
+  padding: 18px 26px;
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+}
+.ctrl-topo h1 { font-size: 1.25rem; display: flex; align-items: center; gap: 10px; }
+.ctrl-topo .btn-sair-ctrl {
+  background: rgba(255,255,255,0.15); color: #fff; border: none;
+  padding: 10px 18px; border-radius: 10px; font-size: 0.9rem; font-weight: 700; cursor: pointer;
+}
+.ctrl-conteudo { padding: 22px 26px; max-width: 1200px; margin: 0 auto; }
+
+/* Cartões do controle */
+.ctrl-cartoes { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 20px; }
+.ctrl-cartao { background: #fff; border-radius: 14px; padding: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
+.ctrl-cartao .c-rotulo { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px; color: #5B6F68; font-weight: 700; }
+.ctrl-cartao .c-valor { font-size: 1.6rem; font-weight: 800; color: #0B6E4F; margin-top: 2px; }
+.ctrl-cartao .c-info { font-size: 0.8rem; color: #5B6F68; margin-top: 2px; }
+
+.ctrl-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 18px; }
+@media (max-width: 900px) { .ctrl-grid { grid-template-columns: 1fr; } }
+
+.ctrl-painel { background: #fff; border-radius: 16px; padding: 18px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
+.ctrl-painel h2 { font-size: 1.02rem; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+
+/* Botão chamar próximo */
+.btn-chamar {
+  width: 100%; padding: 18px; border: none; border-radius: 14px;
+  background: linear-gradient(135deg, #0B6E4F, #0A5A41);
+  color: #fff; font-size: 1.1rem; font-weight: 800; cursor: pointer;
+  box-shadow: 0 6px 20px rgba(11,110,79,0.35);
+  margin-bottom: 14px;
+  transition: transform 0.08s, opacity 0.2s;
+  font-family: inherit;
+}
+.btn-chamar:active { transform: scale(0.99); }
+.btn-chamar:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Fila no controle */
+.ctrl-fila-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px; border-radius: 12px;
+  border: 1.5px solid #DCE6E1; margin-bottom: 8px;
+  background: #FAFDFB;
+}
+.ctrl-fila-item .pos { width: 34px; height: 34px; border-radius: 10px; background: #E6F4EF; color: #0B6E4F; font-weight: 800; display: grid; place-items: center; flex-shrink: 0; }
+.ctrl-fila-item .senha { font-weight: 800; min-width: 62px; }
+.ctrl-fila-item .nome { flex: 1; font-size: 0.92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ctrl-fila-item .btn-chama { background: #0B6E4F; color: #fff; border: none; border-radius: 8px; padding: 7px 14px; font-weight: 700; cursor: pointer; font-size: 0.82rem; }
+
+/* Última chamada no controle */
+.ultima-chamada {
+  background: #E6F4EF; border-radius: 12px; padding: 14px;
+  text-align: center; margin-bottom: 14px;
+}
+.ultima-chamada .senha { font-size: 2rem; font-weight: 900; color: #0B6E4F; }
+.ultima-chamada .nome { font-weight: 700; font-size: 1rem; margin-top: 2px; }
+.ultima-chamada .det { font-size: 0.82rem; color: #5B6F68; margin-top: 4px; }
+.ctrl-recentes { max-height: 260px; overflow-y: auto; }
+
+/* Botões demo */
+.btn-demo-ctrl {
+  background: linear-gradient(135deg, #6B4FA0, #4A3573);
+  color: #fff; border: none; border-radius: 10px;
+  padding: 10px 16px; font-weight: 700; cursor: pointer; font-size: 0.85rem; font-family: inherit;
+}
+
+/* Login do controle */
+.ctrl-login {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(800px 400px at 30% 0%, #0A2A1E, #061A13);
+  padding: 20px;
+}
+.ctrl-login .caixa {
+  background: #fff; border-radius: 20px; padding: 30px;
+  width: 100%; max-width: 380px; text-align: center;
+  color: #17281F;
+}
+.ctrl-login h2 { color: #0B6E4F; margin-bottom: 6px; }
+.ctrl-login .logo-g { width: 64px; height: 64px; margin: 0 auto 14px; border-radius: 18px; background: linear-gradient(135deg,#0B6E4F,#12C98A); display: grid; place-items: center; }
+.ctrl-login .logo-g svg { width: 36px; height: 36px; }
+.ctrl-login input {
+  width: 100%; padding: 13px; margin-top: 14px;
+  border: 1.5px solid #DCE6E1; border-radius: 10px;
+  font-size: 1.4rem; text-align: center; letter-spacing: 6px; font-weight: 800;
+  font-family: inherit;
+}
+.ctrl-login .btn-login {
+  width: 100%; margin-top: 12px; padding: 14px;
+  background: #0B6E4F; color: #fff; border: none; border-radius: 10px;
+  font-weight: 800; font-size: 1rem; cursor: pointer; font-family: inherit;
+}
+.ctrl-login .dica { font-size: 0.78rem; color: #5B6F68; margin-top: 12px; }
+.ctrl-login .erro { color: #D64545; font-size: 0.85rem; margin-top: 10px; min-height: 20px; font-weight: 600; }
+
+/* Toast (controle) */
+.toast-ctrl {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: #17281F; color: #fff; padding: 12px 22px; border-radius: 30px;
+  font-size: 0.9rem; font-weight: 600; z-index: 50; opacity: 0;
+  transition: all 0.3s; pointer-events: none;
+}
+.toast-ctrl.aberto { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast-ctrl.erro { background: #D64545; }
+
+/* Banner modo demo no controle */
+.banner-demo-ctrl {
+  background: linear-gradient(135deg, #6B4FA0, #4A3573);
+  color: #fff; border-radius: 12px; padding: 14px 16px; margin-bottom: 18px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+}
+.banner-demo-ctrl b { display: block; }
+.banner-demo-ctrl .botoes { display: flex; gap: 8px; flex-wrap: wrap; }
+.banner-demo-ctrl .btn { background: rgba(255,255,255,0.18); color: #fff; border: none; border-radius: 8px; padding: 8px 14px; font-weight: 700; cursor: pointer; font-size: 0.8rem; font-family: inherit; }
+
+/* ============================================================
+   AVISOS (painel institucional — sem dados de pacientes)
+   ============================================================ */
+.aviso-grande {
+  flex: 1;
+  display: flex; align-items: center; justify-content: center;
+  text-align: center;
+  font-size: clamp(1.15rem, 2.2vw, 1.7rem);
+  line-height: 1.55;
+  color: var(--texto);
+  padding: 12px 24px;
+}
+.aviso-grande.fade { animation: fade-aviso 0.7s ease; }
+@keyframes fade-aviso {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Chamada recente sem nome (privacidade) */
+.tv-paineis .item-recente .guiche { order: 2; }
+.tv-paineis .item-recente .hora { order: 3; }
+
+/* ============================================================
+   CHAMADA POR TIPO (triagem x consulta)
+   ============================================================ */
+
+/* Chamada de CONSULTA: nome em destaque (o paciente se reconhece
+   pelo nome) + consultório + médico responsável */
+.tv-destaque .tipo-tag {
+  font-size: 0.85rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 4px; padding: 4px 16px; border-radius: 30px;
+  margin-bottom: 8px; display: inline-block;
+}
+.tv-destaque .tipo-tag.triagem { background: rgba(255,209,102,0.16); color: var(--amarelo); }
+.tv-destaque .tipo-tag.consulta { background: rgba(77,163,255,0.16); color: var(--azul); }
+
+/* Modo consulta: nome GRANDE */
+.tv-destaque.modo-consulta .senha-chamada {
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  letter-spacing: 3px;
+  color: var(--texto-suave);
+  text-shadow: none;
+  margin: 4px 0 0;
+}
+.tv-destaque.modo-consulta .nome-chamada {
+  font-size: clamp(2.4rem, 5vw, 4rem);
+  font-weight: 900;
+  color: var(--texto);
+  margin: 8px 0;
+}
+.tv-destaque .destino-box {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  background: rgba(77,163,255,0.14);
+  border: 1px solid rgba(77,163,255,0.35);
+  border-radius: 18px;
+  padding: 12px 34px;
+  margin-top: 10px;
+}
+.tv-destaque .destino-box .destino-rotulo {
+  font-size: 0.8rem; text-transform: uppercase; letter-spacing: 3px; color: var(--azul); font-weight: 700;
+}
+.tv-destaque .destino-box .destino-valor {
+  font-size: clamp(1.8rem, 3.6vw, 2.8rem); font-weight: 900; color: var(--texto);
+}
+.tv-destaque .destino-box .destino-medico {
+  font-size: clamp(1rem, 1.8vw, 1.4rem); font-weight: 700; color: var(--texto-suave);
+}
+
+/* Modo triagem: senha GRANDE (chamada por código) */
+.tv-destaque.modo-triagem .nome-chamada {
+  font-size: clamp(1.2rem, 2vw, 1.6rem);
+  font-weight: 600;
+  color: var(--texto-suave);
+  margin: 2px 0 8px;
+}
+.tv-destaque.modo-triagem .destino-box {
+  background: rgba(255,209,102,0.12);
+  border-color: rgba(255,209,102,0.35);
+  padding: 10px 30px;
+}
+.tv-destaque.modo-triagem .destino-box .destino-rotulo { color: var(--amarelo); }
+.tv-destaque.modo-triagem .destino-box .destino-valor { font-size: clamp(1.5rem, 3vw, 2.2rem); color: var(--texto); }
+
+/* Guichê/destino com cor por tipo nas recentes */
+.item-recente .guiche { background: var(--amarelo); }
+.item-recente .guiche.guiche-consulta { background: var(--azul); color: #fff; }

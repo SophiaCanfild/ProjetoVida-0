@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0B6E4F">
+  <title>Notificações — Vida+ Paciente</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg>
+      Vida+ Paciente
+    </div>
+    <div class="espaco"></div>
+    <button class="sino" id="btn-sair" title="Sair">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+    </button>
+  </header>
+
+  <main class="pagina">
+    <h1>🔔 Notificações</h1>
+    <p class="suave" style="margin-bottom:16px;">Avisos de atendimento, chamadas, resultados e lembretes.</p>
+    <div id="lista-notif">
+      <div class="vazio"><p>Carregando...</p></div>
+    </div>
+  </main>
+
+  <nav class="bottomnav">
+    <a href="index.html" data-ir-home><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>Início</a>
+    <a href="historico.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Histórico</a>
+    <a href="exames.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3h6M10 3v6.5L5.5 18a3 3 0 0 0 3 4h7a3 3 0 0 0 3-4L14 9.5V3"/><path d="M7.5 15h9"/></svg>Exames</a>
+    <a href="agendamentos.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Agenda</a>
+    <a href="perfil.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>Perfil</a>
+  </nav>
+
+  <div class="toast"></div>
+  <div class="modal-fundo"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../shared/js/config.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="../shared/js/db.js"></script>
+  <script src="js/nav.js"></script>
+  <script>
+    const cpf = DB.getSessao();
+    if (!cpf) { location.href = 'index.html'; }
+
+    const EMOJI = {
+      chamada: '🔔', resultado: '📋', lembrete: '🗓️',
+      atendimento_iniciado: '🩺', triagem: '🌡️', aviso: 'ℹ️'
+    };
+
+    async function carregar() {
+      const lista = await DB.getNotificacoes(cpf);
+      const container = document.getElementById('lista-notif');
+
+      if (!lista.length) {
+        container.innerHTML = `
+          <div class="vazio">${UI.icone('sino')}<h3>Nenhuma notificação</h3>
+          <p>Quando a unidade iniciar seu atendimento ou tiver novidades, você verá aqui.</p></div>`;
+        return;
+      }
+
+      container.innerHTML = lista.map(n => `
+        <a class="notif-item ${n.lida ? '' : 'nao-lida'}" href="${n.link || '#'}" onclick="${n.link ? '' : 'event.preventDefault();'}">
+          <div class="n-icone">${EMOJI[n.tipo] || 'ℹ️'}</div>
+          <div class="n-corpo">
+            <div class="n-titulo">${n.titulo}</div>
+            <div class="n-texto">${n.texto}</div>
+            <div class="n-data">${UI.fmtDataHora(n.criado_em)}</div>
+          </div>
+          ${!n.lida ? '<div class="bolinha"></div>' : ''}
+        </a>`).join('');
+
+      DB.marcarLidas(cpf);
+      Nav.atualizarBadge();
+    }
+
+    carregar();
+  </script>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a30911c58f7193a8',t:'MTc4NzY0NDg5Mw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3167a798c886ea3',t:'MTc4Nzc4NTQ5Ng=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

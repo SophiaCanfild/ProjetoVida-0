@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0B6E4F">
+  <title>Relatório — Vida+ Paciente</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg>
+      Vida+ Paciente
+    </div>
+    <div class="espaco"></div>
+    <button class="sino" id="btn-sair" title="Sair">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+    </button>
+  </header>
+
+  <main class="pagina" id="conteudo">
+    <div class="vazio"><p>Carregando...</p></div>
+  </main>
+
+  <nav class="bottomnav">
+    <a href="index.html" data-ir-home><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>Início</a>
+    <a href="historico.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Histórico</a>
+    <a href="exames.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3h6M10 3v6.5L5.5 18a3 3 0 0 0 3 4h7a3 3 0 0 0 3-4L14 9.5V3"/><path d="M7.5 15h9"/></svg>Exames</a>
+    <a href="agendamentos.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Agenda</a>
+    <a href="perfil.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>Perfil</a>
+  </nav>
+
+  <div class="toast"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../shared/js/config.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="../shared/js/db.js"></script>
+  <script src="js/nav.js"></script>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const id = params.get('id');
+    const cpf = DB.getSessao();
+    if (!cpf) { location.href = 'index.html'; }
+
+    async function carregar() {
+      const consultas = await DB.getConsultas(cpf);
+      const c = consultas.find(x => x.id === id) || consultas[0];
+      if (!c || !c.relatorio) {
+        document.getElementById('conteudo').innerHTML =
+          '<div class="vazio">' + UI.icone('doc') + '<h3>Nada por aqui</h3><p>Não encontramos o relatório desta consulta.</p></div>';
+        return;
+      }
+      const r = c.relatorio;
+      const meds = (r.medicamentos || []).map(m => `
+        <div class="receita">
+          <div class="med">💊 ${m.nome}</div>
+          <div class="dos">${m.dosagem} • ${m.frequencia}</div>
+          <div class="dos suave">Duração: ${m.duracao}</div>
+          <div class="tags">
+            ${m.obs ? '<span class="tag">📝 ' + m.obs + '</span>' : ''}
+            <span class="tag">${c.unidade}</span>
+          </div>
+        </div>`).join('') || '<p class="suave">Nenhum medicamento prescrito.</p>';
+
+      const exames = (r.exames || []).map(e => {
+        const st = (e.status || 'solicitado');
+        const rot = st === 'resultado_disponivel' || st === 'concluido' ? 'resultado' : st === 'realizado' || st === 'em_analise' ? 'realizado' : 'solicitado';
+        const txt = st === 'resultado_disponivel' || st === 'concluido' ? 'Resultado' : st === 'realizado' || st === 'em_analise' ? 'Em análise' : 'Solicitado';
+        return `
+          <div class="exame-card">
+            <div class="e-icone">${UI.icone('tube')}</div>
+            <div class="e-info">
+              <div class="e-nome">${e.nome || e.exame}</div>
+              ${e.orientacao ? '<div class="e-det">📌 ' + e.orientacao + '</div>' : ''}
+              ${e.resultado ? '<div class="resultado-box">📊 Resultado: <b>' + e.resultado + '</b></div>' : ''}
+            </div>
+            <span class="e-status ${'e-' + rot}">${txt}</span>
+          </div>`;
+      }).join('') || '<p class="suave">Nenhum exame solicitado.</p>';
+
+      document.getElementById('conteudo').innerHTML = `
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+          <h1>📋 Relatório da consulta</h1>
+          <button class="btn" id="btn-imprimir" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--verde-claro); color:var(--verde);">🖨️ Salvar/Imprimir</button>
+        </div>
+        <p class="suave mb-16">${UI.fmtDataHora(r.finalizado_em)} • ${r.unidade || c.unidade} • Senha ${c.senha}</p>
+
+        <div class="card">
+          <span class="tag-secao">Diagnóstico</span>
+          <h2 style="color:var(--verde-escuro);">${r.diagnostico}</h2>
+          <p class="mt-8" style="font-size:0.92rem;">${r.conduta}</p>
+        </div>
+
+        ${c.triagem ? `
+        <div class="card">
+          <div class="card-titulo"><span>🌡️ Triagem da enfermeira</span></div>
+          <div class="linha"><span class="rotulo">Queixa</span><span class="valor">${c.triagem.queixa_principal || '—'}</span></div>
+          <div class="linha"><span class="rotulo">Sintomas</span><span class="valor">${(c.triagem.sintomas || []).join(', ') || '—'}</span></div>
+          <div class="linha"><span class="rotulo">Há quanto tempo</span><span class="valor">${c.triagem.tempo_sintomas || '—'}</span></div>
+          <div class="linha"><span class="rotulo">Dor (0–10)</span><span class="valor">${c.triagem.intensidade_dor ?? '—'}</span></div>
+          <div class="grade-sinais">
+            ${c.triagem.pressao ? '<div class="sinal-box"><div class="s-valor">' + c.triagem.pressao + '</div><div class="s-rotulo">Pressão</div></div>' : ''}
+            ${c.triagem.pulso ? '<div class="sinal-box"><div class="s-valor">' + c.triagem.pulso + ' bpm</div><div class="s-rotulo">Pulso</div></div>' : ''}
+            ${c.triagem.temperatura ? '<div class="sinal-box"><div class="s-valor">' + c.triagem.temperatura + '°C</div><div class="s-rotulo">Temp.</div></div>' : ''}
+            ${c.triagem.saturacao ? '<div class="sinal-box"><div class="s-valor">' + c.triagem.saturacao + '%</div><div class="s-rotulo">Sat. O₂</div></div>' : ''}
+          </div>
+        </div>` : ''}
+
+        <div class="card">
+          <div class="card-titulo"><span>💊 Medicamentos prescritos</span></div>
+          ${meds}
+        </div>
+
+        <div class="card">
+          <div class="card-titulo"><span>🧪 Exames solicitados</span></div>
+          ${exames}
+        </div>
+
+        <div class="card">
+          <div class="card-titulo"><span>📌 Orientações</span></div>
+          <p style="font-size:0.92rem;">${r.orientacoes || 'Seguir as orientações da equipe médica.'}</p>
+          <div class="linha mt-12"><span class="rotulo">Médico(a)</span><span class="valor">${r.medico}</span></div>
+        </div>
+
+        <p class="dica central mt-16">Guarde este relatório — ele fica no seu histórico.</p>`;
+
+      document.getElementById('btn-imprimir').onclick = () => window.print();
+    }
+
+    carregar();
+  </script>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3090dbd5c0793a8',t:'MTc4NzY0NDcyNw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a31674b60bad97d0',t:'MTc4Nzc4NTI2MA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

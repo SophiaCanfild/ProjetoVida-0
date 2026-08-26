@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0B6E4F">
+  <title>Meu atendimento — Vida+ Paciente</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg>
+      Vida+ Paciente
+    </div>
+    <div class="espaco"></div>
+    <button class="sino" id="btn-notif" title="Notificações">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9a6 6 0 1 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>
+      <span class="badge-sino escondido" id="badge-notif">0</span>
+    </button>
+    <button class="sino" id="btn-sair" title="Sair">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+    </button>
+  </header>
+
+  <main class="pagina">
+
+    <!-- SEM atendimento ativo -->
+    <section id="estado-sem" class="escondido">
+      <div class="vazio">
+        <div style="font-size:3rem;">🩺</div>
+        <h3>Você não está na fila</h3>
+        <p>Quando a recepção da unidade iniciar seu atendimento, ele aparecerá aqui automaticamente, com sua senha e posição na fila.</p>
+        <a class="btn btn-primario btn-bloco" href="index.html">Voltar para o início</a>
+      </div>
+    </section>
+
+    <!-- Em atendimento -->
+    <section id="estado-fila">
+
+      <!-- Barra de progresso: recepção → triagem → consulta -->
+      <div class="progresso-etapas" id="progresso">
+        <div class="etapa" data-e="0"><div class="barra"></div>Recepção</div>
+        <div class="etapa" data-e="1"><div class="barra"></div>Triagem</div>
+        <div class="etapa" data-e="2"><div class="barra"></div>Consulta</div>
+        <div class="etapa" data-e="3"><div class="barra"></div>Finalizado</div>
+      </div>
+
+      <div class="senha-box">
+        <div class="rotulo">Sua senha</div>
+        <div class="senha" id="senha">A000</div>
+        <div class="info" id="senha-info">Unidade</div>
+      </div>
+
+      <!-- Posição (apenas enquanto em_fila) -->
+      <div id="bloco-posicao" class="card central">
+        <h2>Sua posição na fila</h2>
+        <p style="font-size:2.6rem; font-weight:800; color:var(--verde);" id="posicao">—</p>
+        <p class="suave" id="tempo-estimado">Calculando...</p>
+      </div>
+
+      <!-- Chamado -->
+      <div id="bloco-chamado" class="escondido card central" style="border:1.5px solid var(--azul);">
+        <div style="font-size:2.6rem;">🔔</div>
+        <h2 style="color:var(--azul);">Você foi chamado!</h2>
+        <p id="chamado-onde" class="mt-8">Dirija-se ao local indicado.</p>
+      </div>
+
+      <!-- Triagem (preenchida pela enfermeira) -->
+      <div id="bloco-triagem" class="escondido">
+        <div class="card">
+          <div class="card-titulo"><span>🌡️ Triagem — realizada pela enfermeira</span></div>
+          <div class="linha"><span class="rotulo">Queixa principal</span><span class="valor" id="t-queixa">—</span></div>
+          <div class="linha"><span class="rotulo">Sintomas</span><span class="valor" id="t-sintomas">—</span></div>
+          <div class="linha"><span class="rotulo">Há quanto tempo</span><span class="valor" id="t-tempo">—</span></div>
+          <div class="linha"><span class="rotulo">Intensidade da dor</span><span class="valor" id="t-dor">—</span></div>
+          <div class="linha"><span class="rotulo">Classificação de risco</span><span class="valor" id="t-risco">—</span></div>
+          <div class="grade-sinais" id="t-sinais"></div>
+          <div class="linha mt-12"><span class="rotulo">Observações</span><span class="valor" id="t-obs">—</span></div>
+          <div class="linha"><span class="rotulo">Enfermeiro(a)</span><span class="valor" id="t-enf">—</span></div>
+        </div>
+      </div>
+
+      <!-- Linha do tempo -->
+      <div class="card">
+        <div class="card-titulo"><span>⏳ Andamento do atendimento</span></div>
+        <ul class="timeline" id="timeline">
+          <li>Recepção iniciou o atendimento</li>
+          <li>Triagem pela enfermeira</li>
+          <li>Chamada no telão</li>
+          <li>Em atendimento</li>
+          <li>Consulta finalizada</li>
+        </ul>
+      </div>
+
+      <!-- Área demo: simular equipe -->
+      <div id="banner-demo" class="banner-demo escondido" style="background:linear-gradient(135deg,#6B4FA0,#4A3573);">
+        <b>🎬 MODO DEMONSTRAÇÃO</b>
+        <p style="margin-bottom:10px;">Simule a equipe da unidade (como o sistema médico faria):</p>
+        <div class="botoes">
+          <button class="btn" id="btn-demo-triagem">🌡️ Enfermeira faz a triagem</button>
+          <button class="btn" id="btn-demo-chamada">📺 Telão chama o nome</button>
+          <button class="btn" id="btn-demo-finalizar">📋 Médico finaliza consulta</button>
+        </div>
+      </div>
+
+      <button class="btn btn-perigo btn-bloco" id="btn-cancelar">
+        ✕ Cancelar meu atendimento e sair da fila
+      </button>
+    </section>
+
+    <!-- Cancelado -->
+    <section id="estado-cancelado" class="escondido">
+      <div class="card central" style="border:1.5px solid var(--vermelho);">
+        <div style="font-size:3rem;">🗑️</div>
+        <h2 style="color:var(--vermelho); margin:6px 0;">Atendimento cancelado</h2>
+        <p class="suave">Você foi retirado(a) da fila. Quando precisar, procure a recepção para iniciar um novo atendimento.</p>
+        <a class="btn btn-primario btn-bloco" href="index.html">Voltar para o início</a>
+      </div>
+    </section>
+  </main>
+
+  <nav class="bottomnav">
+    <a href="#" data-ir-home><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>Início</a>
+    <a href="historico.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Histórico</a>
+    <a href="exames.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3h6M10 3v6.5L5.5 18a3 3 0 0 0 3 4h7a3 3 0 0 0 3-4L14 9.5V3"/><path d="M7.5 15h9"/></svg>Exames</a>
+    <a href="agendamentos.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Agenda</a>
+    <a href="perfil.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>Perfil</a>
+  </nav>
+
+  <div class="toast"></div>
+  <div class="modal-fundo"></div>
+  <div class="overlay-chamada"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../shared/js/config.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="../shared/js/db.js"></script>
+  <script src="js/notificacao.js"></script>
+  <script src="js/nav.js"></script>
+  <script>
+    const cpf = DB.getSessao();
+    if (!cpf) { location.href = 'index.html'; }
+
+    let consultaAtiva = null;
+    let intervalo = null;
+
+    /* Chips de status da triagem */
+    const mapaRisco = {
+      vermelho: ['Vermelho — emergência', 'faixa-risco'],
+      laranja: ['Laranja — muito urgente', 'faixa-risco'],
+      amarelo: ['Amarelo — urgente', 'faixa-atencao'],
+      verde: ['Verde — pouco urgente', 'faixa-ok'],
+      azul: ['Azul — não urgente', 'faixa-info']
+    };
+
+    function renderizar(fila) {
+      const c = fila.ativa;
+      if (!c) {
+        document.getElementById('estado-fila').classList.add('escondido');
+        document.getElementById('estado-cancelado').classList.add('escondido');
+        document.getElementById('estado-sem').classList.remove('escondido');
+        return;
+      }
+      consultaAtiva = c;
+      document.getElementById('estado-sem').classList.add('escondido');
+      document.getElementById('estado-fila').classList.remove('escondido');
+
+      if (c.status === 'cancelado') {
+        document.getElementById('estado-fila').classList.add('escondido');
+        document.getElementById('estado-cancelado').classList.remove('escondido');
+        return;
+      }
+
+      document.getElementById('senha').textContent = c.senha;
+      document.getElementById('senha-info').textContent = c.unidade;
+
+      /* Progresso */
+      let etapa = 0; // recepção
+      if (c.triagem) etapa = 1;
+      if (c.status === 'em_consulta') etapa = 2;
+      if (c.status === 'finalizado') etapa = 3;
+      document.querySelectorAll('#progresso .etapa').forEach(el => {
+        const i = +el.dataset.e;
+        el.classList.toggle('feita', i < etapa);
+        el.classList.toggle('ativa', i === etapa);
+      });
+
+      /* Posição (só em fila) */
+      if (c.status === 'em_fila') {
+        document.getElementById('bloco-posicao').classList.remove('escondido');
+        const pos = fila.posicao || 0;
+        document.getElementById('posicao').textContent = pos > 0 ? pos + 'ª' : '—';
+        const minutos = (pos - 1) * APP_CONFIG.TEMPO_POR_POSICAO;
+        document.getElementById('tempo-estimado').textContent =
+          pos <= 1 ? 'Você é o próximo da fila! 🎉' : 'Tempo estimado de espera: ~' + minutos + ' min';
+      } else {
+        document.getElementById('bloco-posicao').classList.add('escondido');
+      }
+
+      /* Chamado */
+      document.getElementById('bloco-chamado').classList.toggle('escondido', c.status !== 'chamado');
+      if (c.status === 'chamado') {
+        document.getElementById('chamado-onde').textContent =
+          (c.guiche ? 'Guichê ' + c.guiche + ' • ' : '') + c.unidade;
+        if (!sessionStorage.getItem('vidamais_notificou_' + c.id)) {
+          sessionStorage.setItem('vidamais_notificou_' + c.id, '1');
+          Notificacao.dispararChamada({
+            nome: localStorage.getItem('vidamais_ultimo_nome') || 'Paciente',
+            senha: c.senha,
+            onde: (c.guiche ? 'Guichê ' + c.guiche + ' • ' : '') + c.unidade,
+            perfil: 'paciente'
+          });
+        }
+      }
+
+      /* Triagem */
+      const temTriagem = !!c.triagem;
+      document.getElementById('bloco-triagem').classList.toggle('escondido', !temTriagem);
+      if (temTriagem) {
+        const t = c.triagem;
+        document.getElementById('t-queixa').textContent = t.queixa_principal || '—';
+        document.getElementById('t-sintomas').textContent = (t.sintomas || []).join(', ') || '—';
+        document.getElementById('t-tempo').textContent = t.tempo_sintomas || '—';
+        document.getElementById('t-dor').textContent = t.intensidade_dor !== undefined ? t.intensidade_dor + '/10' : '—';
+        const risco = mapaRisco[t.classificacao_risco] || ['—', 'faixa-info'];
+        document.getElementById('t-risco').innerHTML =
+          `<span class="faixa ${risco[1]}" style="margin:0;">${risco[0]}</span>`;
+
+        const sinais = [];
+        if (t.pressao) sinais.push(['Pressão', t.pressao]);
+        if (t.pulso) sinais.push(['Pulso', t.pulso + ' bpm']);
+        if (t.temperatura) sinais.push(['Temp.', t.temperatura + '°C']);
+        if (t.saturacao) sinais.push(['Sat. O₂', t.saturacao + '%']);
+        if (t.peso) sinais.push(['Peso', t.peso + ' kg']);
+        if (t.altura) sinais.push(['Altura', t.altura + ' cm']);
+        if (t.glicemia) sinais.push(['Glicemia', t.glicemia]);
+        document.getElementById('t-sinais').innerHTML = sinais.map(s =>
+          `<div class="sinal-box"><div class="s-valor">${s[1]}</div><div class="s-rotulo">${s[0]}</div></div>`).join('');
+
+        document.getElementById('t-obs').textContent = t.observacoes || '—';
+        document.getElementById('t-enf').textContent = t.enfermeiro || '—';
+      }
+
+      /* Timeline */
+      const estadoIndex = c.status === 'em_fila' ? 0 : c.status === 'chamado' ? 1 : 2;
+      document.querySelectorAll('#timeline li').forEach((li, i) => {
+        li.className = temTriagem && i === 0 ? 'feito' : i === 0 ? 'feito' : '';
+        if (c.status === 'chamado' || c.status === 'em_consulta' || c.status === 'finalizado') {
+          li.className = i < estadoIndex + 1 ? 'feito' : i === estadoIndex + 1 ? 'ativo' : '';
+        }
+        if (i === 0) li.className = 'feito';
+      });
+
+      /* Banner demo */
+      document.getElementById('banner-demo').classList.toggle('escondido', SUPABASE_CONFIGURADO);
+    }
+
+    async function atualizar() {
+      try {
+        const fila = await DB.getMinhaFila(cpf);
+        renderizar(fila);
+      } catch (e) { console.error(e); }
+    }
+
+    atualizar();
+    intervalo = setInterval(atualizar, 15000);
+
+    /* Cancelar */
+    document.getElementById('btn-cancelar').onclick = () => {
+      if (!consultaAtiva) return;
+      UI.modalConfirmar({
+        titulo: 'Cancelar atendimento?',
+        texto: 'Você será removido(a) da fila automaticamente. Pode cancelar a qualquer momento antes do início da consulta.',
+        botao: 'Sim, cancelar', perigo: true,
+        onConfirmar: async () => {
+          try {
+            await DB.cancelarConsulta(consultaAtiva.id);
+            UI.toast('Você saiu da fila', 'sucesso');
+            atualizar();
+          } catch (e) { UI.toast('Erro: ' + e.message, 'erro'); }
+        }
+      });
+    };
+
+    /* ===== SIMULAÇÕES (o que o sistema médico faria) ===== */
+    document.getElementById('btn-demo-triagem').onclick = async () => {
+      try {
+        await DB.simularTriagem(cpf);
+        UI.toast('Enfermeira concluiu a triagem ✓', 'sucesso');
+        Nav.atualizarBadge();
+        atualizar();
+      } catch (e) { UI.toast('Erro: ' + e.message, 'erro'); }
+    };
+
+    document.getElementById('btn-demo-chamada').onclick = async () => {
+      try {
+        await DB.simularChamada(cpf);
+        UI.toast('Telão chamou seu nome! 🔔', 'sucesso');
+        atualizar();
+      } catch (e) { UI.toast('Erro: ' + e.message, 'erro'); }
+    };
+
+    document.getElementById('btn-demo-finalizar').onclick = async () => {
+      try {
+        await DB.simularFinalizar(cpf);
+        UI.toast('Consulta finalizada — relatório disponível ✓', 'sucesso');
+        Nav.atualizarBadge();
+        setTimeout(() => location.href = 'consulta.html?id=' + consultaAtiva.id, 1000);
+      } catch (e) { UI.toast('Erro: ' + e.message, 'erro'); }
+    };
+
+    /* Guarda o nome (usado na notificação) */
+    DB.getPaciente(cpf).then(p => { if (p) localStorage.setItem('vidamais_ultimo_nome', p.nome); });
+
+    /* Push real + escuta do telão */
+    Notificacao.configurarOneSignal();
+    Notificacao.iniciarEscuta();
+  </script>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3090ed58ebf93a8',t:'MTc4NzY0NDc3Mg=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a316785bd8b397d0',t:'MTc4Nzc4NTQwOQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

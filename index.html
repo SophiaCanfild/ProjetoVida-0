@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vida+ | Sistema de Saúde Digital</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #f0fdf4 0%, #eff6ff 40%, #f0fdf4 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 30px 20px;
+            color: #1f2937;
+        }
+
+        /* Logo */
+        .logo-area {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .logo-icon {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, #10b981, #3b82f6);
+            border-radius: 28px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: white;
+            box-shadow: 0 20px 50px rgba(16, 185, 129, 0.3);
+            margin-bottom: 20px;
+        }
+        .logo-area h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #059669, #2563eb);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1;
+        }
+        .logo-area .tagline {
+            font-size: 1.15rem;
+            color: #6b7280;
+            margin-top: 8px;
+        }
+        .logo-area .versao {
+            display: inline-block;
+            background: #f3f4f6;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            color: #9ca3af;
+            margin-top: 12px;
+        }
+
+        /* Grid de acessos */
+        .acessos {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            max-width: 1200px;
+            width: 100%;
+            margin-bottom: 40px;
+        }
+
+        .card-acesso {
+            background: white;
+            border-radius: 20px;
+            padding: 32px 28px;
+            border: 2px solid #e5e7eb;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .card-acesso:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        .card-acesso .icone {
+            width: 72px;
+            height: 72px;
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            margin-bottom: 18px;
+        }
+        .card-acesso h2 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .card-acesso p {
+            font-size: 0.875rem;
+            color: #6b7280;
+            line-height: 1.5;
+        }
+        .card-acesso .tag {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Cores por módulo */
+        .card-equipe { border-color: #bfdbfe; }
+        .card-equipe:hover { border-color: #60a5fa; }
+        .card-equipe .icone { background: #dbeafe; color: #2563eb; }
+        .card-equipe .tag { background: #dbeafe; color: #1e40af; }
+
+        .card-paciente { border-color: #a7f3d0; }
+        .card-paciente:hover { border-color: #34d399; }
+        .card-paciente .icone { background: #d1fae5; color: #059669; }
+        .card-paciente .tag { background: #d1fae5; color: #065f46; }
+
+        .card-telao { border-color: #fde68a; }
+        .card-telao:hover { border-color: #fbbf24; }
+        .card-telao .icone { background: #fef3c7; color: #d97706; }
+        .card-telao .tag { background: #fef3c7; color: #92400e; }
+
+        /* Sub-acessos do sistema médico */
+        .sub-acessos {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            width: 100%;
+            margin-top: 16px;
+        }
+        .sub-link {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            background: #f9fafb;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #374151;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+        .sub-link:hover { background: #f0f9ff; }
+        .sub-link i { font-size: 0.9rem; color: #6b7280; }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            color: #9ca3af;
+            font-size: 0.85rem;
+        }
+        .footer p { margin-bottom: 6px; }
+        .footer .badges {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        .footer .badge {
+            background: #f3f4f6;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            color: #6b7280;
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .logo-area h1 { font-size: 2.5rem; }
+            .acessos { grid-template-columns: repeat(3, 1fr); }
+            .sub-acessos { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Logo -->
+    <div class="logo-area">
+        <div class="logo-icon">
+            <i class="fas fa-heartbeat"></i>
+        </div>
+        <h1>Vida+</h1>
+        <p class="tagline">Sistema de Saúde Digital</p>
+        <span class="versao"><i class="fas fa-code"></i> v2.0 Unificado</span>
+    </div>
+
+    <!-- Cards de acesso -->
+    <div class="acessos">
+
+        <!-- 1. Sistema Médico (Equipe) -->
+        <div class="card-acesso card-equipe">
+            <span class="tag">Equipe</span>
+            <div class="icone">
+                <i class="fas fa-user-shield"></i>
+            </div>
+            <h2>Sistema Médico</h2>
+            <p>Painel para administradores, médicos, enfermeiros e recepcionistas</p>
+            <div class="sub-acessos">
+                <a class="sub-link" href="sistema-medico/login/admin.html">
+                    <i class="fas fa-cog"></i> Admin
+                </a>
+                <a class="sub-link" href="sistema-medico/login/funcionario.html">
+                    <i class="fas fa-user-md"></i> Funcionário
+                </a>
+            </div>
+        </div>
+
+        <!-- 2. App do Paciente -->
+        <div class="card-acesso card-paciente" onclick="window.location.href='paciente-app/index.html'">
+            <span class="tag">Paciente</span>
+            <div class="icone">
+                <i class="fas fa-mobile-alt"></i>
+            </div>
+            <h2>App do Paciente</h2>
+            <p>Pré-atendimento digital: fila, senha, histórico, exames e agendamentos</p>
+        </div>
+
+        <!-- 3. Telão -->
+        <div class="card-acesso card-telao" onclick="window.location.href='telao/index.html'">
+            <span class="tag">TV</span>
+            <div class="icone">
+                <i class="fas fa-tv"></i>
+            </div>
+            <h2>Telão</h2>
+            <p>Display da sala de espera — exibe chamadas de senha e avisos automaticamente</p>
+        </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>Sistema desenvolvido para gestão de unidades de saúde</p>
+        <p><small>Projeto TCC • Integrado ao Supabase</small></p>
+        <div class="badges">
+            <span class="badge"><i class="fas fa-hospital"></i> Sistema Médico</span>
+            <span class="badge"><i class="fas fa-mobile-alt"></i> App Paciente</span>
+            <span class="badge"><i class="fas fa-tv"></i> Telão</span>
+            <span class="badge"><i class="fas fa-database"></i> Supabase</span>
+        </div>
+    </div>
+
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3160a4229ce2570',t:'MTc4Nzc4MDkwMA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

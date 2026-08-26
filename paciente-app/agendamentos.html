@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0B6E4F">
+  <title>Agendamentos — Vida+ Paciente</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg>
+      Vida+ Paciente
+    </div>
+    <div class="espaco"></div>
+    <button class="sino" id="btn-notif" title="Notificações">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9a6 6 0 1 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>
+      <span class="badge-sino escondido" id="badge-notif">0</span>
+    </button>
+    <button class="sino" id="btn-sair" title="Sair">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+    </button>
+  </header>
+
+  <main class="pagina">
+    <h1>🗓️ Próximas consultas</h1>
+    <p class="suave" style="margin-bottom:16px;">Suas consultas marcadas. Pode desmarcar quando precisar.</p>
+    <div id="lista-agenda">
+      <div class="vazio"><p>Carregando...</p></div>
+    </div>
+  </main>
+
+  <nav class="bottomnav">
+    <a href="index.html" data-ir-home><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>Início</a>
+    <a href="historico.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Histórico</a>
+    <a href="exames.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3h6M10 3v6.5L5.5 18a3 3 0 0 0 3 4h7a3 3 0 0 0 3-4L14 9.5V3"/><path d="M7.5 15h9"/></svg>Exames</a>
+    <a href="#" class="ativo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Agenda</a>
+    <a href="perfil.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>Perfil</a>
+  </nav>
+
+  <div class="toast"></div>
+  <div class="modal-fundo"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../shared/js/config.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="../shared/js/db.js"></script>
+  <script src="js/nav.js"></script>
+  <script>
+    const cpf = DB.getSessao();
+    if (!cpf) { location.href = 'index.html'; }
+
+    const MESES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+
+    function statusChip(a) {
+      if (a.status === 'cancelado') return '<span class="status-chip status-cancelado">Desmarcado</span>';
+      if (a.status === 'confirmado') return '<span class="status-chip status-finalizado">Confirmado</span>';
+      if (a.status === 'concluido') return '<span class="status-chip status-andamento">Realizado</span>';
+      return '<span class="status-chip status-preenchido">Agendado</span>';
+    }
+
+    async function carregar() {
+      const lista = await DB.getAgendamentos(cpf);
+      const container = document.getElementById('lista-agenda');
+      const futuros = lista.filter(a => a.status !== 'cancelado' && a.status !== 'concluido');
+
+      if (!futuros.length) {
+        container.innerHTML = `
+          <div class="vazio">${UI.icone('agendamento')}<h3>Nenhuma consulta marcada</h3>
+          <p>Quando você agendar uma consulta (na unidade ou pelo sistema médico), ela aparecerá aqui.</p></div>`;
+        return;
+      }
+
+      container.innerHTML = futuros.map(a => {
+        const d = new Date(a.data_hora);
+        const cancelado = a.status === 'cancelado';
+        return `
+          <div class="agenda-card ${cancelado ? 'cancelado' : ''}">
+            <div class="data-box">
+              <div class="dia">${d.getDate()}</div>
+              <div class="mes">${MESES[d.getMonth()]}</div>
+            </div>
+            <div class="a-info">
+              <div class="a-titulo">${a.especialidade || 'Consulta'}</div>
+              <div class="a-det">${a.unidade || ''} • ${d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</div>
+              <div style="margin-top:5px;">${statusChip(a)}</div>
+            </div>
+            ${!cancelado ? `<button class="btn btn-perigo" data-id="${a.id}" data-nome="${a.especialidade || 'consulta'}" style="width:auto; padding:9px 12px; font-size:0.75rem;">Desmarcar</button>` : ''}
+          </div>`;
+      }).join('');
+
+      container.querySelectorAll('[data-id]').forEach(btn => {
+        btn.onclick = () => {
+          const id = btn.dataset.id;
+          const nome = btn.dataset.nome;
+          UI.modalConfirmar({
+            titulo: 'Desmarcar consulta?',
+            texto: `A consulta de ${nome} será cancelada. Quer continuar?`,
+            botao: 'Sim, desmarcar', perigo: true,
+            onConfirmar: async () => {
+              try {
+                await DB.cancelarAgendamento(id);
+                UI.toast('Consulta desmarcada ✓', 'sucesso');
+                carregar();
+              } catch (e) { UI.toast('Erro: ' + e.message, 'erro'); }
+            }
+          });
+        };
+      });
+    }
+
+    carregar();
+  </script>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a308f5ab8c61bcd7',t:'MTc4NzY0Mzc0Mg=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a31674014b6297d0',t:'MTc4Nzc4NTIzMQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

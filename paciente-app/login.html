@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0B6E4F">
+  <title>Entrar — Vida+ Paciente</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body class="tela-login">
+
+  <div class="marca">
+    <div class="logo-g" id="logo-svg"></div>
+    <h1>Vida+ Paciente</h1>
+    <p>Que bom te ver de novo! 👋</p>
+  </div>
+
+  <div class="caixa-login">
+    <h2>🔐 Entrar</h2>
+    <p class="suave" style="margin-bottom:14px;">
+      Seu cadastro foi feito pela recepção. É só informar seu CPF:
+    </p>
+    <div class="campo">
+      <label>Seu CPF</label>
+      <input id="cpf" placeholder="000.000.000-00" inputmode="numeric">
+      <div class="msg-erro">CPF inválido.</div>
+      <div class="dica">Não lembra se foi cadastrado? Fale com a recepção da unidade.</div>
+    </div>
+    <button class="btn btn-primario" id="entrar">Entrar</button>
+
+    <div id="banner-demo" class="banner-demo escondido mt-16" style="background:linear-gradient(135deg,#6B4FA0,#4A3573);">
+      <b>🎬 MODO DEMONSTRAÇÃO</b>
+      <p style="margin-bottom:10px;">Sem cadastro criado ainda? Use o paciente de exemplo.</p>
+      <div class="botoes">
+        <button class="btn" id="demo-entrar">✨ Entrar como paciente demo</button>
+      </div>
+    </div>
+
+    <button class="btn btn-contorno btn-bloco" id="voltar">← Voltar ao Portal Vida+</button>
+  </div>
+
+  <div class="rodape">Projeto TCC • Sistema de Saúde</div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../shared/js/config.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="../shared/js/db.js"></script>
+  <script src="js/nav.js"></script>
+  <script>
+    document.getElementById('logo-svg').innerHTML =
+      '<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg>';
+
+    const inputCpf = document.getElementById('cpf');
+    UI.mascararCPF(inputCpf);
+
+    document.getElementById('voltar').onclick = () => location.href = '../index.html';
+    document.getElementById('banner-demo').classList.toggle('escondido', SUPABASE_CONFIGURADO);
+
+    document.getElementById('demo-entrar').onclick = () => {
+      DB.seedDemo();
+      DB.setSessao('12345678909');
+      location.href = 'index.html';
+    };
+
+    document.getElementById('entrar').onclick = async () => {
+      const cpf = inputCpf.value.replace(/\D/g, '');
+      if (!UI.validaCPF(cpf)) {
+        inputCpf.classList.add('erro-campo');
+        inputCpf.parentElement.classList.add('erro');
+        return;
+      }
+      inputCpf.parentElement.classList.remove('erro');
+
+      const paciente = await DB.getPaciente(cpf);
+      if (!paciente) {
+        UI.toast('Cadastro não encontrado. Fale com a recepção da unidade.', 'erro');
+        return;
+      }
+      DB.setSessao(cpf);
+
+      // Vai para a home (mostra atendimento ativo se houver)
+      location.href = 'index.html';
+    };
+
+    inputCpf.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('entrar').click(); });
+  </script>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a30910af6f6193a8',t:'MTc4NzY0NDg0OA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a31679c9a88997d0',t:'MTc4Nzc4NTQ2OA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

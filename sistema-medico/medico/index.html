@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Médico | Vida+</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="../css/global.css" rel="stylesheet">
+    <style>
+        .content-area { display: none; }
+        .content-area.active { display: block; }
+        
+        .patient-detail-card {
+            background: var(--verde-50);
+            border-left: 4px solid var(--verde-500);
+            padding: 16px;
+            border-radius: var(--radius-md);
+            margin-bottom: 16px;
+        }
+        
+        .alergia-alert {
+            background: var(--erro-bg);
+            border: 1px solid #FECACA;
+            color: var(--erro);
+            padding: 12px 16px;
+            border-radius: var(--radius-md);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .receita-item {
+            background: var(--cinza-50);
+            padding: 16px;
+            border-radius: var(--radius-md);
+            margin-bottom: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <div class="icon">
+                        <i class="fas fa-heartbeat"></i>
+                    </div>
+                    <div>
+                        <div class="text">Vida+</div>
+                        <div class="subtitle">Médico</div>
+                    </div>
+                </div>
+            </div>
+            
+            <nav class="sidebar-menu">
+                <div class="menu-section">
+                    <div class="menu-section-title">Atendimento</div>
+                    <div class="menu-item active" data-page="consultas" onclick="mostrarPagina('consultas')">
+                        <i class="fas fa-stethoscope"></i>
+                        <span>Consultas</span>
+                        <span class="badge">2</span>
+                    </div>
+                    <div class="menu-item" data-page="prontuario" onclick="mostrarPagina('prontuario')">
+                        <i class="fas fa-file-medical"></i>
+                        <span>Prontuário</span>
+                    </div>
+                </div>
+                
+                <div class="menu-section">
+                    <div class="menu-section-title">Pacientes</div>
+                    <div class="menu-item" data-page="historico" onclick="mostrarPagina('historico')">
+                        <i class="fas fa-history"></i>
+                        <span>Histórico</span>
+                    </div>
+                    <div class="menu-item" data-page="busca" onclick="mostrarPagina('busca')">
+                        <i class="fas fa-search"></i>
+                        <span>Buscar Paciente</span>
+                    </div>
+                </div>
+                
+                <div class="menu-section">
+                    <div class="menu-section-title">Prescrições</div>
+                    <div class="menu-item" data-page="receitas" onclick="mostrarPagina('receitas')">
+                        <i class="fas fa-prescription"></i>
+                        <span>Receitas</span>
+                    </div>
+                    <div class="menu-item" data-page="exames" onclick="mostrarPagina('exames')">
+                        <i class="fas fa-vial"></i>
+                        <span>Solicitar Exames</span>
+                    </div>
+                </div>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">AM</div>
+                    <div class="user-details">
+                        <div class="user-name" id="userName">Dr. Alexandre</div>
+                        <div class="user-role" id="userRole">Clínico Geral</div>
+                    </div>
+                </div>
+                <button class="btn btn-ghost w-full mt-2" onclick="logout()" style="color: rgba(255,255,255,0.7);">
+                    <i class="fas fa-sign-out-alt me-2"></i>
+                    Sair
+                </button>
+            </div>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="topbar">
+                <div class="topbar-left">
+                    <h1 class="page-title" id="pageTitle">Consultas do Dia</h1>
+                </div>
+                <div class="topbar-right">
+                    <div class="flex items-center gap-3">
+                        <div class="text-right">
+                            <div style="font-size: 0.75rem; color: var(--cinza-500);">Data</div>
+                            <div style="font-weight: 600;" id="dataAtual">24/08/2024</div>
+                        </div>
+                    </div>
+                    <button class="topbar-btn">
+                        <i class="fas fa-bell"></i>
+                    </button>
+                </div>
+            </header>
+            
+            <!-- Página: Consultas -->
+            <div class="content-area active" id="pageConsultas">
+                <div class="p-6">
+                    <div class="grid" style="display: grid; grid-template-columns: 350px 1fr; gap: 24px;">
+                        <!-- Lista de Espera -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3><i class="fas fa-list-ol me-2" style="color: var(--azul-500);"></i> Fila de Espera</h3>
+                            </div>
+                            <div class="card-body p-0" style="max-height: 600px; overflow-y: auto;">
+                                <div id="listaEspera">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Área de Atendimento -->
+                        <div class="card">
+                            <div class="card-header flex justify-between items-center">
+                                <h3><i class="fas fa-user-md me-2" style="color: var(--verde-500);"></i> Atendimento</h3>
+                                <div id="pacienteStatus" class="badge badge-secondary">
+                                    Selecione um paciente
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div id="semPaciente" class="text-center py-6">
+                                    <i class="fas fa-user-clock" style="font-size: 4rem; color: var(--cinza-300);"></i>
+                                    <p class="mt-3 text-muted">Selecione um paciente na lista ao lado para iniciar o atendimento</p>
+                                </div>
+                                
+                                <div id="comPaciente" class="hidden">
+                                    <!-- Dados do Paciente -->
+                                    <div class="patient-detail-card">
+                                        <div class="flex justify-between items-center">
+                                            <div>
+                                                <h4 id="pacienteNome">-</h4>
+                                                <div class="text-muted" style="font-size: 0.875rem;">
+                                                    <span id="pacienteCpf">-</span> | 
+                                                    <span id="pacienteIdade">-</span> anos
+                                                </div>
+                                            </div>
+                                            <div id="pacienteClassificacao"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Alergia -->
+                                    <div class="alergia-alert hidden" id="alergiaAlert">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        <span><strong>ALERGIA:</strong> <span id="pacienteAlergias">-</span></span>
+                                    </div>
+                                    
+                                    <!-- Sinais Vitais da Triagem -->
+                                    <div class="card mb-4" style="background: var(--cinza-50); border: 1px solid var(--cinza-200);">
+                                        <div class="card-header" style="background: transparent; padding: 12px 16px;">
+                                            <h5 style="font-size: 0.875rem; margin: 0;"><i class="fas fa-heartbeat me-1" style="color: var(--erro);"></i> Sinais Vitais (Triagem)</h5>
+                                        </div>
+                                        <div class="card-body" style="padding: 16px;">
+                                            <div class="grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
+                                                <div class="text-center">
+                                                    <div style="font-size: 0.75rem; color: var(--cinza-500);">Pressão</div>
+                                                    <div style="font-size: 1.25rem; font-weight: 600;" id="triagemPressao">-</div>
+                                                </div>
+                                                <div class="text-center">
+                                                    <div style="font-size: 0.75rem; color: var(--cinza-500);">Temperatura</div>
+                                                    <div style="font-size: 1.25rem; font-weight: 600;" id="triagemTemperatura">-</div>
+                                                </div>
+                                                <div class="text-center">
+                                                    <div style="font-size: 0.75rem; color: var(--cinza-500);">Pulso</div>
+                                                    <div style="font-size: 1.25rem; font-weight: 600;" id="triagemPulso">-</div>
+                                                </div>
+                                                <div class="text-center">
+                                                    <div style="font-size: 0.75rem; color: var(--cinza-500);">Saturação</div>
+                                                    <div style="font-size: 1.25rem; font-weight: 600;" id="triagemSaturacao">-</div>
+                                                </div>
+                                            </div>
+                                            <div class="mt-3" style="padding-top: 12px; border-top: 1px solid var(--cinza-200);">
+                                                <div style="font-size: 0.75rem; color: var(--cinza-500);">Queixa Principal</div>
+                                                <div id="triagemQueixa" style="font-weight: 500;">-</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Formulário de Prontuário -->
+                                    <form id="formProntuario">
+                                        <div class="form-row">
+                                            <div class="form-group">
+                                                <label class="form-label">CID-10</label>
+                                                <input type="text" class="form-input" id="cid10" placeholder="Ex: J06.9">
+                                            </div>
+                                            <div class="form-group">
+                                                <label class="form-label">Diagnóstico <span class="required">*</span></label>
+                                                <input type="text" class="form-input" id="diagnostico" required>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label class="form-label">Histórico da Doença Atual (HDA)</label>
+                                            <textarea class="form-input" id="hda" rows="2" placeholder="Descreva a evolução dos sintomas..."></textarea>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label class="form-label">Exame Físico</label>
+                                            <textarea class="form-input" id="exameFisico" rows="2" placeholder="Inspeção, palpação, ausculta..."></textarea>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label class="form-label">Conduta</label>
+                                            <textarea class="form-input" id="conduta" rows="2" placeholder="Orientações e condutas..."></textarea>
+                                        </div>
+                                        
+                                        <!-- Receita -->
+                                        <h5 class="mb-3 mt-4"><i class="fas fa-prescription me-1" style="color: var(--info);"></i> Receita Médica</h5>
+                                        <div id="listaReceita">
+                                            <div class="receita-item">
+                                                <div class="form-row">
+                                                    <div class="form-group" style="margin-bottom: 0;">
+                                                        <input type="text" class="form-input" placeholder="Medicamento" name="med_nome[]">
+                                                    </div>
+                                                    <div class="form-group" style="margin-bottom: 0;">
+                                                        <input type="text" class="form-input" placeholder="Dosagem" name="med_dosagem[]">
+                                                    </div>
+                                                    <div class="form-group" style="margin-bottom: 0;">
+                                                        <input type="text" class="form-input" placeholder="Frequência" name="med_freq[]">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button type="button" class="btn btn-outline btn-sm mt-2" onclick="adicionarReceita()">
+                                            <i class="fas fa-plus"></i> Adicionar medicamento
+                                        </button>
+                                        
+                                        <div class="flex gap-3 mt-4">
+                                            <button type="submit" class="btn btn-success">
+                                                <i class="fas fa-check"></i> FINALIZAR CONSULTA
+                                            </button>
+                                            <button type="button" class="btn btn-outline">
+                                                <i class="fas fa-file-medical"></i> Atestado
+                                            </button>
+                                            <button type="button" class="btn btn-outline">
+                                                <i class="fas fa-vial"></i> Solicitar Exame
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Página: Prontuário -->
+            <div class="content-area" id="pageProntuario">
+                <div class="p-6">
+                    <h2 class="mb-4"><i class="fas fa-file-medical me-2" style="color: var(--verde-500);"></i> Prontuário Eletrônico</h2>
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i>
+                                <span>Selecione um paciente na página de Consultas para visualizar ou criar prontuário.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Página: Histórico -->
+            <div class="content-area" id="pageHistorico">
+                <div class="p-6">
+                    <h2 class="mb-4"><i class="fas fa-history me-2" style="color: var(--azul-500);"></i> Histórico de Consultas</h2>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Últimas Consultas Realizadas</h3>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-container">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Data</th>
+                                            <th>Paciente</th>
+                                            <th>Diagnóstico</th>
+                                            <th>CID-10</th>
+                                            <th>Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tabelaHistorico">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Página: Buscar -->
+            <div class="content-area" id="pageBusca">
+                <div class="p-6">
+                    <h2 class="mb-4"><i class="fas fa-search me-2" style="color: var(--info);"></i> Buscar Paciente</h2>
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <div class="form-group mb-0">
+                                <div class="flex gap-2">
+                                    <input type="text" class="form-input" id="buscaInput" placeholder="Digite nome, CPF ou Cartão SUS...">
+                                    <button class="btn btn-primary" onclick="buscarPaciente()">
+                                        <i class="fas fa-search"></i> Buscar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-body p-0">
+                            <div class="table-container">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Nome</th>
+                                            <th>CPF</th>
+                                            <th>Nascimento</th>
+                                            <th>Telefone</th>
+                                            <th>Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="resultadoBusca">
+                                        <tr>
+                                            <td colspan="5" class="text-center text-muted py-4">Digite um termo de busca acima</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Página: Receitas -->
+            <div class="content-area" id="pageReceitas">
+                <div class="p-6">
+                    <h2 class="mb-4"><i class="fas fa-prescription me-2" style="color: var(--info);"></i> Receitas</h2>
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i>
+                                <span>As receitas são emitidas durante o atendimento médico.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Página: Exames -->
+            <div class="content-area" id="pageExames">
+                <div class="p-6">
+                    <h2 class="mb-4"><i class="fas fa-vial me-2" style="color: var(--alerta);"></i> Solicitar Exames</h2>
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i>
+                                <span>Os exames são solicitados durante o atendimento médico.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../../shared/js/config.js"></script>
+    <script src="../../shared/js/db.js"></script>
+    <script src="../js/config.js"></script>
+    <script>
+        let consultaSelecionada = null;
+        let pacienteSelecionado = null;
+        
+        verificarAcesso('medico');
+        DB.seedDemo();
+        atualizarInfoUsuario();
+        document.getElementById('dataAtual').textContent = new Date().toLocaleDateString('pt-BR');
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            carregarFilaEspera();
+            carregarHistorico();
+        });
+        
+        DB.on('triagem_realizada', () => carregarFilaEspera());
+        DB.on('paciente_chamado', () => carregarFilaEspera());
+        DB.on('consulta_finalizada', () => { carregarFilaEspera(); carregarHistorico(); });
+        
+        function mostrarPagina(pagina) {
+            document.querySelectorAll('.content-area').forEach(el => el.classList.remove('active'));
+            document.getElementById('page' + pagina.charAt(0).toUpperCase() + pagina.slice(1)).classList.add('active');
+            const titulos = { consultas: 'Consultas do Dia', prontuario: 'Prontuário', historico: 'Histórico', busca: 'Buscar Paciente', receitas: 'Receitas', exames: 'Exames' };
+            document.getElementById('pageTitle').textContent = titulos[pagina] || pagina;
+            document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
+            document.querySelector(`.menu-item[data-page="${pagina}"]`)?.classList.add('active');
+            if (pagina === 'historico') carregarHistorico();
+        }
+        
+        function carregarFilaEspera() {
+            const lista = document.getElementById('listaEspera');
+            const fila = DB.getFila().filter(c => c.triagem);
+            if (!fila.length) {
+                lista.innerHTML = '<div style="padding:40px;text-align:center;color:var(--cinza-400)"><i class="fas fa-inbox" style="font-size:2rem;margin-bottom:10px"></i><p>Nenhum paciente aguardando consulta.</p></div>';
+                return;
+            }
+            lista.innerHTML = fila.map(c => {
+                const p = DB.getPacientePorId(c.paciente_id);
+                const nome = p ? p.nome : 'Paciente';
+                const ini = nome.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();
+                const t = c.triagem;
+                const risco = t.classificacao_risco || 'verde';
+                const cores = {vermelho:'badge-vermelho',laranja:'badge-laranja',amarelo:'badge-amarelo',verde:'badge-verde',azul:'badge-azul'};
+                return `<div onclick="selecionarPaciente('${c.id}')" style="padding:16px;border-bottom:1px solid var(--cinza-100);cursor:pointer" onmouseover="this.style.background='var(--verde-50)'" onmouseout="this.style.background='transparent'"><div class="flex items-center gap-3"><div style="width:45px;height:45px;background:linear-gradient(135deg,var(--verde-400),var(--azul-400));border-radius:10px;display:flex;align-items:center;justify-content:center;color:white;font-weight:600">${ini}</div><div style="flex:1"><div style="font-weight:600;font-size:0.9375rem">${nome}</div><div style="font-size:0.8125rem;color:var(--cinza-500)">${t.queixa_principal||'Sem queixa'}</div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px"><span class="badge ${cores[risco]}">${risco}</span>${c.status==='em_fila'?`<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();chamarParaConsulta('${c.id}')"><i class="fas fa-bullhorn"></i> Chamar</button>`:''}${c.status==='chamado'?'<span class="badge badge-success">🔔 Chamado</span>':''}</div></div></div>`;
+            }).join('');
+        }
+        
+        function chamarParaConsulta(consultaId) {
+            const u = getUsuarioLogado();
+            try {
+                DB.chamarPaciente(consultaId, { tipo:'consulta', consultorio:'1', medico_nome:u?u.nome:'Médico(a)' });
+                mostrarToast('📢 Paciente chamado! Apareceu no telão e no app.', 'success');
+                carregarFilaEspera();
+            } catch(e) { mostrarToast('Erro: '+e.message, 'error'); }
+        }
+        
+        function selecionarPaciente(consultaId) {
+            const c = DB.getConsultaPorId(consultaId);
+            if (!c) return;
+            consultaSelecionada = c;
+            pacienteSelecionado = DB.getPacientePorId(c.paciente_id);
+            if (!pacienteSelecionado) return;
+            DB.iniciarConsulta(consultaId);
+            let idade = '—';
+            if (pacienteSelecionado.nascimento) {
+                const n = new Date(pacienteSelecionado.nascimento), h = new Date();
+                idade = h.getFullYear()-n.getFullYear();
+                if (h.getMonth()<n.getMonth()||(h.getMonth()===n.getMonth()&&h.getDate()<n.getDate())) idade--;
+            }
+            document.getElementById('semPaciente').classList.add('hidden');
+            document.getElementById('comPaciente').classList.remove('hidden');
+            document.getElementById('pacienteStatus').className='badge badge-success';
+            document.getElementById('pacienteStatus').textContent='Em atendimento';
+            document.getElementById('pacienteNome').textContent=pacienteSelecionado.nome;
+            document.getElementById('pacienteCpf').textContent=pacienteSelecionado.cpf;
+            document.getElementById('pacienteIdade').textContent=idade;
+            const t=c.triagem;
+            if(t){
+                document.getElementById('pacienteClassificacao').innerHTML=getClassificacaoBadge(t.classificacao_risco);
+                document.getElementById('triagemPressao').textContent=t.pressao||'-';
+                document.getElementById('triagemTemperatura').textContent=t.temperatura?t.temperatura+'°C':'-';
+                document.getElementById('triagemPulso').textContent=t.pulso||'-';
+                document.getElementById('triagemSaturacao').textContent=t.saturacao?t.saturacao+'%':'-';
+                document.getElementById('triagemQueixa').textContent=t.queixa_principal||'-';
+            }
+            const al=pacienteSelecionado.alergias;
+            if(al&&al.length&&al[0]!=='Nenhuma'){document.getElementById('alergiaAlert').classList.remove('hidden');document.getElementById('pacienteAlergias').textContent=al.join(', ');}
+            else{document.getElementById('alergiaAlert').classList.add('hidden');}
+        }
+        
+        function adicionarReceita() {
+            const l=document.getElementById('listaReceita'),n=document.createElement('div');
+            n.className='receita-item';n.innerHTML='<div class="form-row"><div class="form-group" style="margin-bottom:0"><input type="text" class="form-input" placeholder="Medicamento" name="med_nome[]"></div><div class="form-group" style="margin-bottom:0"><input type="text" class="form-input" placeholder="Dosagem" name="med_dosagem[]"></div><div class="form-group" style="margin-bottom:0"><input type="text" class="form-input" placeholder="Frequência" name="med_freq[]"></div></div>';
+            l.appendChild(n);
+        }
+        
+        document.getElementById('formProntuario')?.addEventListener('submit', function(e) {
+            e.preventDefault();
+            if(!consultaSelecionada){mostrarToast('Selecione um paciente','error');return;}
+            const u=getUsuarioLogado();
+            const mn=document.querySelectorAll('[name="med_nome[]"]'),md=document.querySelectorAll('[name="med_dosagem[]"]'),mf=document.querySelectorAll('[name="med_freq[]"]');
+            const receita=[];mn.forEach((el,i)=>{if(el.value.trim())receita.push({nome:el.value.trim(),dosagem:md[i]?md[i].value:'',frequencia:mf[i]?mf[i].value:''});});
+            DB.finalizarConsulta(consultaSelecionada.id,{
+                diagnostico:document.getElementById('diagnostico').value,
+                cid10:document.getElementById('cid10').value,
+                conduta:document.getElementById('conduta').value,
+                orientacoes:'',receita:receita,exames:[],
+                medico_nome:u?u.nome:'Médico(a)',medico_crm:u?(u.crm||''):''
+            });
+            mostrarToast('✅ Consulta finalizada! Relatório disponível no app do paciente.','success');
+            document.getElementById('semPaciente').classList.remove('hidden');
+            document.getElementById('comPaciente').classList.add('hidden');
+            document.getElementById('pacienteStatus').className='badge badge-secondary';
+            document.getElementById('pacienteStatus').textContent='Selecione um paciente';
+            ['diagnostico','cid10','hda','exameFisico','conduta'].forEach(id=>document.getElementById(id).value='');
+            document.getElementById('listaReceita').innerHTML='<div class="receita-item"><div class="form-row"><div class="form-group" style="margin-bottom:0"><input type="text" class="form-input" placeholder="Medicamento" name="med_nome[]"></div><div class="form-group" style="margin-bottom:0"><input type="text" class="form-input" placeholder="Dosagem" name="med_dosagem[]"></div><div class="form-group" style="margin-bottom:0"><input type="text" class="form-input" placeholder="Frequência" name="med_freq[]"></div></div></div>';
+            consultaSelecionada=null;pacienteSelecionado=null;carregarFilaEspera();
+        });
+        
+        function carregarHistorico() {
+            const tbody=document.getElementById('tabelaHistorico');
+            const cs=DB.getConsultas().filter(c=>c.status==='finalizado');
+            if(!cs.length){tbody.innerHTML='<tr><td colspan="5" class="text-center text-muted py-4">Nenhuma consulta</td></tr>';return;}
+            tbody.innerHTML=cs.map(c=>{const p=DB.getPacientePorId(c.paciente_id);return `<tr><td>${new Date(c.finalizado_em||c.criado_em).toLocaleDateString('pt-BR')}</td><td><strong>${p?p.nome:'—'}</strong></td><td>${c.diagnostico||'—'}</td><td><span class="badge badge-secondary">${c.cid10||'—'}</span></td><td><button class="btn btn-ghost btn-sm"><i class="fas fa-eye"></i></button></td></tr>`;}).join('');
+        }
+        
+        function buscarPaciente() {
+            const t=document.getElementById('buscaInput').value.toLowerCase(),tbody=document.getElementById('resultadoBusca');
+            if(!t){tbody.innerHTML='<tr><td colspan="5" class="text-center text-muted py-4">Digite um termo</td></tr>';return;}
+            const r=DB.getPacientes().filter(p=>p.nome.toLowerCase().includes(t)||p.cpf.includes(t)||(p.cartao_sus&&p.cartao_sus.includes(t)));
+            if(!r.length){tbody.innerHTML='<tr><td colspan="5" class="text-center text-muted py-4">Nenhum resultado</td></tr>';return;}
+            tbody.innerHTML=r.map(p=>`<tr><td><strong>${p.nome}</strong></td><td>${p.cpf}</td><td>${p.nascimento?new Date(p.nascimento).toLocaleDateString('pt-BR'):'—'}</td><td>${p.telefone||'—'}</td><td><button class="btn btn-ghost btn-sm"><i class="fas fa-eye"></i></button></td></tr>`).join('');
+        }
+        document.getElementById('buscaInput')?.addEventListener('keypress',function(e){if(e.key==='Enter')buscarPaciente();});
+    </script></script>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3066dd8387bf239',t:'MTc4NzYxNzIwNw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3168100a82b6ea3',t:'MTc4Nzc4NTc2Mw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

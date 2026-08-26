@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enfermagem | Vida+</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="../css/global.css" rel="stylesheet">
+    <style>
+        .content-area { display: none; }
+        .content-area.active { display: block; }
+        
+        .classificacao-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .classificacao-btn {
+            padding: 16px 8px;
+            border: 3px solid transparent;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: white;
+        }
+        
+        .classificacao-btn:hover { transform: scale(1.03); }
+        .classificacao-btn.selected { transform: scale(1.05); box-shadow: 0 0 0 3px rgba(0,0,0,0.2); }
+        
+        .btn-vermelho { background: var(--manchester-vermelho); }
+        .btn-laranja { background: var(--manchester-laranja); }
+        .btn-amarelo { background: var(--manchester-amarelo); color: #1F2937; }
+        .btn-verde { background: var(--manchester-verde); }
+        .btn-azul { background: var(--manchester-azul); }
+        
+        .sinais-vitais-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+        
+        .vital-card {
+            background: var(--cinza-50);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid var(--cinza-200);
+        }
+        
+        .vital-card i { font-size: 1.5rem; margin-bottom: 8px; }
+        .vital-card .label { font-size: 0.75rem; color: var(--cinza-500); text-transform: uppercase; margin-bottom: 8px; }
+        .vital-card input { text-align: center; font-weight: 600; margin-top: 8px; }
+    </style>
+</head>
+<body>
+    <div class="layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <div class="icon">
+                        <i class="fas fa-heartbeat"></i>
+                    </div>
+                    <div>
+                        <div class="text">Vida+</div>
+                        <div class="subtitle">Enfermagem</div>
+                    </div>
+                </div>
+            </div>
+            
+            <nav class="sidebar-menu">
+                <div class="menu-section">
+                    <div class="menu-section-title">Triagem</div>
+                    <div class="menu-item active" data-page="triagem" onclick="mostrarPagina('triagem')">
+                        <i class="fas fa-stethoscope"></i>
+                        <span>Nova Triagem</span>
+                        <span class="badge">2</span>
+                    </div>
+                    <div class="menu-item" data-page="fila" onclick="mostrarPagina('fila')">
+                        <i class="fas fa-list-ol"></i>
+                        <span>Fila de Espera</span>
+                    </div>
+                </div>
+                
+                <div class="menu-section">
+                    <div class="menu-section-title">Registros</div>
+                    <div class="menu-item" data-page="historico" onclick="mostrarPagina('historico')">
+                        <i class="fas fa-history"></i>
+                        <span>Triagens Realizadas</span>
+                    </div>
+                    <div class="menu-item" data-page="busca" onclick="mostrarPagina('busca')">
+                        <i class="fas fa-search"></i>
+                        <span>Buscar Paciente</span>
+                    </div>
+                </div>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">PS</div>
+                    <div class="user-details">
+                        <div class="user-name" id="userName">Paula Santos</div>
+                        <div class="user-role" id="userRole">Enfermeira</div>
+                    </div>
+                </div>
+                <button class="btn btn-ghost w-full mt-2" onclick="logout()" style="color: rgba(255,255,255,0.7);">
+                    <i class="fas fa-sign-out-alt me-2"></i>
+                    Sair
+                </button>
+            </div>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="topbar">
+                <div class="topbar-left">
+                    <h1 class="page-title" id="pageTitle">Nova Triagem</h1>
+                </div>
+                <div class="topbar-right">
+                    <div class="flex items-center gap-3">
+                        <div class="text-right">
+                            <div style="font-size: 0.75rem; color: var(--cinza-500);">Data</div>
+                            <div style="font-weight: 600;" id="dataAtual">24/08/2024</div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- Página: Triagem -->
+            <div class="content-area active" id="pageTriagem">
+                <div class="p-6">
+                    <div class="grid" style="display: grid; grid-template-columns: 320px 1fr; gap: 24px;">
+                        <!-- Lista de Espera -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3><i class="fas fa-list me-2" style="color: var(--azul-500);"></i> Aguardando Triagem</h3>
+                            </div>
+                            <div class="card-body p-0" style="max-height: 500px; overflow-y: auto;">
+                                <div id="listaAguardando">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Formulário de Triagem -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3><i class="fas fa-clipboard-check me-2" style="color: var(--verde-500);"></i> Dados da Triagem</h3>
+                            </div>
+                            <div class="card-body">
+                                <div id="semPaciente" class="text-center py-6">
+                                    <i class="fas fa-user-plus" style="font-size: 4rem; color: var(--cinza-300);"></i>
+                                    <p class="mt-3 text-muted">Selecione um paciente na lista ao lado</p>
+                                </div>
+                                
+                                <div id="comPaciente" class="hidden">
+                                    <!-- Paciente Selecionado -->
+                                    <div class="alert alert-info mb-4">
+                                        <i class="fas fa-user"></i>
+                                        <span><strong>Paciente:</strong> <span id="pacienteNome">-</span></span>
+                                    </div>
+                                    
+                                    <!-- Sinais Vitais -->
+                                    <h5 class="mb-3"><i class="fas fa-heartbeat me-1" style="color: var(--erro);"></i> Sinais Vitais</h5>
+                                    <div class="sinais-vitais-grid mb-4">
+                                        <div class="vital-card">
+                                            <i class="fas fa-heart" style="color: var(--erro);"></i>
+                                            <div class="label">Pressão (mmHg)</div>
+                                            <input type="text" class="form-input" id="pressao" placeholder="120/80">
+                                        </div>
+                                        <div class="vital-card">
+                                            <i class="fas fa-thermometer-half" style="color: var(--alerta);"></i>
+                                            <div class="label">Temperatura (°C)</div>
+                                            <input type="number" class="form-input" id="temperatura" placeholder="36.5" step="0.1">
+                                        </div>
+                                        <div class="vital-card">
+                                            <i class="fas fa-lungs" style="color: var(--azul-500);"></i>
+                                            <div class="label">Saturação O₂ (%)</div>
+                                            <input type="number" class="form-input" id="saturacao" placeholder="98">
+                                        </div>
+                                        <div class="vital-card">
+                                            <i class="fas fa-heartbeat" style="color: var(--verde-500);"></i>
+                                            <div class="label">Pulso (bpm)</div>
+                                            <input type="number" class="form-input" id="pulso" placeholder="72">
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="form-row mb-4">
+                                        <div class="form-group">
+                                            <label class="form-label">Peso (kg)</label>
+                                            <input type="number" class="form-input" id="peso" placeholder="70">
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Altura (cm)</label>
+                                            <input type="number" class="form-input" id="altura" placeholder="170">
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Classificação de Risco -->
+                                    <h5 class="mb-3"><i class="fas fa-exclamation-triangle me-1" style="color: var(--alerta);"></i> Classificação de Risco (Manchester)</h5>
+                                    <div class="classificacao-grid mb-4">
+                                        <div class="classificacao-btn btn-vermelho" onclick="selecionarClassificacao('vermelho')">
+                                            <div style="font-size: 1.5rem; font-weight: 700;">1</div>
+                                            <div style="font-size: 0.6875rem; font-weight: 600;">EMERGÊNCIA</div>
+                                            <div style="font-size: 0.625rem; opacity: 0.8;">Imediato</div>
+                                        </div>
+                                        <div class="classificacao-btn btn-laranja" onclick="selecionarClassificacao('laranja')">
+                                            <div style="font-size: 1.5rem; font-weight: 700;">2</div>
+                                            <div style="font-size: 0.6875rem; font-weight: 600;">MUITO URGENTE</div>
+                                            <div style="font-size: 0.625rem; opacity: 0.8;">10 min</div>
+                                        </div>
+                                        <div class="classificacao-btn btn-amarelo" onclick="selecionarClassificacao('amarelo')">
+                                            <div style="font-size: 1.5rem; font-weight: 700;">3</div>
+                                            <div style="font-size: 0.6875rem; font-weight: 600;">URGENTE</div>
+                                            <div style="font-size: 0.625rem; opacity: 0.8;">60 min</div>
+                                        </div>
+                                        <div class="classificacao-btn btn-verde" onclick="selecionarClassificacao('verde')">
+                                            <div style="font-size: 1.5rem; font-weight: 700;">4</div>
+                                            <div style="font-size: 0.6875rem; font-weight: 600;">POUCO URGENTE</div>
+                                            <div style="font-size: 0.625rem; opacity: 0.8;">120 min</div>
+                                        </div>
+                                        <div class="classificacao-btn btn-azul" onclick="selecionarClassificacao('azul')">
+                                            <div style="font-size: 1.5rem; font-weight: 700;">5</div>
+                                            <div style="font-size: 0.6875rem; font-weight: 600;">NÃO URGENTE</div>
+                                            <div style="font-size: 0.625rem; opacity: 0.8;">240 min</div>
+                                        </div>
+                                    </div>
+                                    <input type="hidden" id="classificacao">
+                                    
+                                    <!-- Informações Adicionais -->
+                                    <div class="form-group">
+                                        <label class="form-label">Queixa Principal <span class="required">*</span></label>
+                                        <textarea class="form-input" id="queixa" rows="2" placeholder="Descreva os sintomas..." required></textarea>
+                                    </div>
+                                    
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label class="form-label">Tempo com Sintomas</label>
+                                            <select class="form-input" id="tempoSintomas">
+                                                <option value="">Selecione...</option>
+                                                <option value="Menos de 1 hora">Menos de 1 hora</option>
+                                                <option value="1 a 3 horas">1 a 3 horas</option>
+                                                <option value="3 a 6 horas">3 a 6 horas</option>
+                                                <option value="6 a 12 horas">6 a 12 horas</option>
+                                                <option value="12 a 24 horas">12 a 24 horas</option>
+                                                <option value="1 a 3 dias">1 a 3 dias</option>
+                                                <option value="Mais de 3 dias">Mais de 3 dias</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Nível de Dor (0-10)</label>
+                                            <select class="form-input" id="dor">
+                                                <option value="0">0 - Sem dor</option>
+                                                <option value="1">1</option>
+                                                <option value="2">2</option>
+                                                <option value="3">3</option>
+                                                <option value="4">4</option>
+                                                <option value="5">5</option>
+                                                <option value="6">6</option>
+                                                <option value="7">7</option>
+                                                <option value="8">8</option>
+                                                <option value="9">9</option>
+                                                <option value="10">10 - Dor máxima</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label class="form-label">Observações</label>
+                                        <textarea class="form-input" id="observacoes" rows="2" placeholder="Observações adicionais..."></textarea>
+                                    </div>
+                                    
+                                    <button type="button" class="btn btn-success btn-lg w-full" onclick="finalizarTriagem()">
+                                        <i class="fas fa-check"></i>
+                                        FINALIZAR TRIAGEM E ENVIAR PARA CONSULTA
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Página: Fila -->
+            <div class="content-area" id="pageFila">
+                <div class="p-6">
+                    <h2 class="mb-4"><i class="fas fa-list-ol me-2" style="color: var(--azul-500);"></i> Fila de Espera</h2>
+                    <div class="card">
+                        <div class="card-body p-0">
+                            <div class="table-container">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Posição</th>
+                                            <th>Paciente</th>
+                                            <th>Queixa</th>
+                                            <th>Classificação</th>
+                                            <th>Hora</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tabelaFila">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Página: Histórico -->
+            <div class="content-area" id="pageHistorico">
+                <div class="p-6">
+                    <h2 class="mb-4"><i class="fas fa-history me-2" style="color: var(--info);"></i> Triagens Realizadas</h2>
+                    <div class="card">
+                        <div class="card-body p-0">
+                            <div class="table-container">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Data/Hora</th>
+                                            <th>Paciente</th>
+                                            <th>Queixa</th>
+                                            <th>Classificação</th>
+                                            <th>Enfermeiro(a)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tabelaHistorico">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Página: Busca -->
+            <div class="content-area" id="pageBusca">
+                <div class="p-6">
+                    <h2 class="mb-4"><i class="fas fa-search me-2" style="color: var(--info);"></i> Buscar Paciente</h2>
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <div class="form-group mb-0">
+                                <div class="flex gap-2">
+                                    <input type="text" class="form-input" id="buscaInput" placeholder="Digite nome, CPF ou Cartão SUS...">
+                                    <button class="btn btn-primary" onclick="buscarPaciente()">
+                                        <i class="fas fa-search"></i> Buscar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-body p-0">
+                            <div class="table-container">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Nome</th>
+                                            <th>CPF</th>
+                                            <th>Nascimento</th>
+                                            <th>Alergias</th>
+                                            <th>Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="resultadoBusca">
+                                        <tr>
+                                            <td colspan="5" class="text-center text-muted py-4">Digite um termo de busca</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../../shared/js/config.js"></script>
+    <script src="../../shared/js/db.js"></script>
+    <script src="../js/config.js"></script>
+    <script>
+        let pacienteSelecionado = null;
+        let consultaSelecionada = null;
+        let classificacaoSelecionada = null;
+        
+        // Verificar acesso
+        verificarAcesso('enfermeiro');
+        
+        // Inicializar dados demo
+        DB.seedDemo();
+        
+        // Atualizar info
+        atualizarInfoUsuario();
+        
+        // Data atual
+        document.getElementById('dataAtual').textContent = new Date().toLocaleDateString('pt-BR');
+        
+        // Carregar ao iniciar
+        document.addEventListener('DOMContentLoaded', function() {
+            carregarListaAguardando();
+            carregarHistorico();
+        });
+        
+        // Escutar eventos em tempo real
+        DB.on('atendimento_iniciado', () => carregarListaAguardando());
+        DB.on('paciente_chamado', () => carregarListaAguardando());
+        DB.on('triagem_realizada', () => { carregarListaAguardando(); carregarHistorico(); });
+        
+        // Mostrar página
+        function mostrarPagina(pagina) {
+            document.querySelectorAll('.content-area').forEach(el => el.classList.remove('active'));
+            document.getElementById('page' + pagina.charAt(0).toUpperCase() + pagina.slice(1)).classList.add('active');
+            
+            const titulos = {
+                triagem: 'Nova Triagem',
+                fila: 'Fila de Espera',
+                historico: 'Triagens Realizadas',
+                busca: 'Buscar Paciente'
+            };
+            document.getElementById('pageTitle').textContent = titulos[pagina] || pagina;
+            
+            document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
+            document.querySelector(`.menu-item[data-page="${pagina}"]`)?.classList.add('active');
+            
+            if (pagina === 'fila') carregarFilaTabela();
+            if (pagina === 'historico') carregarHistorico();
+        }
+        
+        // Carregar lista de aguardando triagem (do banco compartilhado)
+        function carregarListaAguardando() {
+            const lista = document.getElementById('listaAguardando');
+            const fila = DB.getFila().filter(c => c.status === 'em_fila' && !c.triagem);
+            
+            if (!fila.length) {
+                lista.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--cinza-400);"><i class="fas fa-inbox" style="font-size: 2rem; margin-bottom: 10px;"></i><p>Nenhum paciente aguardando triagem.</p><p style="font-size: 0.8rem;">Aguardando a recepção iniciar atendimento.</p></div>';
+                return;
+            }
+            
+            lista.innerHTML = fila.map(c => {
+                const paciente = DB.getPacientePorId(c.paciente_id);
+                const nome = paciente ? paciente.nome : 'Paciente';
+                const iniciais = nome.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+                
+                return `
+                <div onclick="selecionarPaciente('${c.id}')" style="padding: 16px; border-bottom: 1px solid var(--cinza-100); cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='var(--verde-50)'" onmouseout="this.style.background='transparent'">
+                    <div class="flex items-center gap-3">
+                        <div style="width: 45px; height: 45px; background: linear-gradient(135deg, var(--verde-400), var(--azul-400)); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">
+                            ${iniciais}
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; font-size: 0.9375rem;">${nome}</div>
+                            <div style="font-size: 0.8125rem; color: var(--cinza-500);">${c.cpf} • Senha ${c.senha}</div>
+                        </div>
+                        <i class="fas fa-chevron-right" style="color: var(--cinza-400);"></i>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+        
+        // Selecionar paciente (por consulta ID)
+        function selecionarPaciente(consultaId) {
+            const consulta = DB.getConsultaPorId(consultaId);
+            if (!consulta) return;
+            
+            consultaSelecionada = consulta;
+            pacienteSelecionado = DB.getPacientePorId(consulta.paciente_id);
+            
+            if (!pacienteSelecionado) return;
+            
+            document.getElementById('semPaciente').classList.add('hidden');
+            document.getElementById('comPaciente').classList.remove('hidden');
+            document.getElementById('pacienteNome').textContent = pacienteSelecionado.nome + ' — Senha ' + consulta.senha;
+        }
+        
+        // Selecionar classificação
+        function selecionarClassificacao(tipo) {
+            classificacaoSelecionada = tipo;
+            document.getElementById('classificacao').value = tipo;
+            
+            document.querySelectorAll('.classificacao-btn').forEach(btn => btn.classList.remove('selected'));
+            event.target.closest('.classificacao-btn').classList.add('selected');
+        }
+        
+        // Finalizar triagem (salva no banco compartilhado → enfermeira vê no app)
+        function finalizarTriagem() {
+            if (!consultaSelecionada) {
+                mostrarToast('Selecione um paciente primeiro', 'error');
+                return;
+            }
+            
+            if (!classificacaoSelecionada) {
+                mostrarToast('Selecione a classificação de risco', 'error');
+                return;
+            }
+            
+            if (!document.getElementById('queixa').value) {
+                mostrarToast('Informe a queixa principal', 'error');
+                return;
+            }
+            
+            const usuario = getUsuarioLogado();
+            
+            // Salvar triagem no banco compartilhado
+            DB.realizarTriagem(consultaSelecionada.id, {
+                queixa_principal: document.getElementById('queixa').value,
+                pressao: document.getElementById('pressao').value,
+                temperatura: parseFloat(document.getElementById('temperatura').value) || null,
+                pulso: parseInt(document.getElementById('pulso').value) || null,
+                saturacao: parseInt(document.getElementById('saturacao').value) || null,
+                peso: parseFloat(document.getElementById('peso').value) || null,
+                altura: parseInt(document.getElementById('altura').value) || null,
+                classificacao_risco: classificacaoSelecionada,
+                tempo_sintomas: document.getElementById('tempoSintomas').value,
+                intensidade_dor: parseInt(document.getElementById('dor').value) || 0,
+                observacoes: document.getElementById('observacoes').value,
+                enfermeiro: usuario ? usuario.nome : 'Enfermeiro(a)'
+            });
+            
+            mostrarToast('✅ Triagem realizada! Paciente e telão foram notificados.', 'success');
+            
+            // Limpar
+            document.getElementById('semPaciente').classList.remove('hidden');
+            document.getElementById('comPaciente').classList.add('hidden');
+            document.getElementById('queixa').value = '';
+            document.getElementById('pressao').value = '';
+            document.getElementById('temperatura').value = '';
+            document.getElementById('saturacao').value = '';
+            document.getElementById('pulso').value = '';
+            document.getElementById('peso').value = '';
+            document.getElementById('altura').value = '';
+            document.getElementById('observacoes').value = '';
+            document.querySelectorAll('.classificacao-btn').forEach(btn => btn.classList.remove('selected'));
+            pacienteSelecionado = null;
+            consultaSelecionada = null;
+            classificacaoSelecionada = null;
+            
+            carregarListaAguardando();
+        }
+        
+        // Carregar histórico de triagens (do banco compartilhado)
+        function carregarHistorico() {
+            const tbody = document.getElementById('tabelaHistorico');
+            const consultas = DB.getConsultas().filter(c => c.triagem);
+            
+            if (!consultas.length) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">Nenhuma triagem realizada</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = consultas.map(c => {
+                const paciente = DB.getPacientePorId(c.paciente_id);
+                const nome = paciente ? paciente.nome : '—';
+                const t = c.triagem;
+                return `
+                    <tr>
+                        <td>${new Date(c.criado_em).toLocaleString('pt-BR')}</td>
+                        <td><strong>${nome}</strong></td>
+                        <td>${t.queixa_principal || '—'}</td>
+                        <td>${getClassificacaoBadge(t.classificacao_risco)}</td>
+                        <td>${t.enfermeiro || '—'}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        // Carregar fila (tabela)
+        function carregarFilaTabela() {
+            const tbody = document.getElementById('tabelaFila');
+            const fila = DB.getFila();
+            
+            if (!fila.length) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Fila vazia</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = fila.map((c, i) => {
+                const paciente = DB.getPacientePorId(c.paciente_id);
+                const nome = paciente ? paciente.nome : '—';
+                const status = c.status === 'chamado' ? '<span class="badge badge-success">🔔 Chamado</span>' : '<span class="badge badge-warning">Aguardando</span>';
+                return `
+                    <tr>
+                        <td>${i + 1}</td>
+                        <td><strong>${nome}</strong></td>
+                        <td>${c.triagem ? c.triagem.queixa_principal : '—'}</td>
+                        <td>${c.triagem ? getClassificacaoBadge(c.triagem.classificacao_risco) : '—'}</td>
+                        <td>${new Date(c.criado_em).toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'})}</td>
+                        <td>${status}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        // Buscar paciente (do banco compartilhado)
+        function buscarPaciente() {
+            const termo = document.getElementById('buscaInput').value.toLowerCase();
+            const tbody = document.getElementById('resultadoBusca');
+            
+            if (!termo) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">Digite um termo de busca</td></tr>';
+                return;
+            }
+            
+            const resultados = DB.getPacientes().filter(p => 
+                p.nome.toLowerCase().includes(termo) ||
+                p.cpf.includes(termo) ||
+                (p.cartao_sus && p.cartao_sus.includes(termo))
+            );
+            
+            tbody.innerHTML = resultados.length === 0 
+                ? '<tr><td colspan="5" class="text-center text-muted py-4">Nenhum resultado</td></tr>'
+                : resultados.map(p => `
+                    <tr>
+                        <td><strong>${p.nome}</strong></td>
+                        <td>${p.cpf}</td>
+                        <td>${p.nascimento ? new Date(p.nascimento).toLocaleDateString('pt-BR') : '—'}</td>
+                        <td>${(p.alergias && p.alergias.length) ? p.alergias.join(', ') : '<span class="text-muted">Nenhuma</span>'}</td>
+                        <td>
+                            <button class="btn btn-primary btn-sm" onclick="mostrarToast('Selecione na lista de triagem', 'info'); mostrarPagina('triagem');">
+                                <i class="fas fa-stethoscope"></i> Triar
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+        }
+        
+        document.getElementById('buscaInput')?.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') buscarPaciente();
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a30626a2db75c58a',t:'MTc4NzYxNDI5MA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3167f732f9b6ea3',t:'MTc4Nzc4NTcwMA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
