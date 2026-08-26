@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#061A13">
+  <title>Telão — Vida+ • Hospital Vida+</title>
+  <link rel="stylesheet" href="css/tv.css">
+</head>
+<body>
+
+  <div class="tv-app">
+
+    <!-- ===== Topo ===== -->
+    <header class="tv-topo">
+      <div class="tv-marca">
+        <div class="logo-tv">
+          <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg>
+        </div>
+        <div>
+          <div class="nome-sistema">Vida+</div>
+          <div class="nome-unidade" id="nome-unidade">Hospital Vida+</div>
+        </div>
+      </div>
+      <div class="tv-relogio">
+        <div class="hora" id="relogio-hora">--:--:--</div>
+        <div class="data" id="relogio-data">—</div>
+      </div>
+    </header>
+
+    <!-- ===== Destaque: última chamada ===== -->
+    <section class="tv-destaque" id="destaque">
+      <div class="aguardando" id="aguardando">
+        <div class="icone-espera">🩺</div>
+        <h2>Bem-vindo(a) ao Hospital Vida+</h2>
+        <p>Fique atento(a) à sua senha no telão e no seu celular.</p>
+      </div>
+
+      <div class="chamada" id="chamada" style="display:none;">
+        <div class="rotulo-chamada anim-item">🔔 Chamando</div>
+        <!-- Triagem: senha gigante + "Dirija-se à Triagem"
+             Consulta: nome gigante + Consultório X + médico -->
+        <div class="senha-chamada anim-item" id="chamada-senha">A000</div>
+        <div class="nome-chamada anim-item" id="chamada-nome">—</div>
+        <div class="destino-box anim-item" id="chamada-destino">
+          <span class="destino-rotulo" id="chamada-destino-rotulo">Destino</span>
+          <span class="destino-valor" id="chamada-destino-valor">—</span>
+          <span class="destino-medico" id="chamada-destino-medico"></span>
+        </div>
+        <div class="pista-chamada anim-item" id="chamada-pista">Por favor, dirija-se ao local indicado</div>
+      </div>
+    </section>
+
+    <!-- ===== Painéis: chamadas recentes + avisos =====
+         ⚠️ PRIVACIDADE: a TV NÃO exibe fila de espera, ordem
+         ou posição dos pacientes. Apenas senhas já chamadas
+         (sem nome) e avisos institucionais. -->
+    <div class="tv-paineis">
+      <div class="tv-painel">
+        <div class="painel-titulo"><span>📢 Chamadas recentes</span></div>
+        <div class="lista-tv" id="lista-recentes">
+          <div class="vazio-tv"><div class="icone">📢</div><h3>Nenhuma chamada ainda</h3></div>
+        </div>
+      </div>
+
+      <div class="tv-painel">
+        <div class="painel-titulo"><span>💬 Avisos</span></div>
+        <div class="lista-tv">
+          <div class="aviso-grande" id="aviso-atual">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Rodapé ===== -->
+    <footer class="tv-rodape">
+      <span class="ponto"></span>
+      <span id="msg-rodape">Prezado(a) paciente: aguarde sua senha ser chamada. Em caso de dúvida, procure a recepção.</span>
+    </footer>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../shared/js/config.js"></script>
+  <script src="../shared/js/db.js"></script>
+  <script src="js/relogio.js"></script>
+  <script>
+    /* Som de chamada (WebAudio, sem arquivo externo) */
+    const NotificarTV = {
+      somChamada() {
+        try {
+          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+          if (ctx.state === 'suspended') ctx.resume();
+          const notas = [[880, 0], [1174.66, 0.22], [880, 0.44], [1567.98, 0.66]];
+          notas.forEach(([freq, t]) => {
+            const o = ctx.createOscillator();
+            const g = ctx.createGain();
+            o.type = 'sine'; o.frequency.value = freq;
+            g.gain.setValueAtTime(0.0001, ctx.currentTime + t);
+            g.gain.exponentialRampToValueAtTime(0.4, ctx.currentTime + t + 0.03);
+            g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + t + 0.18);
+            o.connect(g).connect(ctx.destination);
+            o.start(ctx.currentTime + t);
+            o.stop(ctx.currentTime + t + 0.25);
+          });
+        } catch (e) {}
+      }
+    };
+
+    /* ===== Avisos institucionais (rotativos) =====
+       Somente mensagens gerais — nada de dados de pacientes. */
+    const AVISOS = [
+      'Prezado(a) paciente: quando sua senha for chamada, dirija-se ao guichê indicado.',
+      'Mantenha seu cadastro e telefone atualizados na recepção — assim avisamos você com mais facilidade.',
+      'Em caso de emergência, procure imediatamente a equipe de plantão.',
+      'Seus dados são protegidos pela Lei Geral de Proteção de Dados (LGPD).',
+      'Vacinação em dia: pergunte na recepção sobre as campanhas disponíveis.',
+      'Prevenção salva vidas: lave as mãos com frequência e mantenha a vacinação em dia.'
+    ];
+    let idxAviso = 0;
+
+    function renderizarAviso() {
+      const el = document.getElementById('aviso-atual');
+      el.textContent = AVISOS[idxAviso % AVISOS.length];
+      el.classList.remove('fade');
+      void el.offsetWidth; // reinicia a animação
+      el.classList.add('fade');
+      idxAviso++;
+    }
+
+    document.getElementById('nome-unidade').textContent = TV_CONFIG.UNIDADE;
+    iniciarRelogio(
+      document.getElementById('relogio-hora'),
+      document.getElementById('relogio-data')
+    );
+    renderizarAviso();
+    setInterval(renderizarAviso, 9000);
+
+    /* ---------- Renderização ---------- */
+    let ultimaChamadaId = null;
+
+    function formatarHora(iso) {
+      if (!iso) return '--:--';
+      const d = new Date(iso);
+      return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function renderizarDestaque(chamada) {
+      const aguardando = document.getElementById('aguardando');
+      const chamadaEl = document.getElementById('chamada');
+      const destaque = document.getElementById('destaque');
+      if (!chamada) {
+        chamadaEl.style.display = 'none';
+        aguardando.style.display = 'flex';
+        destaque.classList.remove('modo-triagem', 'modo-consulta');
+        return;
+      }
+      aguardando.style.display = 'none';
+      chamadaEl.style.display = 'block';
+
+      const tipo = chamada.tipo_chamada || 'triagem';
+      const nome = chamada.nome_chamado || chamada.nome_paciente || 'Paciente';
+
+      // Limpa classes de modo e aplica a do tipo
+      destaque.classList.remove('modo-triagem', 'modo-consulta');
+      destaque.classList.add(tipo === 'consulta' ? 'modo-consulta' : 'modo-triagem');
+
+      document.getElementById('chamada-senha').textContent = chamada.senha;
+      document.getElementById('chamada-nome').textContent = nome;
+
+      const rotulo = document.getElementById('chamada-destino-rotulo');
+      const valor = document.getElementById('chamada-destino-valor');
+      const medicoEl = document.getElementById('chamada-destino-medico');
+      const pista = document.getElementById('chamada-pista');
+
+      if (tipo === 'consulta') {
+        // Triagem → médico: chamada PELO NOME + consultório + médico
+        rotulo.textContent = 'Consultório';
+        valor.textContent = chamada.consultorio || '—';
+        medicoEl.textContent = chamada.medico_nome || '';
+        pista.textContent = 'Por favor, dirija-se ao consultório indicado';
+        document.getElementById('chamada-nome').textContent = nome;
+        document.getElementById('chamada-senha').textContent = chamada.senha;
+      } else {
+        // Recepção → triagem: chamada PELO CÓDIGO + "Triagem"
+        rotulo.textContent = 'Destino';
+        valor.textContent = 'Triagem';
+        medicoEl.textContent = chamada.guiche ? 'Guichê ' + chamada.guiche : '';
+        pista.textContent = 'Por favor, dirija-se à triagem';
+      }
+    }
+
+    /* Chamadas recentes: SOMENTE senha + destino + hora (sem nome,
+       sem ordem — privacidade do paciente). O destino indica se foi
+       chamado para a triagem ou para o consultório. */
+    function renderizarRecentes(recentes) {
+      const el = document.getElementById('lista-recentes');
+      if (!recentes.length) {
+        el.innerHTML = '<div class="vazio-tv"><div class="icone">📢</div><h3>Nenhuma chamada ainda</h3></div>';
+        return;
+      }
+      el.innerHTML = recentes.map(c => {
+        const tipo = c.tipo_chamada || 'triagem';
+        const destino = tipo === 'consulta'
+          ? '<span class="guiche guiche-consulta">Consultório ' + (c.consultorio || '—') + '</span>'
+          : '<span class="guiche">Triagem</span>';
+        return `
+        <div class="item-recente">
+          <span class="senha">${c.senha}</span>
+          ${destino}
+          <span class="hora">${formatarHora(c.chamado_em)}</span>
+        </div>`;
+      }).join('');
+    }
+
+    /* ---------- Atualização periódica ---------- */
+    async function atualizar() {
+      try {
+        const recentes = await TV.getChamadasRecentes();
+        renderizarRecentes(recentes);
+
+        const ultima = recentes[0] || null;
+        const destaque = document.getElementById('destaque');
+
+        if (ultima && ultima.id !== ultimaChamadaId) {
+          // Nova chamada → anima o destaque
+          ultimaChamadaId = ultima.id;
+          renderizarDestaque(ultima);
+          destaque.classList.remove('animando');
+          void destaque.offsetWidth; // reinicia a animação
+          destaque.classList.add('animando');
+          NotificarTV.somChamada();
+        } else {
+          renderizarDestaque(ultima);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    atualizar();
+    setInterval(atualizar, 5000);
+  </script>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a30940d73bf0f254',t:'MTc4NzY0NjgyMA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a316929fde46f264',t:'MTc4Nzc4NjQ4NQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
