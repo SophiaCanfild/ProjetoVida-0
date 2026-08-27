@@ -211,10 +211,12 @@
       }).join('');
     }
 
-    /* ---------- Atualização periódica ---------- */
-    async function atualizar() {
+        /* ---------- Atualização periódica ---------- */
+    let ultimaChamadaId = null;
+
+    function atualizar() {
       try {
-        const recentes = await TV.getChamadasRecentes();
+        const recentes = TV.getChamadasRecentes();
         renderizarRecentes(recentes);
 
         const ultima = recentes[0] || null;
@@ -232,12 +234,26 @@
           renderizarDestaque(ultima);
         }
       } catch (e) {
-        console.error(e);
+        console.error('[Telão] Erro:', e);
       }
     }
 
+    // Atualiza a cada 3 segundos
     atualizar();
-    setInterval(atualizar, 5000);
+    setInterval(atualizar, 3000);
+
+    // Também escuta mudanças no localStorage (outras abas)
+    window.addEventListener('storage', function(e) {
+      if (e.key && e.key.indexOf('vidamais_') === 0) {
+        atualizar();
+      }
+    });
+
+    // Escuta eventos do DB
+    if (typeof DB !== 'undefined') {
+      DB.on('paciente_chamado', function() { atualizar(); });
+      DB.on('atendimento_iniciado', function() { atualizar(); });
+    }
   </script>
 <script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a30940d73bf0f254',t:'MTc4NzY0NjgyMA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a316929fde46f264',t:'MTc4Nzc4NjQ4NQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
