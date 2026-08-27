@@ -60,26 +60,26 @@
   // ============================================================
   // SUPABASE — Detecção e helpers
   // ============================================================
-  const temSupabase = typeof supabase !== 'undefined' && supabase !== null;
+  const temSupabase = typeof supabaseClient !== 'undefined' && supabaseClient !== null;
 
   // Escrita assíncrona no Supabase (fire-and-forget)
   function sbInsert(tabela, dados) {
     if (!temSupabase) return Promise.resolve();
-    return supabase.from(tabela).insert(dados).then(({ error }) => {
+    return supabaseClient.from(tabela).insert(dados).then(({ error }) => {
       if (error) console.warn('[Supabase insert]', tabela, error.message);
     });
   }
 
   function sbUpdate(tabela, dados, filtro) {
     if (!temSupabase) return Promise.resolve();
-    return supabase.from(tabela).update(dados).match(filtro).then(({ error }) => {
+    return supabaseClient.from(tabela).update(dados).match(filtro).then(({ error }) => {
       if (error) console.warn('[Supabase update]', tabela, error.message);
     });
   }
 
   function sbUpsert(tabela, dados) {
     if (!temSupabase) return Promise.resolve();
-    return supabase.from(tabela).upsert(dados, { onConflict: 'id' }).then(({ error }) => {
+    return supabaseClient.from(tabela).upsert(dados, { onConflict: 'id' }).then(({ error }) => {
       if (error) console.warn('[Supabase upsert]', tabela, error.message);
     });
   }
@@ -92,7 +92,7 @@
     try {
       const tabelas = ['usuarios', 'pacientes', 'consultas', 'agendamentos', 'notificacoes'];
       const resultados = await Promise.all(
-        tabelas.map(t => supabase.from(t).select('*'))
+        tabelas.map(t => supabaseClient.from(t).select('*'))
       );
       tabelas.forEach((tabela, i) => {
         const { data, error } = resultados[i];
@@ -113,7 +113,7 @@
     if (!temSupabase || !supabase.channel) return;
 
     try {
-      const channel = supabase.channel('vida-mais-sync');
+      const channel = supabaseClient.channel('vida-mais-sync');
 
       ['consultas', 'pacientes', 'usuarios', 'notificacoes', 'agendamentos'].forEach(tabela => {
         channel.on('postgres_changes',
