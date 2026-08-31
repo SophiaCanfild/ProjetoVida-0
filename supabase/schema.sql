@@ -10,6 +10,11 @@
 --   1. Crie um projeto em https://supabase.com
 --   2. Menu "SQL Editor" → New query → cole este arquivo → RUN
 --   3. Copie a URL e a anon key para shared/js/config.js
+--
+-- O script é IDEMPOTENTE: se você já tinha rodado uma versão
+-- antiga, rode ESTA versão por cima — ela remove as policies
+-- antigas, cria as novas (permissivas p/ demo), adiciona a
+-- coluna cartao_sus e habilita o Realtime das tabelas.
 -- ============================================================
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
@@ -36,9 +41,13 @@ CREATE TABLE IF NOT EXISTS public.pacientes (
     tabagista           BOOLEAN         DEFAULT FALSE,
     responsavel_nome    VARCHAR(160),
     responsavel_telefone VARCHAR(20),
+    cartao_sus          VARCHAR(20),
     criado_em           TIMESTAMPTZ     DEFAULT NOW(),
     atualizado_em       TIMESTAMPTZ     DEFAULT NOW()
 );
+
+-- Para bancos que já foram criados ANTES desta coluna existir (idempotente):
+ALTER TABLE public.pacientes ADD COLUMN IF NOT EXISTS cartao_sus VARCHAR(20);
 
 -- ============================================================
 -- 2. USUÁRIOS DO SISTEMA (funcionários)
@@ -207,7 +216,17 @@ RETURNS INTEGER LANGUAGE sql STABLE AS $$
 $$;
 
 -- ============================================================
--- ROW LEVEL SECURITY (RLS)
+-- ROW LEVEL SECURITY (RLS) — MODO DEMO SEM SUPABASE AUTH
+-- ------------------------------------------------------------
+-- ATENÇÃO: o sistema NÃO usa Supabase Auth — o login é feito no
+-- próprio app (CPF + senha, lado cliente). Por isso as políticas
+-- abaixo são PERMISSIVAS (USING TRUE), para a anon key conseguir
+-- ler e gravar. Sem isso TODAS as queries falham silenciosamente.
+--
+-- ✅ Adequado para: TCC, demonstração, protótipo.
+-- ⚠️ INSEGURO para produção: qualquer pessoa com a anon key pode
+--    ler/alterar os dados. Para produção, implemente Supabase Auth
+--    e recrie políticas restritivas por perfil.
 -- ============================================================
 ALTER TABLE public.pacientes     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.consultas     ENABLE ROW LEVEL SECURITY;
@@ -218,85 +237,67 @@ ALTER TABLE public.medicamentos  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.unidades      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.configuracoes ENABLE ROW LEVEL SECURITY;
 
--- PACIENTES: paciente lê o próprio; equipe lê todos
-CREATE POLICY "paciente proprio select" ON public.pacientes
-    FOR SELECT USING (
-        (SELECT auth.jwt() ->> 'cpf') = cpf
-        OR (SELECT auth.jwt() ->> 'perfil') IN ('recepcionista','enfermeiro','medico','administrador')
-    );
-CREATE POLICY "paciente edita proprio" ON public.pacientes
-    FOR UPDATE USING ((SELECT auth.jwt() ->> 'cpf') = cpf);
-CREATE POLICY "recepcao cadastra" ON public.pacientes
-    FOR INSERT WITH CHECK (
-        (SELECT auth.jwt() ->> 'perfil') IN ('recepcionista','enfermeiro','medico','administrador')
-        OR (SELECT auth.jwt() ->> 'cpf') = cpf
-    );
+-- Remove políticas antigas restritivas (permite re-rodar o script sem erro)
+DROP POLICY IF EXISTS "paciente proprio select"        ON public.pacientes;
+DROP POLICY IF EXISTS "paciente edita proprio"         ON public.pacientes;
+DROP POLICY IF EXISTS "recepcao cadastra"              ON public.pacientes;
+DROP POLICY IF EXISTS "consulta paciente select"       ON public.consultas;
+DROP POLICY IF EXISTS "consulta inserir equipe"        ON public.consultas;
+DROP POLICY IF EXISTS "consulta cancelar paciente"     ON public.consultas;
+DROP POLICY IF EXISTS "consulta equipe atualiza"       ON public.consultas;
+DROP POLICY IF EXISTS "agendamento paciente select"    ON public.agendamentos;
+DROP POLICY IF EXISTS "agendamento paciente desmarca"  ON public.agendamentos;
+DROP POLICY IF EXISTS "agendamento equipe"             ON public.agendamentos;
+DROP POLICY IF EXISTS "notificacao paciente select"      ON public.notificacoes;
+DROP POLICY IF EXISTS "notificacao paciente marca lida"  ON public.notificacoes;
+DROP POLICY IF EXISTS "notificacao insere equipe"        ON public.notificacoes;
+DROP POLICY IF EXISTS "usuarios select equipe"         ON public.usuarios;
+DROP POLICY IF EXISTS "usuarios admin"                 ON public.usuarios;
+DROP POLICY IF EXISTS "medicamentos equipe"            ON public.medicamentos;
+DROP POLICY IF EXISTS "unidades select"                ON public.unidades;
+DROP POLICY IF EXISTS "config admin"                   ON public.configuracoes;
 
--- CONSULTAS: paciente vê as próprias; equipe vê todas
-CREATE POLICY "consulta paciente select" ON public.consultas
-    FOR SELECT USING (
-        (SELECT auth.jwt() ->> 'cpf') = cpf
-        OR (SELECT auth.jwt() ->> 'perfil') IN ('recepcionista','enfermeiro','medico','administrador')
-    );
-CREATE POLICY "consulta inserir equipe" ON public.consultas
-    FOR INSERT WITH CHECK (
-        (SELECT auth.jwt() ->> 'perfil') IN ('recepcionista','enfermeiro','medico','administrador')
-    );
-CREATE POLICY "consulta cancelar paciente" ON public.consultas
-    FOR UPDATE USING (
-        (SELECT auth.jwt() ->> 'cpf') = cpf AND status IN ('em_fila','chamado')
-    ) WITH CHECK (status IN ('em_fila','chamado','cancelado'));
-CREATE POLICY "consulta equipe atualiza" ON public.consultas
-    FOR UPDATE USING (
-        (SELECT auth.jwt() ->> 'perfil') IN ('recepcionista','enfermeiro','medico','administrador')
-    );
+-- Políticas permissivas (demo) — DROP IF EXISTS antes garante re-run sem erro
+DROP POLICY IF EXISTS "demo pacientes"     ON public.pacientes;
+DROP POLICY IF EXISTS "demo consultas"     ON public.consultas;
+DROP POLICY IF EXISTS "demo usuarios"      ON public.usuarios;
+DROP POLICY IF EXISTS "demo agendamentos"  ON public.agendamentos;
+DROP POLICY IF EXISTS "demo notificacoes"  ON public.notificacoes;
+DROP POLICY IF EXISTS "demo medicamentos"  ON public.medicamentos;
+DROP POLICY IF EXISTS "demo unidades"      ON public.unidades;
+DROP POLICY IF EXISTS "demo configuracoes" ON public.configuracoes;
 
--- AGENDAMENTOS
-CREATE POLICY "agendamento paciente select" ON public.agendamentos
-    FOR SELECT USING (
-        (SELECT auth.jwt() ->> 'cpf') = paciente_cpf
-        OR (SELECT auth.jwt() ->> 'perfil') IN ('recepcionista','enfermeiro','medico','administrador')
-    );
-CREATE POLICY "agendamento paciente desmarca" ON public.agendamentos
-    FOR UPDATE USING ((SELECT auth.jwt() ->> 'cpf') = paciente_cpf)
-    WITH CHECK (status IN ('agendado','confirmado','cancelado'));
-CREATE POLICY "agendamento equipe" ON public.agendamentos
-    FOR ALL USING (
-        (SELECT auth.jwt() ->> 'perfil') IN ('recepcionista','enfermeiro','medico','administrador')
-    );
+CREATE POLICY "demo pacientes"     ON public.pacientes     FOR ALL USING (TRUE) WITH CHECK (TRUE);
+CREATE POLICY "demo consultas"     ON public.consultas     FOR ALL USING (TRUE) WITH CHECK (TRUE);
+CREATE POLICY "demo usuarios"      ON public.usuarios      FOR ALL USING (TRUE) WITH CHECK (TRUE);
+CREATE POLICY "demo agendamentos"  ON public.agendamentos  FOR ALL USING (TRUE) WITH CHECK (TRUE);
+CREATE POLICY "demo notificacoes"  ON public.notificacoes  FOR ALL USING (TRUE) WITH CHECK (TRUE);
+CREATE POLICY "demo medicamentos"  ON public.medicamentos  FOR ALL USING (TRUE) WITH CHECK (TRUE);
+CREATE POLICY "demo unidades"      ON public.unidades      FOR ALL USING (TRUE) WITH CHECK (TRUE);
+CREATE POLICY "demo configuracoes" ON public.configuracoes FOR ALL USING (TRUE) WITH CHECK (TRUE);
 
--- NOTIFICAÇÕES
-CREATE POLICY "notificacao paciente select" ON public.notificacoes
-    FOR SELECT USING ((SELECT auth.jwt() ->> 'cpf') = cpf);
-CREATE POLICY "notificacao paciente marca lida" ON public.notificacoes
-    FOR UPDATE USING ((SELECT auth.jwt() ->> 'cpf') = cpf)
-    WITH CHECK (lida = TRUE);
-CREATE POLICY "notificacao insere equipe" ON public.notificacoes
-    FOR INSERT WITH CHECK (
-        (SELECT auth.jwt() ->> 'perfil') IN ('recepcionista','enfermeiro','medico','administrador')
-    );
 
--- USUÁRIOS
-CREATE POLICY "usuarios select equipe" ON public.usuarios
-    FOR SELECT USING (
-        (SELECT auth.jwt() ->> 'perfil') IN ('recepcionista','enfermeiro','medico','administrador')
-    );
-CREATE POLICY "usuarios admin" ON public.usuarios
-    FOR ALL USING ((SELECT auth.jwt() ->> 'perfil') = 'administrador');
-
--- MEDICAMENTOS
-CREATE POLICY "medicamentos equipe" ON public.medicamentos
-    FOR ALL USING (
-        (SELECT auth.jwt() ->> 'perfil') IN ('enfermeiro','medico','administrador')
-    );
-
--- UNIDADES
-CREATE POLICY "unidades select" ON public.unidades
-    FOR SELECT USING (TRUE);
-
--- CONFIGURAÇÕES
-CREATE POLICY "config admin" ON public.configuracoes
-    FOR ALL USING ((SELECT auth.jwt() ->> 'perfil') = 'administrador');
+-- ============================================================
+-- REALTIME — publica as mudanças das tabelas em tempo real
+-- ------------------------------------------------------------
+-- Necessário para o "postgres_changes" do supabase-js funcionar
+-- (fila do telão e do app atualizando sozinhos). Idempotente.
+-- ============================================================
+DO $$
+DECLARE
+    t TEXT;
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+        FOREACH t IN ARRAY ARRAY['usuarios','pacientes','consultas','agendamentos','notificacoes'] LOOP
+            IF NOT EXISTS (
+                SELECT 1 FROM pg_publication_tables
+                WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = t
+            ) THEN
+                EXECUTE format('ALTER PUBLICATION supabase_realtime ADD TABLE public.%I', t);
+            END IF;
+        END LOOP;
+    END IF;
+END $$;
 
 
 -- ============================================================
@@ -310,15 +311,19 @@ VALUES
     ('UPA Araucária',         'upa', 'Araucária', 'PR', '(41) 3333-5555', 'upa.arauca@vida.com',  'Administrador')
 ON CONFLICT DO NOTHING;
 
--- Usuários
-INSERT INTO public.usuarios (nome, cpf, email, perfil, registro_profissional, crm, coren, especialidade)
+-- Usuários (mesmos logins do modo demo do app — ver tabela no README)
+-- senha_hash guarda a senha em TEXTO SIMPLES apenas para o TCC/demo.
+-- Para produção, use Supabase Auth ou hash bcrypt (pgcrypto).
+INSERT INTO public.usuarios (nome, cpf, email, senha_hash, perfil, crm, coren, especialidade)
 VALUES
-    ('Administrador Sistema',   '00000000000', 'admin@vida.com',              'administrador',  NULL,            NULL,          NULL,          NULL),
-    ('Ana Recepção',            '11122233344', 'ana.recepcao@vida.com',       'recepcionista',  NULL,            NULL,          NULL,          NULL),
-    ('Bruno Enfermeiro',        '22233344455', 'bruno.enf@vida.com',          'enfermeiro',     'COREN 123456',  NULL,          'COREN 123456','Enfermagem Geral'),
-    ('Dr. Carlos Pereira',      '33344455566', 'carlos.medico@vida.com',      'medico',         'CRM 12345',     'CRM 12345',   NULL,          'Clínico Geral'),
-    ('Dra. Carla Dermatologia', '44455566678', 'carla.dermato@vida.com',      'medico',         'CRM 67890',     'CRM 67890',   NULL,          'Dermatologia'),
-    ('Diana Admin',             '44455566677', 'diana.admin@vida.com',        'administrador',  NULL,            NULL,          NULL,          NULL)
+    ('Administrador Sistema',   '00000000000', 'admin@vida.com',              'admin123',      'administrador',  NULL,           NULL,              NULL),
+    ('Dr. Alexandre Medicina',  '12345678901', 'alexandre.medicina@vida.com', 'medico123',     'medico',         'CRM/PR 12345', NULL,              'Clínico Geral'),
+    ('Dra. Carla Dermatologia', '23456789012', 'carla.dermato@vida.com',      'medico123',     'medico',         'CRM/PR 67890', NULL,              'Dermatologia'),
+    ('Dr. Roberto Cirurgia',    '34567890123', 'roberto.cirurgia@vida.com',   'medico123',     'medico',         'CRM/PR 11223', NULL,              'Cirurgia Geral'),
+    ('Paula Santos Silva',      '45678901234', 'paula.santos@vida.com',       'enfermeiro123', 'enfermeiro',     NULL,           'COREN/PR 123456', 'Enfermagem Geral'),
+    ('Roberto Lima Costa',      '56789012345', 'roberto.lima@vida.com',       'enfermeiro123', 'enfermeiro',     NULL,           'COREN/PR 234567', 'Enfermagem'),
+    ('Fernanda Oliveira',       '67890123456', 'fernanda.oliveira@vida.com',  'recep123',      'recepcionista',  NULL,           NULL,              NULL),
+    ('Carlos Eduardo Mendes',   '78901234567', 'carlos.mendes@vida.com',      'recep123',      'recepcionista',  NULL,           NULL,              NULL)
 ON CONFLICT (email) DO NOTHING;
 
 -- Pacientes

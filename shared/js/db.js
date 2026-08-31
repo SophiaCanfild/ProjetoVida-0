@@ -58,29 +58,96 @@
   }
 
   // ============================================================
-  // SUPABASE — Detecção e helpers
+  // SUPABASE — Detecção e mapeamento de colunas
+  // ------------------------------------------------------------
+  // O formato interno (localStorage/JS) usa alguns nomes diferentes
+  // do schema do banco. Aqui convertemos nos dois sentidos e
+  // removemos chaves que NÃO existem como coluna no banco —
+  // sem isso o PostgREST rejeitaria a gravação inteira.
   // ============================================================
   const temSupabase = typeof supabaseClient !== 'undefined' && supabaseClient !== null;
+
+  const MAPA_TABELAS = {
+    usuarios: {
+      renomear: { senha: 'senha_hash', registroProfissional: 'registro_profissional' },
+      colunas: ['id', 'nome', 'cpf', 'email', 'senha_hash', 'perfil', 'registro_profissional', 'crm', 'coren', 'especialidade', 'ativo', 'criado_em']
+    },
+    pacientes: {
+      renomear: { dataNascimento: 'nascimento', tipoSanguineo: 'tipo_sanguineo', medicamentosCont: 'medicamentos_uso', cartaoSus: 'cartao_sus' },
+      colunas: ['id', 'cpf', 'nome', 'nascimento', 'sexo', 'telefone', 'email', 'endereco', 'tipo_sanguineo', 'alergias', 'doencas_cronicas', 'medicamentos_uso', 'deficiencia', 'gestante', 'tabagista', 'responsavel_nome', 'responsavel_telefone', 'cartao_sus', 'criado_em', 'atualizado_em']
+    },
+    consultas: {
+      renomear: {},
+      colunas: ['id', 'paciente_id', 'cpf', 'unidade', 'senha', 'recepcao', 'triagem', 'diagnostico', 'cid10', 'conduta', 'orientacoes', 'receita', 'exames', 'medico_nome', 'medico_crm', 'status', 'guiche', 'nome_chamado', 'tipo_chamada', 'consultorio', 'chamado_em', 'criado_em', 'finalizado_em', 'cancelado_em']
+    },
+    agendamentos: {
+      renomear: {},
+      colunas: ['id', 'paciente_id', 'paciente_cpf', 'unidade', 'especialidade', 'medico_nome', 'data_hora', 'status', 'criado_em']
+    },
+    notificacoes: {
+      renomear: {},
+      colunas: ['id', 'cpf', 'tipo', 'titulo', 'texto', 'link', 'lida', 'criado_em']
+    }
+  };
+
+  // tipo interno (app) <-> perfil do banco (CHECK do schema só aceita estes valores)
+  const TIPO_PARA_PERFIL = { admin: 'administrador', administrador: 'administrador', medico: 'medico', enfermeiro: 'enfermeiro', recepcionista: 'recepcionista' };
+  const PERFIL_PARA_TIPO = { administrador: 'admin', medico: 'medico', enfermeiro: 'enfermeiro', recepcionista: 'recepcionista' };
+  const CARGO_POR_PERFIL = { administrador: 'Administrador', medico: 'Médico', enfermeiro: 'Enfermeiro(a)', recepcionista: 'Recepcionista' };
+
+  // Objeto local -> linha válida para gravar no banco
+  function paraSupabase(tabela, dados) {
+    const mapa = MAPA_TABELAS[tabela];
+    if (!mapa || !dados) return dados;
+    const saida = {};
+    Object.keys(dados).forEach(function (chave) {
+      const destino = mapa.renomear[chave] || chave;
+      if (mapa.colunas.indexOf(destino) !== -1) {
+        saida[destino] = dados[chave];
+      }
+    });
+    if (tabela === 'usuarios') {
+      const tipoBruto = dados.perfil || dados.tipo;
+      if (tipoBruto) saida.perfil = TIPO_PARA_PERFIL[tipoBruto] || tipoBruto;
+    }
+    return saida;
+  }
+
+  // Linha vinda do banco -> formato interno usado pelo app
+  function doSupabase(tabela, linha) {
+    if (!linha) return linha;
+    const obj = Object.assign({}, linha);
+    if (tabela === 'usuarios') {
+      obj.tipo = PERFIL_PARA_TIPO[obj.perfil] || obj.perfil || 'recepcionista';
+      obj.senha = obj.senha_hash !== undefined ? obj.senha_hash : obj.senha;
+      obj.registroProfissional = obj.registro_profissional !== undefined ? obj.registro_profissional : obj.registroProfissional;
+      obj.cargo = obj.cargo || CARGO_POR_PERFIL[obj.perfil] || 'Funcionário';
+    }
+    return obj;
+  }
 
   // Escrita assíncrona no Supabase (fire-and-forget)
   function sbInsert(tabela, dados) {
     if (!temSupabase) return Promise.resolve();
-    return supabaseClient.from(tabela).insert(dados).then(({ error }) => {
-      if (error) console.warn('[Supabase insert]', tabela, error.message);
+    const linhas = Array.isArray(dados)
+      ? dados.map(function (d) { return paraSupabase(tabela, d); })
+      : paraSupabase(tabela, dados);
+    return supabaseClient.from(tabela).insert(linhas).then(({ error }) => {
+      if (error) console.warn('[Supabase insert] FALHOU em', tabela, '→', error.message);
     });
   }
 
   function sbUpdate(tabela, dados, filtro) {
     if (!temSupabase) return Promise.resolve();
-    return supabaseClient.from(tabela).update(dados).match(filtro).then(({ error }) => {
-      if (error) console.warn('[Supabase update]', tabela, error.message);
+    return supabaseClient.from(tabela).update(paraSupabase(tabela, dados)).match(paraSupabase(tabela, filtro)).then(({ error }) => {
+      if (error) console.warn('[Supabase update] FALHOU em', tabela, '→', error.message);
     });
   }
 
   function sbUpsert(tabela, dados) {
     if (!temSupabase) return Promise.resolve();
-    return supabaseClient.from(tabela).upsert(dados, { onConflict: 'id' }).then(({ error }) => {
-      if (error) console.warn('[Supabase upsert]', tabela, error.message);
+    return supabaseClient.from(tabela).upsert(paraSupabase(tabela, dados), { onConflict: 'id' }).then(({ error }) => {
+      if (error) console.warn('[Supabase upsert] FALHOU em', tabela, '→', error.message);
     });
   }
 
@@ -96,8 +163,13 @@
       );
       tabelas.forEach((tabela, i) => {
         const { data, error } = resultados[i];
-        if (!error && data && data.length > 0) {
-          gravar(tabela, data);
+        if (error) {
+          console.warn('[Vida+] Falha ao ler tabela', tabela, '→', error.message);
+          return;
+        }
+        if (data && data.length > 0) {
+          // Converte as linhas do formato do banco para o formato interno
+          gravar(tabela, data.map(linha => doSupabase(tabela, linha)));
         }
       });
       console.log('[Vida+] Dados sincronizados do Supabase');
@@ -110,7 +182,10 @@
   // REALTIME — Atualização automática entre abas/módulos
   // ============================================================
   function setupRealtime() {
-    if (!temSupabase || !supabase.channel) return;
+    // "channel" é método do CLIENTE (supabaseClient), não da lib global (window.supabase).
+    // A verificação antiga (!supabase.channel) era sempre falsa positiva e o realtime
+    // nunca era ativado.
+    if (!temSupabase || typeof supabaseClient.channel !== 'function') return;
 
     try {
       const channel = supabaseClient.channel('vida-mais-sync');
@@ -119,14 +194,17 @@
         channel.on('postgres_changes',
           { event: '*', schema: 'public', table: tabela },
           function (payload) {
+            // Converte a linha do formato do banco para o formato interno
+            const novo = payload.new ? doSupabase(tabela, payload.new) : null;
+
             // Atualiza cache local
             const lista = ler(tabela) || [];
-            if (payload.eventType === 'INSERT') {
-              if (!lista.find(x => x.id === payload.new.id)) lista.push(payload.new);
-            } else if (payload.eventType === 'UPDATE') {
-              const idx = lista.findIndex(x => x.id === payload.new.id);
-              if (idx !== -1) lista[idx] = payload.new;
-              else lista.push(payload.new);
+            if (payload.eventType === 'INSERT' && novo) {
+              if (!lista.find(x => x.id === novo.id)) lista.push(novo);
+            } else if (payload.eventType === 'UPDATE' && novo) {
+              const idx = lista.findIndex(x => x.id === novo.id);
+              if (idx !== -1) lista[idx] = novo;
+              else lista.push(novo);
             } else if (payload.eventType === 'DELETE') {
               const idx = lista.findIndex(x => x.id === payload.old.id);
               if (idx !== -1) lista.splice(idx, 1);
@@ -143,14 +221,18 @@
             };
             const evt = mapa[tabela];
             if (evt && listeners[evt]) {
-              listeners[evt].forEach(fn => fn(payload.new));
+              listeners[evt].forEach(fn => fn(novo || payload.old));
             }
           }
         );
       });
 
-      channel.subscribe();
-      console.log('[Vida+] Realtime conectado');
+      channel.subscribe(function (status) {
+        if (status === 'SUBSCRIBED') console.log('[Vida+] Realtime conectado');
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.warn('[Vida+] Realtime falhou (' + status + '). Habilite a publicação das tabelas no Supabase (ver supabase/schema.sql).');
+        }
+      });
     } catch (e) {
       console.warn('[Vida+] Realtime indisponível:', e.message);
     }
@@ -895,13 +977,10 @@
       link: 'agendamentos.html'
     });
 
-    // Se Supabase configurado, envia dados demo para o banco
-    if (temSupabase) {
-      sbInsert('usuarios', usuarios.map(u => ({ ...u, perfil: u.tipo })));
-      sbInsert('pacientes', pacientes);
-      sbInsert('consultas', consultas);
-      sbInsert('agendamentos', agendamentos);
-    }
+    // OBS: quando o Supabase está configurado, quem popula o banco é o
+    // próprio supabase/schema.sql (seed idempotente). NÃO enviamos estes
+    // registros ao banco porque os ids ('u1', 'p1', 'c1'...) não são UUID
+    // válidos e causariam erro de tipo no PostgreSQL.
   };
 
   DB.limparTudo = function () {
@@ -922,6 +1001,22 @@
     // Ativa Realtime para atualizações automáticas
     setupRealtime();
   }
+
+  // ============================================================
+  // DIAGNÓSTICO — Teste de conexão (usado por status-banco.html)
+  // ============================================================
+  DB.testarConexao = async function () {
+    if (!temSupabase) {
+      return { ok: false, modo: 'demo', mensagem: 'Supabase não configurado — rodando em modo demo (localStorage)' };
+    }
+    try {
+      const { error } = await supabaseClient.from('unidades').select('id', { head: true, count: 'exact' });
+      if (error) return { ok: false, modo: 'supabase', mensagem: error.message };
+      return { ok: true, modo: 'supabase', mensagem: 'Conectado ao Supabase com sucesso' };
+    } catch (e) {
+      return { ok: false, modo: 'supabase', mensagem: 'Falha de rede: ' + e.message };
+    }
+  };
 
   // ============================================================
   // EXPORTAR

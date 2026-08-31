@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Status do Banco de Dados — Vida+</title>
+<style>
+  :root {
+    --bg: #0b1220;
+    --card: #121a2c;
+    --card2: #0f1729;
+    --borda: #22304d;
+    --texto: #e8eefc;
+    --fraco: #8ea1c4;
+    --verde: #3ecf8e;
+    --vermelho: #ff6b6b;
+    --amarelo: #ffd166;
+    --azul: #4dabf7;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: radial-gradient(1200px 600px at 80% -10%, #1c2f52 0%, var(--bg) 55%);
+    color: var(--texto);
+    min-height: 100vh;
+    padding: 32px 16px 64px;
+  }
+  .container { max-width: 760px; margin: 0 auto; }
+
+  header { text-align: center; margin-bottom: 32px; }
+  .logo { font-size: 42px; }
+  h1 { font-size: 26px; font-weight: 700; margin-top: 8px; }
+  .sub { color: var(--fraco); margin-top: 6px; font-size: 14px; }
+
+  .resumo {
+    border-radius: 18px;
+    padding: 28px;
+    text-align: center;
+    margin-bottom: 24px;
+    border: 1px solid var(--borda);
+    background: var(--card);
+    transition: border-color .4s;
+  }
+  .resumo.ok { border-color: var(--verde); box-shadow: 0 0 40px rgba(62,207,142,.15); }
+  .resumo.erro { border-color: var(--vermelho); box-shadow: 0 0 40px rgba(255,107,107,.12); }
+  .resumo.andamento { border-color: var(--amarelo); }
+  .resumo .icone { font-size: 44px; display: block; }
+  .resumo h2 { font-size: 20px; margin-top: 10px; }
+  .resumo p { color: var(--fraco); font-size: 14px; margin-top: 6px; }
+  .resumo code {
+    background: #0a0f1c; padding: 2px 8px; border-radius: 6px;
+    font-size: 12px; color: var(--azul); word-break: break-all;
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--borda);
+    border-radius: 14px;
+    padding: 20px 22px;
+    margin-bottom: 16px;
+  }
+  .card h3 { font-size: 15px; margin-bottom: 14px; color: var(--texto); }
+
+  .teste {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 0; border-bottom: 1px solid var(--card2);
+    font-size: 14px;
+  }
+  .teste:last-child { border-bottom: none; }
+  .status-icone { width: 26px; height: 26px; flex-shrink: 0; display: grid; place-items: center;
+    border-radius: 50%; font-size: 14px; font-weight: bold; }
+  .pendente { background: #2a3854; color: var(--fraco); }
+  .rodando { background: rgba(255,209,102,.15); color: var(--amarelo); }
+  .rodando::after { content: ''; width: 12px; height: 12px; border: 2px solid var(--amarelo);
+    border-top-color: transparent; border-radius: 50%; animation: girar .8s linear infinite; }
+  @keyframes girar { to { transform: rotate(360deg); } }
+  .sucesso { background: rgba(62,207,142,.15); color: var(--verde); }
+  .falha { background: rgba(255,107,107,.15); color: var(--vermelho); }
+  .teste .nome { flex: 1; }
+  .teste .detalhe { color: var(--fraco); font-size: 12px; max-width: 45%; text-align: right; word-break: break-word; }
+
+  button {
+    background: var(--verde); color: #06281a; border: none;
+    padding: 13px 28px; border-radius: 12px; font-size: 15px; font-weight: 700;
+    cursor: pointer; transition: transform .15s, opacity .15s;
+  }
+  button:hover { transform: translateY(-2px); }
+  button:disabled { opacity: .5; cursor: wait; transform: none; }
+  .acoes { text-align: center; margin-top: 8px; }
+
+  details { margin-top: 16px; }
+  summary { cursor: pointer; color: var(--fraco); font-size: 13px; }
+  pre {
+    background: #0a0f1c; border: 1px solid var(--borda); border-radius: 10px;
+    padding: 14px; font-size: 12px; color: var(--fraco); overflow-x: auto;
+    margin-top: 10px; max-height: 300px; overflow-y: auto; white-space: pre-wrap;
+  }
+  .dica {
+    background: rgba(77,171,247,.08); border: 1px solid rgba(77,171,247,.3);
+    border-radius: 12px; padding: 14px 16px; font-size: 13px; color: var(--azul);
+    margin-bottom: 16px; line-height: 1.6; display: none;
+  }
+  .dica.visivel { display: block; }
+  .dica code { background: #0a0f1c; padding: 1px 6px; border-radius: 5px; }
+  a { color: var(--verde); }
+  footer { text-align: center; color: var(--fraco); font-size: 12px; margin-top: 32px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="logo">🩺</div>
+    <h1>Diagnóstico da Conexão — Vida+</h1>
+    <p class="sub">Verifica se o sistema está conectado ao banco de dados Supabase</p>
+  </header>
+
+  <div class="dica" id="dicaDemo">
+    ⚠️ <b>Modo demo ativo:</b> as credenciais não foram encontradas em
+    <code>shared/js/config.js</code>. O sistema está usando apenas o navegador (localStorage).
+  </div>
+
+  <div class="dica" id="dicaRls">
+    💡 <b>Dica:</b> se os testes de leitura/gravação falharem, rode a versão mais recente de
+    <code>supabase/schema.sql</code> no SQL Editor do Supabase — ela ajusta as políticas de acesso (RLS)
+    e habilita o Realtime. O script pode ser rodado por cima sem erro.
+  </div>
+
+  <div class="resumo andamento" id="resumo">
+    <span class="icone" id="resumoIcone">⏳</span>
+    <h2 id="resumoTitulo">Testando conexão…</h2>
+    <p id="resumoTexto">Aguarde enquanto verificamos o banco de dados.</p>
+  </div>
+
+  <div class="card">
+    <h3>🧪 Testes executados</h3>
+    <div id="listaTestes"></div>
+  </div>
+
+  <div class="acoes">
+    <button id="btnRodar" onclick="rodarTestes()">🔄 Rodar testes novamente</button>
+  </div>
+
+  <details>
+    <summary>📋 Ver log técnico</summary>
+    <pre id="log"></pre>
+  </details>
+
+  <footer>Vida+ — Diagnóstico do Banco de Dados • gerado em <span id="quando"></span></footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="shared/js/config.js"></script>
+<script src="shared/js/db.js"></script>
+<script>
+  const lista = document.getElementById('listaTestes');
+  const logEl = document.getElementById('log');
+  document.getElementById('quando').textContent = new Date().toLocaleString('pt-BR');
+
+  function log(msg) {
+    logEl.textContent += `[${new Date().toLocaleTimeString('pt-BR')}] ${msg}\n`;
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function addTeste(id, nome) {
+    const div = document.createElement('div');
+    div.className = 'teste';
+    div.id = 'teste-' + id;
+    div.innerHTML = `<span class="status-icone pendente" data-icone>•</span>
+      <span class="nome">${nome}</span><span class="detalhe" data-detalhe></span>`;
+    lista.appendChild(div);
+  }
+
+  function setTeste(id, status, detalhe) {
+    const div = document.getElementById('teste-' + id);
+    if (!div) return;
+    const icone = div.querySelector('[data-icone]');
+    icone.className = 'status-icone ' + status;
+    icone.textContent = status === 'sucesso' ? '✓' : status === 'falha' ? '✗' : '';
+    if (detalhe) div.querySelector('[data-detalhe]').textContent = detalhe;
+    if (status === 'falha') document.getElementById('dicaRls').classList.add('visivel');
+  }
+
+  function setResumo(ok, titulo, texto) {
+    const r = document.getElementById('resumo');
+    r.className = 'resumo ' + (ok === null ? 'andamento' : ok ? 'ok' : 'erro');
+    document.getElementById('resumoIcone').textContent = ok === null ? '⏳' : ok ? '✅' : '❌';
+    document.getElementById('resumoTitulo').textContent = titulo;
+    document.getElementById('resumoTexto').innerHTML = texto;
+  }
+
+  async function rodarTestes() {
+    const btn = document.getElementById('btnRodar');
+    btn.disabled = true;
+    lista.innerHTML = '';
+    logEl.textContent = '';
+    document.getElementById('dicaRls').classList.remove('visivel');
+    setResumo(null, 'Testando conexão…', 'Aguarde enquanto verificamos o banco de dados.');
+
+    // 1) Credenciais configuradas?
+    addTeste('cfg', 'Credenciais configuradas (config.js)');
+    const urlOk = typeof APP_CONFIG !== 'undefined' && APP_CONFIG.SUPABASE_URL;
+    const keyOk = typeof APP_CONFIG !== 'undefined' && APP_CONFIG.SUPABASE_ANON_KEY;
+    if (urlOk && keyOk) {
+      setTeste('cfg', 'sucesso', APP_CONFIG.SUPABASE_URL.replace('https://', ''));
+      log('Credenciais encontradas: ' + APP_CONFIG.SUPABASE_URL);
+    } else {
+      setTeste('cfg', 'falha', 'vazias');
+      document.getElementById('dicaDemo').classList.add('visivel');
+      log('ERRO: SUPABASE_URL / SUPABASE_ANON_KEY vazios em shared/js/config.js');
+      setResumo(false, 'Modo demo (sem banco)', 'Preencha as credenciais em <code>shared/js/config.js</code>.');
+      btn.disabled = false;
+      return;
+    }
+
+    // 2) Cliente criado?
+    addTeste('cliente', 'Cliente Supabase inicializado');
+    if (typeof supabaseClient === 'undefined' || !supabaseClient) {
+      setTeste('cliente', 'falha', 'supabaseClient é null');
+      log('ERRO: cliente não inicializado. O CDN do Supabase carregou?');
+      setResumo(false, 'Falha ao iniciar cliente', 'Verifique sua internet (o CDN do Supabase não carregou).');
+      btn.disabled = false;
+      return;
+    }
+    setTeste('cliente', 'sucesso', 'ok');
+    log('Cliente criado com sucesso.');
+
+    // 3) Leitura das tabelas
+    const tabelas = ['unidades', 'usuarios', 'pacientes', 'consultas', 'agendamentos', 'notificacoes', 'medicamentos', 'configuracoes'];
+    let leituraOk = true;
+    for (const t of tabelas) {
+      addTeste('tabela_' + t, 'Leitura da tabela "' + t + '"');
+      setTeste('tabela_' + t, 'rodando');
+      try {
+        const { count, error } = await supabaseClient.from(t).select('*', { count: 'exact', head: true });
+        if (error) {
+          setTeste('tabela_' + t, 'falha', error.message);
+          log('ERRO em ' + t + ': ' + error.message);
+          leituraOk = false;
+        } else {
+          setTeste('tabela_' + t, 'sucesso', (count ?? 0) + ' registro(s)');
+          log('Tabela ' + t + ': OK (' + (count ?? 0) + ' registros)');
+        }
+      } catch (e) {
+        setTeste('tabela_' + t, 'falha', 'rede: ' + e.message);
+        log('ERRO de rede em ' + t + ': ' + e.message);
+        leituraOk = false;
+      }
+    }
+
+    // 4) Teste de escrita (upsert + delete em configuracoes)
+    addTeste('escrita', 'Escrita no banco (insert/update/delete)');
+    setTeste('escrita', 'rodando');
+    let escritaOk = true;
+    try {
+      const up = await supabaseClient.from('configuracoes')
+        .upsert({ chave: '_selftest_vidamais_', valor: new Date().toISOString(), descricao: 'teste de conexao (pode apagar)' }, { onConflict: 'chave' });
+      if (up.error) throw up.error;
+      const del = await supabaseClient.from('configuracoes').delete().eq('chave', '_selftest_vidamais_');
+      if (del.error) throw del.error;
+      setTeste('escrita', 'sucesso', 'gravar e apagar OK');
+      log('Escrita: UPSERT + DELETE funcionaram.');
+    } catch (e) {
+      setTeste('escrita', 'falha', e.message);
+      log('ERRO de escrita: ' + e.message + ' (rode o schema.sql atualizado para ajustar o RLS)');
+      escritaOk = false;
+    }
+
+    // 5) Realtime
+    addTeste('realtime', 'Tempo real (Realtime)');
+    setTeste('realtime', 'rodando');
+    const realtimeOk = await new Promise(resolve => {
+      let resolvido = false;
+      const fim = (ok, msg) => {
+        if (resolvido) return;
+        resolvido = true;
+        setTeste('realtime', ok ? 'sucesso' : 'falha', msg);
+        log(ok ? 'Realtime: inscrito no canal.' : 'Realtime FALHOU: ' + msg);
+        resolve(ok);
+      };
+      try {
+        const canal = supabaseClient.channel('selftest-' + Date.now());
+        canal.subscribe(status => {
+          if (status === 'SUBSCRIBED') fim(true, 'conectado');
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') fim(false, status);
+        });
+        setTimeout(() => fim(false, 'tempo esgotado'), 7000);
+      } catch (e) { fim(false, e.message); }
+    });
+
+    // Resumo final
+    if (leituraOk && escritaOk && realtimeOk) {
+      setResumo(true, 'Tudo funcionando! 🎉',
+        'O banco está conectado, aceitando leitura/escrita e o tempo real está ativo. <br><code>' + APP_CONFIG.SUPABASE_URL.replace('https://', '') + '</code>');
+      log('RESULTADO: tudo OK.');
+    } else if (leituraOk && escritaOk) {
+      setResumo(true, 'Conectado (atenção ao Realtime)',
+        'Leitura e escrita OK, mas o Realtime falhou. Rode o <code>schema.sql</code> atualizado para habilitar a publicação das tabelas.');
+    } else {
+      setResumo(false, 'Problemas encontrados',
+        'Veja os testes marcados em vermelho. Na maioria dos casos, rodar o <code>supabase/schema.sql</code> atualizado no SQL Editor resolve.');
+    }
+    btn.disabled = false;
+  }
+
+  window.addEventListener('load', rodarTestes);
+</script>
+</body>
+</html>
