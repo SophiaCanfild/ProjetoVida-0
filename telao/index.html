@@ -3,9 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#061A13">
+  <meta name="theme-color" content="#E0F2FE">
   <title>Telão — Vida+ • Hospital Vida+</title>
-  <link rel="stylesheet" href="css/tv.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/tv.css?v=20260917">
 </head>
 <body>
 
@@ -15,7 +18,7 @@
     <header class="tv-topo">
       <div class="tv-marca">
         <div class="logo-tv">
-          <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg>
+          <img src="img/logo-onda.png" alt="Logo Vida+">
         </div>
         <div>
           <div class="nome-sistema">Vida+</div>
@@ -82,6 +85,7 @@
   <script src="../shared/js/config.js"></script>
   <script src="../shared/js/db.js"></script>
   <script src="js/relogio.js"></script>
+  <script src="js/tv-dados.js"></script>
   <script>
     /* Som de chamada (WebAudio, sem arquivo externo) */
     const NotificarTV = {
@@ -126,7 +130,9 @@
       idxAviso++;
     }
 
-    document.getElementById('nome-unidade').textContent = TV_CONFIG.UNIDADE;
+    if (typeof TV_CONFIG !== 'undefined' && TV_CONFIG.UNIDADE) {
+      document.getElementById('nome-unidade').textContent = TV_CONFIG.UNIDADE;
+    }
     iniciarRelogio(
       document.getElementById('relogio-hora'),
       document.getElementById('relogio-data')
@@ -215,7 +221,7 @@
 
     function atualizar() {
       try {
-        const recentes = TV.getChamadasRecentes();
+        const recentes = (typeof TV !== 'undefined' && TV.getChamadasRecentes) ? TV.getChamadasRecentes() : [];
         renderizarRecentes(recentes);
 
         const ultima = recentes[0] || null;
@@ -254,5 +260,5 @@
       DB.on('atendimento_iniciado', function() { atualizar(); });
     }
   </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a30940d73bf0f254',t:'MTc4NzY0NjgyMA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a316929fde46f264',t:'MTc4Nzc4NjQ4NQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</body>
 </html>
