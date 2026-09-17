@@ -130,7 +130,9 @@
       idxAviso++;
     }
 
-    document.getElementById('nome-unidade').textContent = TV_CONFIG.UNIDADE;
+    if (typeof TV_CONFIG !== 'undefined' && TV_CONFIG.UNIDADE) {
+      document.getElementById('nome-unidade').textContent = TV_CONFIG.UNIDADE;
+    }
     iniciarRelogio(
       document.getElementById('relogio-hora'),
       document.getElementById('relogio-data')
@@ -219,7 +221,7 @@
 
     function atualizar() {
       try {
-        const recentes = TV.getChamadasRecentes();
+        const recentes = (typeof TV !== 'undefined' && TV.getChamadasRecentes) ? TV.getChamadasRecentes() : [];
         renderizarRecentes(recentes);
 
         const ultima = recentes[0] || null;
