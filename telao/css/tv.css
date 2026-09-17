@@ -1,30 +1,29 @@
 /* ============================================================
-   VIDA+ TELÃO — Design final
-   Logo: sem nome.jpg | Sem imagem no banner | Relógio só hora
+   VIDA+ TELÃO — Design moderno claro (modo TV, tela grande)
+   Paleta: branco + azul claro + verde claro
+   Fontes grandes e legíveis de longe.
+   ⚠️ Os nomes de classes/ids foram mantidos para não quebrar
+   nenhuma função do telão — apenas o visual foi redesenhado.
    ============================================================ */
 
 :root {
-  /* CORES */
-  --azul: #1565C0;          /* Azul principal (nome, títulos) */
-  --azul-titulo: #0D4B9E;   /* Azul do título central */
-  --azul-claro: #EEF2FB;    /* Fundo do círculo azul (megafone) */
-  --azul-bg: #F7F9FE;       /* Fundo do painel esquerdo */
-
-  --verde: #5FA82F;         /* Verde (avisos, ícone rodapé) */
-  --verde-escuro: #4C8C25;
-  --verde-claro: #E8F5E9;   /* Fundo do círculo verde (sino) */
-  --verde-bg: #F6FBF6;      /* Fundo do painel direito */
-
-  --fundo: #e8f7df;
-  --card: #F4F6FB;          /* Fundo do banner principal */
-  --borda: #E6EBF2;
-  --texto: #1565C0;
-  --texto-suave: #6B7280;
-  --texto-escuro: #374151;
-
-  --sombra: 0 4px 20px rgba(21, 101, 192, 0.05);
-  --raio: 22px;
-  --fonte: 'Segoe UI', system-ui, -apple-system, Roboto, 'Helvetica Neue', sans-serif;
+  --branco: #FFFFFF;
+  --azul: #0284C7;            /* azul principal */
+  --azul-claro: #38BDF8;      /* azul claro */
+  --azul-suave: #E0F2FE;      /* fundo azul bem claro */
+  --azul-tinta: #0C4A6E;      /* azul escuro p/ textos */
+  --verde: #16A34A;           /* verde principal */
+  --verde-claro: #4ADE80;     /* verde claro */
+  --verde-suave: #DCFCE7;     /* fundo verde bem claro */
+  --verde-tinta: #14532D;     /* verde escuro p/ textos */
+  --tinta: #0F2A43;           /* texto principal (marinho) */
+  --texto-suave: #5B7A96;     /* texto secundário */
+  --borda: #DCEEF9;           /* bordas suaves */
+  --sombra: 0 18px 50px rgba(2, 132, 199, 0.14);
+  --sombra-suave: 0 8px 24px rgba(2, 132, 199, 0.10);
+  --raio: 26px;
+  --gradiente: linear-gradient(135deg, var(--azul-claro), var(--verde-claro));
+  --fonte: 'Plus Jakarta Sans', 'Segoe UI', system-ui, -apple-system, Roboto, 'Helvetica Neue', sans-serif;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -33,10 +32,33 @@ html, body { height: 100%; overflow: hidden; }
 
 body {
   font-family: var(--fonte);
-  background: var(--fundo);
-  color: var(--texto);
+  color: var(--tinta);
   min-height: 100vh;
   display: flex;
+  background:
+    radial-gradient(900px 420px at 8% -8%, rgba(56, 189, 248, 0.22), transparent 60%),
+    radial-gradient(900px 420px at 95% 0%, rgba(74, 222, 128, 0.22), transparent 60%),
+    radial-gradient(1000px 500px at 50% 115%, rgba(56, 189, 248, 0.16), transparent 60%),
+    linear-gradient(180deg, #F4FAFF 0%, #FFFFFF 55%, #F1FBF4 100%);
+  position: relative;
+}
+
+/* Ondas decorativas suaves ao fundo (azul → verde) */
+body::before {
+  content: '';
+  position: fixed; inset: auto 0 0 0; height: 26vh;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 320' preserveAspectRatio='none'%3E%3Cpath fill='%2338BDF8' fill-opacity='0.14' d='M0,192L48,197.3C96,203,192,213,288,192C384,171,480,117,576,101.3C672,85,768,107,864,138.7C960,171,1056,213,1152,218.7C1248,224,1344,192,1392,176L1440,160L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z'/%3E%3Cpath fill='%234ADE80' fill-opacity='0.14' d='M0,256L60,245.3C120,235,240,213,360,208C480,203,600,213,720,234.7C840,256,960,288,1080,288C1200,288,1320,256,1380,240L1440,224L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z'/%3E%3C/svg%3E") no-repeat bottom / 100% 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  background:
+    radial-gradient(420px 200px at 12% 22%, rgba(56, 189, 248, 0.10), transparent 70%),
+    radial-gradient(460px 220px at 88% 30%, rgba(74, 222, 128, 0.12), transparent 70%);
+  pointer-events: none;
+  z-index: 0;
 }
 
 /* ============ Layout principal ============ */
@@ -44,9 +66,11 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 22px 34px;
+  padding: 22px 32px 18px;
   gap: 18px;
   max-height: 100vh;
+  position: relative;
+  z-index: 1;
 }
 
 /* ============ Topo ============ */
@@ -55,184 +79,430 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 20px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(220, 238, 249, 0.9);
+  border-radius: 22px;
+  box-shadow: var(--sombra-suave);
+  padding: 12px 24px;
 }
-
-.tv-marca { display: flex; align-items: center; gap: 14px; }
-
-/* LOGO do hospital — imagem "sem nome.jpg" */
+.tv-marca {
+  display: flex; align-items: center; gap: 16px;
+}
+/* Logo no canto superior esquerdo */
 .tv-marca .logo-tv {
-  width: 64px;
-  height: 64px;
-  border-radius: 16px;
-  object-fit: contain;
-  background: #FFFFFF;
-  border: 1px solid var(--borda);
-  box-shadow: 0 4px 14px rgba(21, 101, 192, 0.12);
+  width: 62px; height: 62px; border-radius: 18px;
+  overflow: hidden;
+  background: #fff;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  box-shadow: 0 6px 18px rgba(2, 132, 199, 0.22);
+  display: grid; place-items: center;
   flex-shrink: 0;
+  position: relative;
 }
-
-.tv-marca .nome-sistema { font-size: 1.9rem; font-weight: 900; color: var(--azul); line-height: 1; }
-.tv-marca .nome-unidade { font-size: 1.05rem; color: var(--texto-suave); font-weight: 500; margin-top: 2px; }
-
-/* Título central */
-.tv-titulo-centro {
-  text-align: center;
-  font-size: 2.1rem;
-  font-weight: 800;
-  color: var(--azul-titulo);
-  line-height: 1.15;
+.tv-marca .logo-tv::after {
+  content: '';
+  position: absolute; inset: -2px;
+  border-radius: 18px;
+  padding: 2px;
+  background: var(--gradiente);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
 }
+.tv-marca .logo-tv img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.tv-marca .nome-sistema {
+  font-size: 1.6rem; font-weight: 800; letter-spacing: 0.5px;
+  background: linear-gradient(90deg, var(--azul) 10%, var(--verde) 90%);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+  line-height: 1.1;
+}
+.tv-marca .nome-unidade { font-size: 0.95rem; color: var(--texto-suave); font-weight: 600; }
 
-/* Relógio — SOMENTE hora, canto superior direito */
-.tv-relogio { text-align: right; color: var(--azul); min-width: 130px; }
+.tv-relogio { text-align: right; display: flex; align-items: center; gap: 14px; }
 .tv-relogio .hora {
-  font-size: 2.6rem; font-weight: 800; line-height: 1;
-  letter-spacing: 1px; font-variant-numeric: tabular-nums;
+  font-size: 2.5rem; font-weight: 800; line-height: 1; letter-spacing: 1px;
+  font-variant-numeric: tabular-nums;
+  color: var(--azul-tinta);
+  background: linear-gradient(180deg, #FFFFFF, var(--azul-suave));
+  border: 1px solid var(--borda);
+  border-radius: 16px;
+  padding: 8px 20px;
+  box-shadow: var(--sombra-suave);
 }
-.tv-relogio .data { display: none; }
+.tv-relogio .data {
+  font-size: 0.9rem; color: var(--verde-tinta); font-weight: 700;
+  background: var(--verde-suave);
+  border-radius: 30px;
+  padding: 8px 18px;
+  text-transform: capitalize;
+  max-width: 220px;
+}
 
-/* ============ Destaque: banner principal ============ */
+/* ============ Destaque: última chamada ============ */
 .tv-destaque {
   flex: 1;
   display: flex; flex-direction: column;
-  align-items: flex-start; justify-content: center;
-  text-align: left;
-  background: var(--card);
-  border: 1px solid var(--borda);
+  align-items: center; justify-content: center;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(220, 238, 249, 0.9);
   border-radius: var(--raio);
   box-shadow: var(--sombra);
-  padding: 40px 60px;
+  padding: 20px 40px;
   min-height: 0;
   position: relative;
   overflow: hidden;
 }
-
-.tv-destaque .aguardando,
-.tv-destaque .chamada { position: relative; z-index: 2; max-width: 70%; }
-
-/* Estado aguardando */
-.tv-destaque .aguardando { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
-.tv-destaque .aguardando h2 {
-  font-size: clamp(2.5rem, 5vw, 4rem);
-  font-weight: 900; color: var(--azul);
-  line-height: 1.1;
+/* Faixa em degradê no topo do cartão de destaque */
+.tv-destaque::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 8px;
+  background: var(--gradiente);
 }
-.tv-destaque .aguardando p { color: var(--texto-suave); font-size: 1.2rem; }
+.tv-destaque::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(560px 200px at 50% -40px, rgba(56, 189, 248, 0.12), transparent 70%);
+  pointer-events: none;
+}
+.tv-destaque > * { position: relative; z-index: 1; }
 
-/* Chamada */
 .tv-destaque .rotulo-chamada {
-  font-size: 1rem; text-transform: uppercase; letter-spacing: 5px;
-  color: var(--verde); font-weight: 800;
-  animation: pisca 2.4s infinite;
+  display: inline-flex; align-items: center; gap: 10px;
+  font-size: 0.95rem; text-transform: uppercase; letter-spacing: 4px;
+  color: #fff; font-weight: 800;
+  background: linear-gradient(135deg, var(--azul) 0%, var(--azul-claro) 55%, var(--verde-claro) 130%);
+  padding: 10px 26px;
+  border-radius: 40px;
+  box-shadow: 0 8px 22px rgba(2, 132, 199, 0.35);
 }
-@keyframes pisca { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }
+.tv-destaque .rotulo-chamada::before {
+  content: '';
+  width: 10px; height: 10px; border-radius: 50%;
+  background: #fff;
+  animation: pisca 1.4s infinite;
+}
+@keyframes pisca { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.45; transform: scale(0.8); } }
 
 .tv-destaque .senha-chamada {
-  font-size: clamp(3rem, 6vw, 5rem);
-  font-weight: 900; letter-spacing: 3px;
-  color: var(--azul);
-  line-height: 1.05; margin: 6px 0;
+  font-size: clamp(4rem, 9vw, 7.5rem);
+  font-weight: 900; letter-spacing: 8px;
+  line-height: 1.05;
+  margin: 8px 0;
+  background: linear-gradient(92deg, var(--azul) 5%, var(--azul-claro) 40%, var(--verde) 95%);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+  filter: drop-shadow(0 6px 18px rgba(2, 132, 199, 0.18));
 }
 .tv-destaque .nome-chamada {
-  font-size: clamp(2.5rem, 5vw, 4rem);
-  font-weight: 900; color: var(--azul);
+  font-size: clamp(1.6rem, 3.4vw, 2.6rem);
+  font-weight: 800;
   margin-bottom: 10px;
+  color: var(--tinta);
 }
-.tv-destaque .pista-chamada { font-size: 1rem; color: var(--texto-suave); margin-top: 12px; }
+.tv-destaque .guiche-chamada {
+  display: inline-block;
+  font-size: 1.15rem; font-weight: 800;
+  color: #fff;
+  background: linear-gradient(135deg, var(--azul), var(--verde));
+  padding: 10px 30px; border-radius: 40px;
+  letter-spacing: 1px;
+  box-shadow: 0 8px 22px rgba(22, 163, 74, 0.30);
+}
+.tv-destaque .pista-chamada { font-size: 0.95rem; color: var(--texto-suave); margin-top: 14px; font-weight: 600; }
 
-/* Caixa de destino */
-.tv-destaque .destino-box {
-  display: inline-flex; flex-direction: column; align-items: flex-start; gap: 4px;
-  background: var(--azul-claro);
-  border: 1px solid rgba(21,101,192,0.15);
-  border-radius: 18px;
-  padding: 12px 30px;
-  margin-top: 10px;
+/* Animação de entrada da chamada */
+.tv-destaque.animando .anim-item {
+  animation: entra 0.7s cubic-bezier(0.2, 0.9, 0.3, 1.15) backwards;
 }
-.tv-destaque .destino-box .destino-rotulo {
-  font-size: 0.8rem; text-transform: uppercase; letter-spacing: 3px; color: var(--azul); font-weight: 700;
-}
-.tv-destaque .destino-box .destino-valor {
-  font-size: clamp(1.8rem, 3.6vw, 2.6rem); font-weight: 900; color: var(--azul-titulo);
-}
-.tv-destaque .destino-box .destino-medico {
-  font-size: clamp(1rem, 1.8vw, 1.4rem); font-weight: 700; color: var(--texto-suave);
-}
-
-/* Modo consulta / triagem */
-.tv-destaque.modo-consulta .senha-chamada {
-  font-size: clamp(1.5rem, 3vw, 2rem); letter-spacing: 2px; color: var(--texto-suave); margin: 4px 0 0;
-}
-.tv-destaque.modo-consulta .nome-chamada { font-size: clamp(2.5rem, 5vw, 4rem); }
-.tv-destaque.modo-triagem .nome-chamada {
-  font-size: clamp(1.2rem, 2vw, 1.6rem); font-weight: 600; color: var(--texto-suave); margin: 2px 0 8px;
-}
-.tv-destaque.modo-triagem .destino-box {
-  background: var(--verde-claro); border-color: rgba(95,168,47,0.2);
-}
-.tv-destaque.modo-triagem .destino-box .destino-rotulo { color: var(--verde-escuro); }
-
-/* Animação de entrada */
-.tv-destaque.animando .anim-item { animation: entra 0.7s cubic-bezier(0.2, 0.9, 0.3, 1.2) backwards; }
 .tv-destaque.animando .rotulo-chamada { animation-delay: 0.05s; }
 .tv-destaque.animando .senha-chamada { animation-delay: 0.15s; }
 .tv-destaque.animando .nome-chamada { animation-delay: 0.3s; }
+.tv-destaque.animando .guiche-chamada,
 .tv-destaque.animando .destino-box { animation-delay: 0.45s; }
+.tv-destaque.animando .pista-chamada { animation-delay: 0.55s; }
 @keyframes entra {
   from { opacity: 0; transform: translateY(40px) scale(0.96); }
   to { opacity: 1; transform: none; }
 }
 
+/* Estado "aguardando" */
+.tv-destaque .aguardando { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.tv-destaque .aguardando .icone-espera {
+  font-size: 3.4rem;
+  animation: flutua 3s ease-in-out infinite;
+  background: linear-gradient(180deg, var(--azul-suave), var(--verde-suave));
+  width: 110px; height: 110px;
+  display: grid; place-items: center;
+  border-radius: 34px;
+  box-shadow: var(--sombra-suave);
+  border: 1px solid var(--borda);
+}
+@keyframes flutua { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+.tv-destaque .aguardando h2 {
+  font-size: clamp(1.6rem, 3vw, 2.4rem); font-weight: 800;
+  background: linear-gradient(90deg, var(--azul-tinta), var(--verde));
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+}
+.tv-destaque .aguardando p { color: var(--texto-suave); font-size: 1.1rem; font-weight: 600; }
+
 /* ============ Painéis inferiores ============ */
 .tv-paineis {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  grid-template-columns: 1.1fr 1.4fr;
+  gap: 18px;
   min-height: 0;
-  max-height: 40vh;
+  max-height: 42vh;
 }
 .tv-painel {
-  border: 1px solid var(--borda);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(220, 238, 249, 0.9);
   border-radius: var(--raio);
-  padding: 24px 28px;
+  box-shadow: var(--sombra-suave);
+  padding: 16px 20px;
   display: flex; flex-direction: column;
-  box-shadow: var(--sombra);
   min-height: 0;
+  position: relative;
+  overflow: hidden;
 }
-.painel-ligacoes { background: var(--azul-bg); }
-.painel-avisos { background: var(--verde-bg); }
-
+.tv-painel::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 5px;
+  background: var(--gradiente);
+  opacity: 0.85;
+}
 .tv-painel .painel-titulo {
-  display: flex; align-items: center; gap: 12px;
-  font-size: 1.1rem; font-weight: 800;
-  text-transform: uppercase; letter-spacing: 1px;
-  margin-bottom: 16px;
+  display: flex; align-items: center; gap: 10px;
+  font-size: 0.92rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 2px;
+  color: var(--azul-tinta);
+  margin-bottom: 12px;
+  margin-top: 4px;
 }
-.painel-titulo .icone-titulo { width: 26px; height: 26px; flex-shrink: 0; }
-.painel-ligacoes .painel-titulo { color: var(--azul); }
-.painel-avisos .painel-titulo { color: var(--verde); }
-
+.tv-painel .painel-titulo .contador {
+  background: var(--azul-suave); color: var(--azul);
+  border-radius: 30px; padding: 2px 12px; font-size: 0.8rem;
+}
 .lista-tv { flex: 1; overflow: hidden; display: flex; flex-direction: column; gap: 8px; }
 
-/* Estado vazio (círculos com ícone) */
-.vazio-tv, .aviso-grande {
-  flex: 1; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 16px;
-  color: var(--texto-suave); text-align: center;
+/* Item da fila */
+.item-fila {
+  display: flex; align-items: center; gap: 14px;
+  background: linear-gradient(180deg, #F8FDFF, #F2FAFF);
+  border: 1px solid var(--borda);
+  border-radius: 16px;
+  padding: 10px 16px;
+  border-left: 6px solid var(--azul-claro);
 }
-.icone-bola {
-  width: 90px; height: 90px; border-radius: 50%;
+.item-fila .pos {
+  width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
   display: grid; place-items: center;
+  font-weight: 900; font-size: 1.15rem;
+  background: var(--azul-suave); color: var(--azul);
 }
-.icone-bola svg { width: 42px; height: 42px; }
-.icone-bola.azul { background: var(--azul-claro); color: var(--azul); }
-.icone-bola.verde { background: var(--verde-claro); color: var(--verde); }
-.vazio-tv h3 { color: var(--texto-escuro); font-size: 1.15rem; font-weight: 500; }
+.item-fila .senha {
+  font-weight: 800; font-size: 1.2rem; letter-spacing: 1px;
+  color: var(--tinta); min-width: 78px;
+}
+.item-fila .nome { flex: 1; font-size: 1.02rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.item-fila .status {
+  font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+  padding: 4px 12px; border-radius: 20px; flex-shrink: 0;
+}
+.item-fila .status.na-fila { background: var(--verde-suave); color: var(--verde); }
+.item-fila .status.chamado { background: var(--azul-suave); color: var(--azul); }
+.item-fila.chamado { border-left-color: var(--verde); animation: destaque-fila 2s ease infinite; }
+@keyframes destaque-fila { 0%,100% { box-shadow: 0 0 0 0 rgba(74,222,128,0.35); } 50% { box-shadow: 0 0 0 6px rgba(74,222,128,0.12); } }
 
-.aviso-grande .traco { font-size: 2rem; color: var(--verde); font-weight: 700; line-height: 0.5; }
-.aviso-grande .aviso-texto {
-  font-size: clamp(1.15rem, 2vw, 1.5rem);
-  line-height: 1.5; color: var(--texto-escuro); font-weight: 500;
+/* Chamada recente */
+.item-recente {
+  display: flex; align-items: center; gap: 14px;
+  padding: 9px 12px;
+  background: linear-gradient(180deg, #FAFDFF, #F3F9FE);
+  border: 1px solid var(--borda);
+  border-radius: 14px;
+}
+.item-recente .senha { font-weight: 800; font-size: 1.05rem; min-width: 70px; color: var(--azul); letter-spacing: 1px; }
+.item-recente .nome { flex: 1; font-size: 0.95rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.item-recente .hora { color: var(--texto-suave); font-size: 0.85rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.item-recente .guiche {
+  font-size: 0.75rem; font-weight: 800; color: #fff;
+  background: linear-gradient(135deg, var(--azul-claro), var(--azul));
+  border-radius: 20px; padding: 4px 12px;
+  box-shadow: 0 4px 10px rgba(2, 132, 199, 0.25);
+}
+
+/* Vazio */
+.vazio-tv { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: var(--texto-suave); text-align: center; }
+.vazio-tv .icone { font-size: 2.6rem; }
+.vazio-tv h3 { color: var(--tinta); font-size: 1.1rem; }
+
+/* ============ Rodapé ============ */
+.tv-rodape {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  color: var(--texto-suave); font-size: 0.92rem; font-weight: 600;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(220, 238, 249, 0.9);
+  border-radius: 40px;
+  padding: 10px 24px;
+  box-shadow: var(--sombra-suave);
+}
+.tv-rodape .ponto { width: 9px; height: 9px; border-radius: 50%; background: var(--verde-claro); box-shadow: 0 0 0 4px rgba(74,222,128,0.20); animation: pisca 2s infinite; flex-shrink: 0; }
+
+/* ============================================================
+   PAINEL DE CONTROLE (operador) — mantido, harmonizado
+   ============================================================ */
+.ctrl-body {
+  background: linear-gradient(180deg, #F0F9FF, #F1FBF4);
+  color: #17281F;
+  font-family: var(--fonte);
+  overflow: auto;
+  display: block;
+}
+.ctrl-body::before, .ctrl-body::after { display: none; }
+.ctrl-topo {
+  background: linear-gradient(135deg, #0284C7, #16A34A);
+  color: #fff;
+  padding: 18px 26px;
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+}
+.ctrl-topo h1 { font-size: 1.25rem; display: flex; align-items: center; gap: 10px; }
+.ctrl-topo .btn-sair-ctrl {
+  background: rgba(255,255,255,0.20); color: #fff; border: none;
+  padding: 10px 18px; border-radius: 10px; font-size: 0.9rem; font-weight: 700; cursor: pointer;
+}
+.ctrl-conteudo { padding: 22px 26px; max-width: 1200px; margin: 0 auto; }
+
+/* Cartões do controle */
+.ctrl-cartoes { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 20px; }
+.ctrl-cartao { background: #fff; border-radius: 14px; padding: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
+.ctrl-cartao .c-rotulo { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px; color: #5B7A96; font-weight: 700; }
+.ctrl-cartao .c-valor { font-size: 1.6rem; font-weight: 800; color: #0284C7; margin-top: 2px; }
+.ctrl-cartao .c-info { font-size: 0.8rem; color: #5B7A96; margin-top: 2px; }
+
+.ctrl-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 18px; }
+@media (max-width: 900px) { .ctrl-grid { grid-template-columns: 1fr; } }
+
+.ctrl-painel { background: #fff; border-radius: 16px; padding: 18px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
+.ctrl-painel h2 { font-size: 1.02rem; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+
+/* Botão chamar próximo */
+.btn-chamar {
+  width: 100%; padding: 18px; border: none; border-radius: 14px;
+  background: linear-gradient(135deg, #0284C7, #16A34A);
+  color: #fff; font-size: 1.1rem; font-weight: 800; cursor: pointer;
+  box-shadow: 0 6px 20px rgba(2,132,199,0.35);
+  margin-bottom: 14px;
+  transition: transform 0.08s, opacity 0.2s;
+  font-family: inherit;
+}
+.btn-chamar:active { transform: scale(0.99); }
+.btn-chamar:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Fila no controle */
+.ctrl-fila-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px; border-radius: 12px;
+  border: 1.5px solid #DCEEF9; margin-bottom: 8px;
+  background: #FAFDFF;
+}
+.ctrl-fila-item .pos { width: 34px; height: 34px; border-radius: 10px; background: #E0F2FE; color: #0284C7; font-weight: 800; display: grid; place-items: center; flex-shrink: 0; }
+.ctrl-fila-item .senha { font-weight: 800; min-width: 62px; }
+.ctrl-fila-item .nome { flex: 1; font-size: 0.92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ctrl-fila-item .btn-chama { background: #0284C7; color: #fff; border: none; border-radius: 8px; padding: 7px 14px; font-weight: 700; cursor: pointer; font-size: 0.82rem; }
+
+/* Última chamada no controle */
+.ultima-chamada {
+  background: linear-gradient(180deg, #E0F2FE, #DCFCE7); border-radius: 12px; padding: 14px;
+  text-align: center; margin-bottom: 14px;
+}
+.ultima-chamada .senha { font-size: 2rem; font-weight: 900; color: #0284C7; }
+.ultima-chamada .nome { font-weight: 700; font-size: 1rem; margin-top: 2px; }
+.ultima-chamada .det { font-size: 0.82rem; color: #5B7A96; margin-top: 4px; }
+.ctrl-recentes { max-height: 260px; overflow-y: auto; }
+
+/* Botões demo */
+.btn-demo-ctrl {
+  background: linear-gradient(135deg, #0284C7, #16A34A);
+  color: #fff; border: none; border-radius: 10px;
+  padding: 10px 16px; font-weight: 700; cursor: pointer; font-size: 0.85rem; font-family: inherit;
+}
+
+/* Login do controle */
+.ctrl-login {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #E0F2FE, #DCFCE7);
+  padding: 20px;
+}
+.ctrl-login .caixa {
+  background: #fff; border-radius: 20px; padding: 30px;
+  width: 100%; max-width: 380px; text-align: center;
+  color: #17281F;
+  box-shadow: var(--sombra);
+}
+.ctrl-login h2 { color: #0284C7; margin-bottom: 6px; }
+.ctrl-login .logo-g { width: 64px; height: 64px; margin: 0 auto 14px; border-radius: 18px; background: var(--gradiente); display: grid; place-items: center; }
+.ctrl-login .logo-g svg { width: 36px; height: 36px; }
+.ctrl-login input {
+  width: 100%; padding: 13px; margin-top: 14px;
+  border: 1.5px solid #DCEEF9; border-radius: 10px;
+  font-size: 1.4rem; text-align: center; letter-spacing: 6px; font-weight: 800;
+  font-family: inherit;
+}
+.ctrl-login .btn-login {
+  width: 100%; margin-top: 12px; padding: 14px;
+  background: #0284C7; color: #fff; border: none; border-radius: 10px;
+  font-weight: 800; font-size: 1rem; cursor: pointer; font-family: inherit;
+}
+.ctrl-login .dica { font-size: 0.78rem; color: #5B7A96; margin-top: 12px; }
+.ctrl-login .erro { color: #D64545; font-size: 0.85rem; margin-top: 10px; min-height: 20px; font-weight: 600; }
+
+/* Toast (controle) */
+.toast-ctrl {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: #0F2A43; color: #fff; padding: 12px 22px; border-radius: 30px;
+  font-size: 0.9rem; font-weight: 600; z-index: 50; opacity: 0;
+  transition: all 0.3s; pointer-events: none;
+}
+.toast-ctrl.aberto { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast-ctrl.erro { background: #D64545; }
+
+/* Banner modo demo no controle */
+.banner-demo-ctrl {
+  background: linear-gradient(135deg, #0284C7, #16A34A);
+  color: #fff; border-radius: 12px; padding: 14px 16px; margin-bottom: 18px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+}
+.banner-demo-ctrl b { display: block; }
+.banner-demo-ctrl .botoes { display: flex; gap: 8px; flex-wrap: wrap; }
+.banner-demo-ctrl .btn { background: rgba(255,255,255,0.22); color: #fff; border: none; border-radius: 8px; padding: 8px 14px; font-weight: 700; cursor: pointer; font-size: 0.8rem; font-family: inherit; }
+
+/* ============================================================
+   AVISOS (painel institucional — sem dados de pacientes)
+   ============================================================ */
+.aviso-grande {
+  flex: 1;
+  display: flex; align-items: center; justify-content: center;
+  text-align: center;
+  font-size: clamp(1.15rem, 2.2vw, 1.7rem);
+  line-height: 1.55;
+  font-weight: 600;
+  color: var(--tinta);
+  padding: 12px 24px;
 }
 .aviso-grande.fade { animation: fade-aviso 0.7s ease; }
 @keyframes fade-aviso {
@@ -240,32 +510,93 @@ body {
   to { opacity: 1; transform: none; }
 }
 
-/* Chamada recente (quando houver) */
-.item-recente {
-  display: flex; align-items: center; gap: 14px;
-  padding: 10px 4px;
-  border-bottom: 1px solid var(--borda);
-}
-.item-recente:last-child { border-bottom: none; }
-.item-recente .senha { font-weight: 800; font-size: 1.15rem; min-width: 80px; color: var(--azul); }
-.item-recente .hora { color: var(--texto-suave); font-size: 0.95rem; font-variant-numeric: tabular-nums; margin-left: auto; }
-.item-recente .guiche { font-size: 0.8rem; font-weight: 700; color: var(--verde-escuro); background: var(--verde-claro); border-radius: 20px; padding: 4px 12px; }
-.item-recente .guiche.guiche-consulta { background: var(--azul-claro); color: var(--azul); }
+/* Chamada recente sem nome (privacidade) */
+.tv-paineis .item-recente .guiche { order: 2; }
+.tv-paineis .item-recente .hora { order: 3; }
 
-/* ============ Rodapé ============ */
-.tv-rodape {
-  display: flex; align-items: center; justify-content: flex-start; gap: 12px;
-  color: var(--azul);
-  font-size: 1.1rem; font-weight: 500;
-  padding: 4px 10px;
-}
-.tv-rodape .icone-rodape { width: 30px; height: 30px; color: var(--verde); flex-shrink: 0; }
+/* ============================================================
+   CHAMADA POR TIPO (triagem x consulta)
+   ============================================================ */
 
-/* ============ Responsividade ============ */
+/* Chamada de CONSULTA: nome em destaque (o paciente se reconhece
+   pelo nome) + consultório + médico responsável */
+.tv-destaque .tipo-tag {
+  font-size: 0.85rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 4px; padding: 6px 18px; border-radius: 30px;
+  margin-bottom: 8px; display: inline-block;
+}
+.tv-destaque .tipo-tag.triagem { background: var(--azul-suave); color: var(--azul); }
+.tv-destaque .tipo-tag.consulta { background: var(--verde-suave); color: var(--verde); }
+
+/* Modo consulta: nome GRANDE */
+.tv-destaque.modo-consulta .senha-chamada {
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  letter-spacing: 3px;
+  margin: 4px 0 0;
+  background: none;
+  -webkit-text-fill-color: var(--texto-suave); color: var(--texto-suave);
+  filter: none;
+}
+.tv-destaque.modo-consulta .nome-chamada {
+  font-size: clamp(2.4rem, 5vw, 4rem);
+  font-weight: 900;
+  background: linear-gradient(92deg, var(--verde) 5%, var(--verde-claro) 55%, var(--azul) 110%);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+  margin: 8px 0;
+}
+.tv-destaque.modo-consulta .rotulo-chamada {
+  background: linear-gradient(135deg, var(--verde) 0%, var(--verde-claro) 60%, var(--azul-claro) 130%);
+  box-shadow: 0 8px 22px rgba(22, 163, 74, 0.35);
+}
+.tv-destaque .destino-box {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  background: linear-gradient(180deg, #F0F9FF, #E8F6FE);
+  border: 1.5px solid #BAE6FD;
+  border-radius: 20px;
+  padding: 12px 40px;
+  margin-top: 10px;
+  box-shadow: var(--sombra-suave);
+}
+.tv-destaque .destino-box .destino-rotulo {
+  font-size: 0.8rem; text-transform: uppercase; letter-spacing: 3px; color: var(--azul); font-weight: 800;
+}
+.tv-destaque .destino-box .destino-valor {
+  font-size: clamp(1.8rem, 3.6vw, 2.8rem); font-weight: 900; color: var(--azul-tinta);
+}
+.tv-destaque .destino-box .destino-medico {
+  font-size: clamp(1rem, 1.8vw, 1.4rem); font-weight: 700; color: var(--texto-suave);
+}
+
+/* Modo triagem: senha GRANDE (chamada por código) */
+.tv-destaque.modo-triagem .nome-chamada {
+  font-size: clamp(1.2rem, 2vw, 1.6rem);
+  font-weight: 600;
+  color: var(--texto-suave);
+  margin: 2px 0 8px;
+}
+.tv-destaque.modo-triagem .destino-box {
+  background: linear-gradient(180deg, #F0FDF6, #E6F9EE);
+  border-color: #86EFAC;
+  padding: 10px 36px;
+}
+.tv-destaque.modo-triagem .destino-box .destino-rotulo { color: var(--verde); }
+.tv-destaque.modo-triagem .destino-box .destino-valor { font-size: clamp(1.5rem, 3vw, 2.2rem); color: var(--verde-tinta); }
+
+/* Guichê/destino com cor por tipo nas recentes */
+.item-recente .guiche { background: linear-gradient(135deg, var(--azul-claro), var(--azul)); }
+.item-recente .guiche.guiche-consulta { background: linear-gradient(135deg, var(--verde-claro), var(--verde)); box-shadow: 0 4px 10px rgba(22, 163, 74, 0.25); }
+
+/* ============================================================
+   RESPONSIVO (telas menores / celular)
+   ============================================================ */
 @media (max-width: 900px) {
-  .tv-titulo-centro { font-size: 1.5rem; }
+  html, body { overflow: auto; }
+  .tv-app { max-height: none; padding: 14px; gap: 14px; }
+  .tv-topo { flex-direction: column; text-align: center; gap: 12px; }
+  .tv-relogio { flex-direction: column; gap: 8px; }
+  .tv-relogio .hora { font-size: 2rem; }
   .tv-paineis { grid-template-columns: 1fr; max-height: none; }
-  .tv-destaque .aguardando,
-  .tv-destaque .chamada { max-width: 100%; }
-  .tv-marca .logo-tv { width: 52px; height: 52px; }
+  .tv-destaque { padding: 24px 18px; }
+  .tv-destaque .senha-chamada { letter-spacing: 4px; }
 }
