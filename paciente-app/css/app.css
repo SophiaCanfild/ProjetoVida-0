@@ -413,32 +413,22 @@ textarea { min-height: 90px; resize: vertical; }
   .tela-login .marca .logo-g { animation: none; }
 }
 .tela-login .marca .logo-g svg { width: 52px; height: 52px; }
-/* Tela inicial: logo real do Vida+ (img) em moldura branca com anel em degradê,
-   igual ao logo do topo do telão (.logo-tv) */
+/* Tela inicial: a foto da logo no lugar do chip de degradê
+   (mantém só a flutuação suave, sem tile/anéis) */
 .tela-login .marca .logo-g.tem-logo {
-  background: #fff;
-  border: 2px solid transparent;
-  background-clip: padding-box;
-  padding: 8px;
-  position: relative;
-}
-.tela-login .marca .logo-g.tem-logo::after {
-  content: '';
-  position: absolute; inset: -2px;
-  border-radius: 28px;
-  padding: 2px;
-  background: var(--gradiente);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
+  width: 132px; height: 132px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
 }
 .tela-login .marca .logo-g.tem-logo img {
   width: 100%; height: 100%;
   object-fit: contain;
   display: block;
-  background: #fff;
-  border-radius: 18px;
+  border-radius: 28px;
+  box-shadow: 0 12px 30px rgba(2, 132, 199, 0.18);
 }
 .tela-login .marca h1 {
   font-size: 1.8rem; font-weight: 800; letter-spacing: 0.4px;
