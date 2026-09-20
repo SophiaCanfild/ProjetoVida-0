@@ -1,31 +1,39 @@
 /* ============================================================
    VIDA+ PACIENTE — App mobile-first (PWA)
-   Design system: verde (saúde) + azul (confiança)
+   Design system: claro (branco + azul claro + verde claro)
+   Mesma estética do TELÃO (telao/css/tv.css) — os nomes de
+   classes/variáveis foram mantidos; apenas o visual mudou.
    ============================================================ */
 
 :root {
-  --verde: #0B6E4F;
-  --verde-escuro: #0A5A41;
-  --verde-claro: #E6F4EF;
-  --azul: #1E6FD9;
-  --azul-escuro: #155BB3;
-  --azul-claro: #E8F1FC;
-  --texto: #17281F;
-  --texto-suave: #5B6F68;
-  --fundo: #F2F6F4;
+  /* Paleta espelhada no telão */
+  --verde: #16A34A;            /* verde principal (telão) */
+  --verde-escuro: #15803D;     /* verde p/ hover/texto */
+  --verde-claro: #DCFCE7;      /* fundo verde bem claro */
+  --verde-tinta: #14532D;      /* verde escuro p/ textos */
+  --azul: #0284C7;             /* azul principal (telão) */
+  --azul-escuro: #0369A1;      /* azul p/ hover */
+  --azul-claro: #E0F2FE;       /* fundo azul bem claro */
+  --azul-tinta: #0C4A6E;       /* azul escuro p/ textos */
+  --texto: #0F2A43;            /* tinta marinho (texto principal) */
+  --texto-suave: #5B7A96;      /* texto secundário */
+  --fundo: #F4FAFF;            /* fundo claro suave */
   --branco: #FFFFFF;
-  --borda: #DCE6E1;
+  --borda: #DCEEF9;            /* bordas suaves (céu) */
   --vermelho: #D64545;
   --vermelho-claro: #FCEBEB;
-  --amarelo: #E8A33D;
+  --amarelo: #B45309;
   --amarelo-claro: #FDF3E2;
-  --cinza: #8A9B94;
-  --sombra: 0 2px 10px rgba(11, 110, 79, 0.08);
-  --raio: 14px;
+  --cinza: #8AA2B8;
+  --gradiente: linear-gradient(135deg, #38BDF8, #4ADE80);  /* degradê do telão */
+  --sombra: 0 8px 24px rgba(2, 132, 199, 0.10);
+  --sombra-suave: 0 4px 14px rgba(2, 132, 199, 0.07);
+  --raio: 18px;
   --topbar: 56px;
   --bottomnav: 64px;
-  --fonte: 'Segoe UI', system-ui, -apple-system, Roboto, 'Helvetica Neue', sans-serif;
+  --fonte: 'Plus Jakarta Sans', 'Segoe UI', system-ui, -apple-system, Roboto, 'Helvetica Neue', sans-serif;
 }
+
 
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
@@ -36,11 +44,17 @@ body {
   background: var(--fundo);
   color: var(--texto);
   line-height: 1.5;
+  /* Fundo claro com brilhos suaves, como no telão */
+  background:
+    radial-gradient(700px 320px at 10% -6%, rgba(56, 189, 248, 0.16), transparent 60%),
+    radial-gradient(700px 320px at 92% 2%, rgba(74, 222, 128, 0.15), transparent 60%),
+    linear-gradient(180deg, #F4FAFF 0%, #FFFFFF 55%, #F1FBF4 100%);
+  background-color: var(--fundo);
   /* Centraliza como um "celular" em telas grandes (demo na banca) */
   max-width: 480px;
   margin: 0 auto;
   min-height: 100vh;
-  box-shadow: 0 0 40px rgba(0,0,0,0.08);
+  box-shadow: 0 0 40px rgba(2, 132, 199, 0.06);
 }
 
 @media (min-width: 481px) {
@@ -48,29 +62,40 @@ body {
 }
 
 /* ---------- Tipografia ---------- */
-h1 { font-size: 1.35rem; font-weight: 700; }
-h2 { font-size: 1.1rem; font-weight: 700; }
-h3 { font-size: 0.95rem; font-weight: 600; }
+h1 { font-size: 1.35rem; font-weight: 800; letter-spacing: 0.2px; }
+h2 { font-size: 1.1rem; font-weight: 800; }
+h3 { font-size: 0.95rem; font-weight: 700; }
 p  { font-size: 0.92rem; }
 small { color: var(--texto-suave); }
 
-/* ---------- Top bar ---------- */
+/* ---------- Top bar (barra clara com "vidro fosco", como o topo do telão) ---------- */
 .topbar {
   position: sticky; top: 0; z-index: 50;
   height: var(--topbar);
   display: flex; align-items: center; gap: 10px;
   padding: 0 16px;
-  background: var(--verde);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--borda);
+  color: var(--texto);
 }
-.topbar .logo { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 1.05rem; }
-.topbar .logo svg { width: 26px; height: 26px; }
+.topbar .logo {
+  display: flex; align-items: center; gap: 8px;
+  font-weight: 800; font-size: 1.05rem; letter-spacing: 0.3px;
+  /* nome do sistema em degradê azul→verde (igual ao telão) */
+  background: linear-gradient(90deg, var(--azul) 10%, var(--verde) 90%);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+}
+.topbar .logo svg { width: 26px; height: 26px; color: var(--azul); -webkit-text-fill-color: initial; }
 .topbar .espaco { flex: 1; }
 .sino {
-  position: relative; background: none; border: none; color: #fff; cursor: pointer;
+  position: relative; background: none; border: none; color: var(--texto-suave); cursor: pointer;
   width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%;
+  transition: background 0.15s, color 0.15s;
 }
-.sino:active { background: rgba(255,255,255,0.15); }
+.sino:active { background: var(--azul-claro); color: var(--azul); }
 .sino svg { width: 22px; height: 22px; }
 .badge-sino {
   position: absolute; top: 2px; right: 0;
@@ -81,17 +106,21 @@ small { color: var(--texto-suave); }
 }
 .avatar {
   width: 34px; height: 34px; border-radius: 50%;
-  background: rgba(255,255,255,0.22);
+   background: var(--azul-claro); color: var(--azul);
+  border: 1px solid var(--borda);
   display: grid; place-items: center;
-  font-weight: 700; font-size: 0.85rem; text-transform: uppercase;
+  font-weight: 800; font-size: 0.85rem; text-transform: uppercase;
 }
 
 /* ---------- Bottom nav ---------- */
 .bottomnav {
   position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
   width: 100%; max-width: 480px; height: var(--bottomnav);
-  background: var(--branco);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-top: 1px solid var(--borda);
+  box-shadow: 0 -6px 20px rgba(2, 132, 199, 0.06);
   display: flex; z-index: 50;
   padding-bottom: env(safe-area-inset-bottom);
 }
@@ -100,7 +129,7 @@ small { color: var(--texto-suave); }
   gap: 3px; text-decoration: none; color: var(--cinza); font-size: 0.66rem; font-weight: 600;
 }
 .bottomnav a svg { width: 22px; height: 22px; }
-.bottomnav a.ativo { color: var(--verde); }
+bottomnav a.ativo { color: var(--verde); font-weight: 800; }
 .pagina { padding: 16px 16px calc(var(--bottomnav) + 24px); }
 
 /* ---------- Botões ---------- */
@@ -109,29 +138,31 @@ small { color: var(--texto-suave); }
   width: 100%; padding: 14px 18px;
   border: none; border-radius: 12px;
   font-family: inherit; font-size: 0.98rem; font-weight: 700;
-  cursor: pointer; transition: transform 0.08s ease, opacity 0.2s;
+ cursor: pointer; transition: transform 0.08s ease, opacity 0.2s, background 0.2s, box-shadow 0.2s;
   text-decoration: none;
 }
 .btn:active { transform: scale(0.98); }
 .btn:disabled { opacity: 0.55; cursor: not-allowed; }
-.btn-primario { background: var(--verde); color: #fff; }
+.btn-primario { background: var(--verde); color: #fff; box-shadow: 0 6px 16px rgba(22, 163, 74, 0.25); }
 .btn-primario:hover { background: var(--verde-escuro); }
-.btn-azul { background: var(--azul); color: #fff; }
+.btn-azul { background: var(--azul); color: #fff; box-shadow: 0 6px 16px rgba(2, 132, 199, 0.25); }
 .btn-azul:hover { background: var(--azul-escuro); }
-.btn-secundario { background: var(--verde-claro); color: var(--verde); }
-.btn-contorno { background: transparent; color: var(--verde); border: 1.5px solid var(--verde); }
+.btn-secundario { background: var(--verde-claro); color: var(--verde-tinta); }
+.btn-contorno { background: var(--branco); color: var(--azul-escuro); border: 1.5px solid var(--borda); }
+.btn-contorno:hover { border-color: var(--azul); }
 .btn-perigo { background: var(--vermelho-claro); color: var(--vermelho); }
 .btn-bloco { margin-top: 12px; }
 
-/* ---------- Cards ---------- */
+/* ---------- Cards (branco + borda suave + sombra azulada, como nos painéis do telão) ---------- */
 .card {
-  background: var(--branco);
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid var(--borda);
   border-radius: var(--raio);
-  box-shadow: var(--sombra);
+  box-shadow: var(--sombra-suave);
   padding: 16px;
   margin-bottom: 14px;
 }
-.card-titulo { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.card-titulo { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-weight: 700; }
 .card-titulo svg { width: 20px; height: 20px; color: var(--verde); }
 .linha { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px dashed var(--borda); }
 .linha:last-child { border-bottom: none; }
@@ -140,17 +171,19 @@ small { color: var(--texto-suave); }
 
 /* ---------- Formulário ---------- */
 .campo { margin-bottom: 14px; }
-.campo label { display: block; font-size: 0.83rem; font-weight: 600; color: var(--texto); margin-bottom: 5px; }
+.campo label { display: block; font-size: 0.83rem; font-weight: 700; color: var(--texto); margin-bottom: 5px; }
 .campo label .obrigatorio { color: var(--vermelho); }
 input, select, textarea {
   width: 100%; padding: 12px 13px;
-  border: 1.5px solid var(--borda); border-radius: 10px;
+  border: 1.5px solid var(--borda); border-radius: 12px;
   font-family: inherit; font-size: 0.95rem; color: var(--texto);
   background: var(--branco);
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
+input::placeholder { color: #A9BFD1; }
 input:focus, select:focus, textarea:focus {
-  outline: none; border-color: var(--verde);
-  box-shadow: 0 0 0 3px rgba(11,110,79,0.12);
+  outline: none; border-color: var(--azul);
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.12);
 }
 textarea { min-height: 90px; resize: vertical; }
 .dica { font-size: 0.75rem; color: var(--texto-suave); margin-top: 4px; }
@@ -166,7 +199,7 @@ textarea { min-height: 90px; resize: vertical; }
   font-size: 0.85rem; font-weight: 600; color: var(--texto-suave);
   cursor: pointer; transition: all 0.15s; user-select: none;
 }
-.chip.selecionado { background: var(--verde-claro); border-color: var(--verde); color: var(--verde); }
+.chip.selecionado { background: var(--verde-claro); border-color: var(--verde); color: var(--verde-tinta); }
 
 /* Slider de dor */
 .dor-slider { display: flex; align-items: center; gap: 12px; }
@@ -177,7 +210,7 @@ textarea { min-height: 90px; resize: vertical; }
 /* ---------- Progresso do cadastro ---------- */
 .passos { display: flex; justify-content: center; gap: 8px; margin: 14px 0 18px; }
 .passo { width: 10px; height: 10px; border-radius: 50%; background: var(--borda); transition: all 0.3s; }
-.passo.ativo { background: var(--verde); width: 26px; border-radius: 6px; }
+.passo.ativo { background: var(--azul); width: 26px; border-radius: 6px; }
 .passo.ok { background: var(--verde); opacity: 0.5; }
 
 /* ---------- Timeline de status ---------- */
@@ -196,51 +229,91 @@ textarea { min-height: 90px; resize: vertical; }
   width: 2px; height: calc(100% - 16px); background: var(--borda);
 }
 .timeline li:last-child::after { display: none; }
-.timeline li.ativo { color: var(--texto); font-weight: 600; }
-.timeline li.ativo::before { background: var(--verde); box-shadow: 0 0 0 4px var(--verde-claro); }
+.timeline li.ativo { color: var(--texto); font-weight: 700; }
+.timeline li.ativo::before { background: var(--azul); box-shadow: 0 0 0 4px var(--azul-claro); }
 .timeline li.feito { color: var(--texto-suave); }
 .timeline li.feito::before { background: var(--verde); }
 .timeline li.cancelado { color: var(--vermelho); }
 .timeline li.cancelado::before { background: var(--vermelho); }
 
-/* ---------- Senha gigante ---------- */
+/* ---------- Senha (mesma linguagem da "senha chamada" do telão:
+     cartão claro + número grande em degradê azul→verde) ---------- */
 .senha-box {
-  background: linear-gradient(135deg, var(--verde), var(--verde-escuro));
-  color: #fff; border-radius: var(--raio);
-  text-align: center; padding: 26px 16px; margin-bottom: 16px;
-  box-shadow: 0 6px 20px rgba(11,110,79,0.35);
+  position: relative; overflow: hidden;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--texto);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  text-align: center; padding: 26px 16px 20px; margin-bottom: 16px;
+  box-shadow: var(--sombra);
 }
-.senha-box .rotulo { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px; opacity: 0.85; }
-.senha-box .senha { font-size: 3.2rem; font-weight: 800; letter-spacing: 4px; line-height: 1.1; }
-.senha-box .info { font-size: 0.85rem; opacity: 0.9; margin-top: 6px; }
+.senha-box::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 6px;
+  background: var(--gradiente);
+}
+.senha-box .rotulo {
+  font-size: 0.78rem; text-transform: uppercase; letter-spacing: 3px;
+  color: var(--azul); font-weight: 800;
+}
+.senha-box .senha {
+  font-size: 3.4rem; font-weight: 900; letter-spacing: 6px; line-height: 1.15;
+  background: linear-gradient(92deg, var(--azul) 5%, #38BDF8 40%, var(--verde) 95%);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+}
+.senha-box .info { font-size: 0.85rem; color: var(--texto-suave); font-weight: 600; margin-top: 6px; }
 
-/* ---------- Tela de chamada (notificação) ---------- */
+/* ---------- Tela de chamada (notificação) — versão clara, harmônica com o telão ---------- */
 .overlay-chamada {
   position: fixed; inset: 0; z-index: 100;
-  background: linear-gradient(160deg, var(--verde), var(--verde-escuro));
-  color: #fff; display: none;
+  background:
+    radial-gradient(520px 300px at 50% -4%, rgba(56, 189, 248, 0.18), transparent 70%),
+    radial-gradient(520px 300px at 50% 104%, rgba(74, 222, 128, 0.18), transparent 70%),
+    rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: var(--texto); display: none;
   flex-direction: column; align-items: center; justify-content: center;
   text-align: center; padding: 30px; gap: 10px;
 }
-.overlay-chamada.aberto { display: flex; animation: chamada-pulse 1.2s infinite; }
+.overlay-chamada.aberto { display: flex; animation: chamada-pulse 1.6s infinite; }
 @keyframes chamada-pulse {
-  0%,100% { box-shadow: inset 0 0 0 0 rgba(255,255,255,0.35); }
-  50% { box-shadow: inset 0 0 0 8px rgba(255,255,255,0.12); }
+  0%,100% { box-shadow: inset 0 0 0 0 rgba(2, 132, 199, 0.18); }
+  50% { box-shadow: inset 0 0 0 8px rgba(2, 132, 199, 0.06); }
 }
 .overlay-chamada .icone {
-  width: 110px; height: 110px; border-radius: 50%;
-  background: rgba(255,255,255,0.16);
+  width: 110px; height: 110px; border-radius: 34px;
+  background: linear-gradient(180deg, var(--azul-claro), var(--verde-claro));
+  border: 1px solid var(--borda);
+  box-shadow: var(--sombra-suave);
+  color: var(--azul);
   display: grid; place-items: center; margin-bottom: 14px;
   animation: chamada-balancar 0.9s ease-in-out infinite;
 }
 .overlay-chamada .icone svg { width: 60px; height: 60px; }
 @keyframes chamada-balancar { 0%,100%{transform:rotate(0)} 25%{transform:rotate(-8deg)} 75%{transform:rotate(8deg)} }
-.overlay-chamada .titulo { font-size: 1.1rem; opacity: 0.9; text-transform: uppercase; letter-spacing: 3px; }
-.overlay-chamada .nome { font-size: 2rem; font-weight: 800; }
-.overlay-chamada .senha2 { font-size: 1.4rem; font-weight: 700; background: rgba(255,255,255,0.18); padding: 6px 20px; border-radius: 30px; margin-top: 6px; }
-.overlay-chamada .onde { font-size: 0.95rem; opacity: 0.9; margin-top: 12px; }
-.overlay-chamada .btn-fechar { margin-top: 26px; background: #fff; color: var(--verde); max-width: 240px; }
-
+.overlay-chamada .titulo {
+  display: inline-block;
+  font-size: 0.85rem; text-transform: uppercase; letter-spacing: 2px; font-weight: 800;
+  color: #fff;
+  background: linear-gradient(135deg, var(--azul) 0%, #38BDF8 55%, #4ADE80 130%);
+  padding: 8px 22px; border-radius: 40px;
+  box-shadow: 0 8px 22px rgba(2, 132, 199, 0.30);
+}
+.overlay-chamada .nome { font-size: 2rem; font-weight: 900; color: var(--texto); margin-top: 6px; }
+.overlay-chamada .senha2 {
+  font-size: 1.2rem; font-weight: 800; letter-spacing: 1px;
+  background: var(--verde-claro); color: var(--verde-tinta);
+  padding: 8px 24px; border-radius: 30px; margin-top: 8px;
+}
+.overlay-chamada .onde { font-size: 0.95rem; color: var(--texto-suave); font-weight: 600; margin-top: 12px; }
+.overlay-chamada .btn-fechar {
+  margin-top: 26px;
+  background: linear-gradient(135deg, var(--azul), var(--verde));
+  color: #fff; box-shadow: 0 8px 22px rgba(2, 132, 199, 0.30);
+  max-width: 240px;
+}
 /* ---------- Toast ---------- */
 .toast {
   position: fixed; bottom: calc(var(--bottomnav) + 18px); left: 50%; transform: translateX(-50%) translateY(20px);
