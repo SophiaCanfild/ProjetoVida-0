@@ -391,11 +391,17 @@ textarea { min-height: 90px; resize: vertical; }
     linear-gradient(135deg, #E0F2FE, #DCFCE7);
   color: var(--texto);
 }
-/* Tela inicial: a foto da logo no lugar do chip de degradê
-   (mantém só a flutuação suave, sem tile/anéis) */
+/* rede de segurança: img contida mesmo sem a classe .tem-logo */
+.tela-login .marca .logo-g img {
+  max-width: 100%; max-height: 100%;
+  object-fit: contain;
+  display: block;
+  border-radius: 20px;
+}
+/* Tela inicial: a foto da logo no lugar do chip (96px, sem tile) */
 .tela-login .marca .logo-g.tem-logo {
-  width: 132px; height: 132px;
-  background: transparent;   /* some com o degradê do chip antigo */
+  width: 96px; height: 96px;
+  background: transparent;
   border: none;
   border-radius: 0;
   box-shadow: none;
@@ -405,8 +411,8 @@ textarea { min-height: 90px; resize: vertical; }
   width: 100%; height: 100%;
   object-fit: contain;
   display: block;
-  border-radius: 28px;       /* cantos arredondados na própria foto */
-  box-shadow: 0 12px 30px rgba(2, 132, 199, 0.18);
+  border-radius: 20px;
+  box-shadow: 0 10px 24px rgba(2, 132, 199, 0.16);
 }
 /* subtítulo em "pill", como o chip de data do relógio do telão */
 .tela-login .marca p {
