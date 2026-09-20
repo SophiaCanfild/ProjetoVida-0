@@ -391,24 +391,22 @@ textarea { min-height: 90px; resize: vertical; }
     linear-gradient(135deg, #E0F2FE, #DCFCE7);
   color: var(--texto);
 }
-.tela-login .marca { text-align: center; margin: 30px 0 34px; }
-.tela-login .marca .logo-g {
-  width: 86px; height: 86px;
-  background: linear-gradient(135deg, var(--azul), var(--verde));
-  border-radius: 26px; display: grid; place-items: center; margin: 0 auto 14px;
-  box-shadow: 0 10px 26px rgba(2, 132, 199, 0.28);
-  animation: logo-flutua 3.4s ease-in-out infinite;
+/* Tela inicial: a foto da logo no lugar do chip de degradê
+   (mantém só a flutuação suave, sem tile/anéis) */
+.tela-login .marca .logo-g.tem-logo {
+  width: 132px; height: 132px;
+  background: transparent;   /* some com o degradê do chip antigo */
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
 }
-@keyframes logo-flutua { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-@media (prefers-reduced-motion: reduce) {
-  .tela-login .marca .logo-g { animation: none; }
-}
-.tela-login .marca .logo-g svg { width: 52px; height: 52px; }
-.tela-login .marca h1 {
-  font-size: 1.8rem; font-weight: 800; letter-spacing: 0.4px;
-  background: linear-gradient(90deg, var(--azul) 10%, var(--verde) 90%);
-  -webkit-background-clip: text; background-clip: text;
-  -webkit-text-fill-color: transparent; color: transparent;
+.tela-login .marca .logo-g.tem-logo img {
+  width: 100%; height: 100%;
+  object-fit: contain;
+  display: block;
+  border-radius: 28px;       /* cantos arredondados na própria foto */
+  box-shadow: 0 12px 30px rgba(2, 132, 199, 0.18);
 }
 /* subtítulo em "pill", como o chip de data do relógio do telão */
 .tela-login .marca p {
