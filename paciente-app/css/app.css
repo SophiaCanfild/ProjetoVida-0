@@ -413,10 +413,18 @@ textarea { min-height: 90px; resize: vertical; }
   .tela-login .marca .logo-g { animation: none; }
 }
 .tela-login .marca .logo-g svg { width: 52px; height: 52px; }
+/* Rede de segurança: se a foto entrar no logo mesmo sem a classe .tem-logo,
+   ela fica contida no espaço do logo (nunca estoura pro tamanho natural) */
+.tela-login .marca .logo-g img {
+  max-width: 100%; max-height: 100%;
+  object-fit: contain;
+  display: block;
+  border-radius: 20px;
+}
 /* Tela inicial: a foto da logo no lugar do chip de degradê
    (mantém só a flutuação suave, sem tile/anéis) */
 .tela-login .marca .logo-g.tem-logo {
-  width: 132px; height: 132px;
+  width: 96px; height: 96px;
   background: transparent;
   border: none;
   border-radius: 0;
@@ -427,8 +435,8 @@ textarea { min-height: 90px; resize: vertical; }
   width: 100%; height: 100%;
   object-fit: contain;
   display: block;
-  border-radius: 28px;
-  box-shadow: 0 12px 30px rgba(2, 132, 199, 0.18);
+  border-radius: 20px;
+  box-shadow: 0 10px 24px rgba(2, 132, 199, 0.16);
 }
 .tela-login .marca h1 {
   font-size: 1.8rem; font-weight: 800; letter-spacing: 0.4px;
