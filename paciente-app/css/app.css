@@ -37,7 +37,7 @@
 
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
-html, body { height: 100%; }
+html { height: 100%; }
 
 body {
   font-family: var(--fonte);
@@ -441,18 +441,13 @@ textarea { min-height: 90px; resize: vertical; }
   box-shadow: var(--sombra-suave);
 }
 .caixa-login {
-  position: relative;
-  background: rgba(255, 255, 255, 0.94); color: var(--texto); border-radius: 22px; padding: 24px 18px;
+  background-color: rgba(255, 255, 255, 0.94); color: var(--texto); border-radius: 22px; padding: 26px 18px 24px;
   border: 1px solid var(--borda);
   box-shadow: 0 10px 30px rgba(2, 132, 199, 0.16);
-  overflow: hidden;
-}
-/* faixa em degradê no topo do cartão — igual ao destaque do telão */
-.caixa-login::before {
-  content: '';
-  position: absolute; top: 0; left: 0; right: 0; height: 5px;
-  background: var(--gradiente);
-  opacity: 0.85;
+  background-image: var(--gradiente);
+  background-repeat: no-repeat;
+  background-size: 100% 5px;
+  background-position: top;
 }
 .caixa-login h2 { margin-bottom: 16px; color: var(--azul-escuro); }
 .tela-login .rodape { text-align: center; margin-top: auto; padding-top: 22px; font-size: 0.75rem; color: var(--texto-suave); }
