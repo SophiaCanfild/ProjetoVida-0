@@ -392,6 +392,9 @@ textarea { min-height: 90px; resize: vertical; }
   color: var(--texto);
 }
 
+/* título e marca centralizados */
+.tela-login .marca { text-align: center; margin: 30px 0 34px; }
+
 /* regra-base do espaço do logo (centraliza, dimensiona e flutua) */
 .tela-login .marca .logo-g {
   width: 86px; height: 86px;
