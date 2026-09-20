@@ -391,6 +391,20 @@ textarea { min-height: 90px; resize: vertical; }
     linear-gradient(135deg, #E0F2FE, #DCFCE7);
   color: var(--texto);
 }
+
+/* regra-base do espaço do logo (centraliza, dimensiona e flutua) */
+.tela-login .marca .logo-g {
+  width: 86px; height: 86px;
+  background: linear-gradient(135deg, var(--azul), var(--verde));
+  border-radius: 26px; display: grid; place-items: center; margin: 0 auto 14px;
+  box-shadow: 0 10px 26px rgba(2, 132, 199, 0.28);
+  animation: logo-flutua 3.4s ease-in-out infinite;
+}
+@keyframes logo-flutua { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@media (prefers-reduced-motion: reduce) {
+  .tela-login .marca .logo-g { animation: none; }
+}
+.tela-login .marca .logo-g svg { width: 52px; height: 52px; }
 /* rede de segurança: img contida mesmo sem a classe .tem-logo */
 .tela-login .marca .logo-g img {
   max-width: 100%; max-height: 100%;
