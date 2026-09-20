@@ -14,7 +14,7 @@
 <body class="tela-login">
 
   <div class="marca">
-    <div class="logo-g" id="logo-svg"></div>
+    <div class="logo-g tem-logo" id="logo-svg"></div>
     <h1>Vida+ Paciente</h1>
     <p>Que bom te ver de novo! 👋</p>
   </div>
@@ -52,8 +52,8 @@
   <script src="js/nav.js"></script>
   <script>
     document.getElementById('logo-svg').innerHTML =
-      '<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg>';
-
+      '<img src="icons/logo.png" alt="Logo Vida+">';
+      
     const inputCpf = document.getElementById('cpf');
     UI.mascararCPF(inputCpf);
 
