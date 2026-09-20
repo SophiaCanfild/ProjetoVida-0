@@ -392,7 +392,9 @@ textarea { min-height: 90px; resize: vertical; }
 .tela-login {
   min-height: 100vh; display: flex; flex-direction: column;
   padding: 26px 20px calc(30px + env(safe-area-inset-bottom));
+  /* Mesmo fundo do telão: brilhos suaves + ondas decorativas na base */
   background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 320' preserveAspectRatio='none'%3E%3Cpath fill='%2338BDF8' fill-opacity='0.14' d='M0,192L48,197.3C96,203,192,213,288,192C384,171,480,117,576,101.3C672,85,768,107,864,138.7C960,171,1056,213,1152,218.7C1248,224,1344,192,1392,176L1440,160L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z'/%3E%3Cpath fill='%234ADE80' fill-opacity='0.14' d='M0,256L60,245.3C120,235,240,213,360,208C480,203,600,213,720,234.7C840,256,960,288,1080,288C1200,288,1320,256,1380,240L1440,224L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z'/%3E%3C/svg%3E") no-repeat bottom / 100% 140px,
     radial-gradient(700px 340px at 8% -8%, rgba(56, 189, 248, 0.20), transparent 60%),
     radial-gradient(700px 340px at 95% 0%, rgba(74, 222, 128, 0.20), transparent 60%),
     linear-gradient(135deg, #E0F2FE, #DCFCE7);
@@ -404,21 +406,43 @@ textarea { min-height: 90px; resize: vertical; }
   background: linear-gradient(135deg, var(--azul), var(--verde));
   border-radius: 26px; display: grid; place-items: center; margin: 0 auto 14px;
   box-shadow: 0 10px 26px rgba(2, 132, 199, 0.28);
+  animation: logo-flutua 3.4s ease-in-out infinite;
+}
+@keyframes logo-flutua { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@media (prefers-reduced-motion: reduce) {
+  .tela-login .marca .logo-g { animation: none; }
 }
 .tela-login .marca .logo-g svg { width: 52px; height: 52px; }
 .tela-login .marca h1 {
-  font-size: 1.7rem; font-weight: 800;
+  font-size: 1.8rem; font-weight: 800; letter-spacing: 0.4px;
   background: linear-gradient(90deg, var(--azul) 10%, var(--verde) 90%);
   -webkit-background-clip: text; background-clip: text;
   -webkit-text-fill-color: transparent; color: transparent;
 }
-.tela-login .marca p { color: var(--texto-suave); font-weight: 600; font-size: 0.92rem; }
+/* subtítulo em "pill", como o chip de data do relógio do telão */
+.tela-login .marca p {
+  display: inline-block; margin-top: 10px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--borda);
+  border-radius: 30px; padding: 6px 16px;
+  color: var(--azul-escuro); font-weight: 700; font-size: 0.85rem;
+  box-shadow: var(--sombra-suave);
+}
 .caixa-login {
-  background: var(--branco); color: var(--texto); border-radius: 22px; padding: 22px 18px;
+  position: relative;
+  background: rgba(255, 255, 255, 0.94); color: var(--texto); border-radius: 22px; padding: 24px 18px;
   border: 1px solid var(--borda);
   box-shadow: 0 10px 30px rgba(2, 132, 199, 0.16);
+  overflow: hidden;
 }
-.caixa-login h2 { margin-bottom: 16px; color: var(--texto); }
+/* faixa em degradê no topo do cartão — igual ao destaque do telão */
+.caixa-login::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 5px;
+  background: var(--gradiente);
+  opacity: 0.85;
+}
+.caixa-login h2 { margin-bottom: 16px; color: var(--azul-escuro); }
 .tela-login .rodape { text-align: center; margin-top: auto; padding-top: 22px; font-size: 0.75rem; color: var(--texto-suave); }
 
 /* ---------- Utilities ---------- */
