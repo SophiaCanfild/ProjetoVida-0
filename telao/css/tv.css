@@ -126,7 +126,7 @@ body::after {
   -webkit-text-fill-color: transparent; color: transparent;
   line-height: 1.1;
 }
-.tv-marca .nome-unidade { font-size: 0.95rem; color: var(--texto-suave); font-weight: 600; }
+.tv-marca .nome-unidade { display: none; } /* texto "UBS Central Araucária" oculto a pedido (o JS segue preenchendo aqui, sem impacto) */
 
 .tv-relogio { text-align: right; display: flex; align-items: center; gap: 14px; }
 .tv-relogio .hora {
@@ -239,18 +239,7 @@ body::after {
 }
 
 /* Estado "aguardando" */
-.tv-destaque .aguardando { display: flex; flex-direction: column; align-items: center; gap: 10px; }
-.tv-destaque .aguardando .icone-espera {
-  font-size: 3.4rem;
-  animation: flutua 3s ease-in-out infinite;
-  background: linear-gradient(180deg, var(--azul-suave), var(--verde-suave));
-  width: 110px; height: 110px;
-  display: grid; place-items: center;
-  border-radius: 34px;
-  box-shadow: var(--sombra-suave);
-  border: 1px solid var(--borda);
-}
-@keyframes flutua { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+.tv-destaque .aguardando { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
 .tv-destaque .aguardando h2 {
   font-size: clamp(1.6rem, 3vw, 2.4rem); font-weight: 800;
   background: linear-gradient(90deg, var(--azul-tinta), var(--verde));
