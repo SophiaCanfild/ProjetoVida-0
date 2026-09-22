@@ -97,19 +97,19 @@ function mostrarToast(mensagem, tipo = "success") {
     toast.className = 'toast-container animate-slideUp';
     toast.style.cssText = 'position:fixed;top:80px;right:24px;z-index:9999;';
     
-    const icones = { success: 'check-circle', error: 'exclamation-circle', warning: 'exclamation-triangle', info: 'info-circle' };
+   const icones = { success: 'check-circle', error: 'exclamation-circle', warning: 'exclamation-triangle', info: 'info-circle' };
     const cores = {
-        success: { bg: '#ECFDF5', color: '#059669', border: '#A7F3D0' },
-        error: { bg: '#FEF2F2', color: '#DC2626', border: '#FECACA' },
-        warning: { bg: '#FFFBEB', color: '#D97706', border: '#FDE68A' },
-        info: { bg: '#EFF6FF', color: '#2563EB', border: '#BFDBFE' }
+        success: { bg: '#DCFCE7', color: '#15803D', border: '#BBF7D0' },
+        error: { bg: '#FCEBEB', color: '#D64545', border: '#F5C6C6' },
+        warning: { bg: '#FDF3E2', color: '#B45309', border: '#F5E3C3' },
+        info: { bg: '#E0F2FE', color: '#0369A1', border: '#BAE6FD' }
     };
     
     const cor = cores[tipo] || cores.success;
     
     toast.innerHTML = `
         <div class="alert alert-${tipo === 'success' ? 'success' : tipo === 'error' ? 'danger' : tipo}" 
-             style="background:${cor.bg};color:${cor.color};border:1px solid ${cor.border};min-width:300px;box-shadow:0 10px 25px rgba(0,0,0,0.15);padding:14px;border-radius:10px;display:flex;align-items:center;gap:10px;">
+             style="background:${cor.bg};color:${cor.color};border:1px solid ${cor.border};min-width:300px;box-shadow:0 10px 25px rgba(2,132,199,0.16);padding:14px;border-radius:12px;display:flex;align-items:center;gap:10px;">
             <i class="fas fa-${icones[tipo] || icones.success}"></i>
             <span>${mensagem}</span>
         </div>`;
