@@ -88,18 +88,66 @@ if (document.readyState === 'loading') {
 }
 
 /* ============================================================
-   MANUTENÇÃO DE DESENVOLVIMENTO
+   PWA — Service Worker + botão "Instalar app"
    ------------------------------------------------------------
-   Descarta o service worker e limpa os caches ANTIGOS para que
-   o navegador SEMPRE mostre a versão mais nova do app.
-   Remova este bloco na versão final (apresentação) se quiser
-   religar o PWA offline.
+   • Registra o sw.js, que guarda as telas no aparelho (o app
+     chega a abrir sem internet mostrando o último estado).
+   • No Android/Chrome aparece uma pílula "Instalar app" quando
+     o navegador oferece a instalação.
+   • No iPhone/iPad (Safari) é manual: Compartilhar →
+     "Adicionar à Tela de Início".
+   Só ativa em contexto seguro (https ou localhost).
    ============================================================ */
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then(regs => {
-    regs.forEach(r => r.unregister());
-  }).catch(() => {});
-}
-if (window.caches) {
-  caches.keys().then(chaves => chaves.forEach(k => caches.delete(k))).catch(() => {});
-}
+(function () {
+  var seguro = location.protocol === 'https:' ||
+               location.hostname === 'localhost' ||
+               location.hostname === '127.0.0.1';
+  if (!('serviceWorker' in navigator) || !seguro) return;
+
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('./sw.js').catch(function (e) {
+      console.warn('[Vida+] service worker não registrado:', e && e.message);
+    });
+  });
+
+  var promptInstalacao = null;
+
+  window.addEventListener('beforeinstallprompt', function (ev) {
+    ev.preventDefault(); /* segura o evento para mostrar nosso próprio botão */
+    promptInstalacao = ev;
+    mostrarBotao();
+  });
+
+  function mostrarBotao() {
+    if (document.querySelector('.pwa-instalar')) return;
+    var jaApp = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
+                window.navigator.standalone === true;
+    if (jaApp) return; /* já aberto como app instalado: não incomoda */
+
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'pwa-instalar';
+    btn.innerHTML = '\u{1F4F2} Instalar app <span class="pwa-fechar" title="Dispensar">\u00D7</span>';
+    btn.addEventListener('click', function (ev) {
+      if (ev.target && ev.target.classList.contains('pwa-fechar')) {
+        btn.remove();
+        return;
+      }
+      if (!promptInstalacao) { btn.remove(); return; }
+      promptInstalacao.prompt();
+      promptInstalacao.userChoice.then(function (r) {
+        if (r && r.outcome === 'accepted') btn.remove();
+        promptInstalacao = null;
+      });
+    });
+    document.body.appendChild(btn);
+  }
+
+  /* iOS não dispara beforeinstallprompt — só uma dica no console */
+  var ehIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  if (ehIOS) {
+    window.addEventListener('load', function () {
+      console.info('[Vida+] iPhone/iPad: use Compartilhar \u2192 "Adicionar \u00E0 Tela de In\u00EDcio" para instalar o app.');
+    });
+  }
+})();
