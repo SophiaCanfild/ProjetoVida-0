@@ -152,6 +152,76 @@ CREATE TABLE IF NOT EXISTS public.agendamentos (
 CREATE INDEX IF NOT EXISTS idx_agendamentos_cpf ON public.agendamentos(paciente_cpf);
 
 -- ============================================================
+-- COMPATIBILIDADE COM INSTALAÇÕES ANTIGAS
+-- ------------------------------------------------------------
+-- CREATE TABLE IF NOT EXISTS não altera tabelas já existentes.
+-- Estas colunas são adicionadas para bancos criados por versões
+-- anteriores do projeto, que tinham estruturas incompletas.
+-- ============================================================
+ALTER TABLE public.pacientes ADD COLUMN IF NOT EXISTS id UUID DEFAULT gen_random_uuid();
+ALTER TABLE public.pacientes ADD COLUMN IF NOT EXISTS cpf VARCHAR(11);
+ALTER TABLE public.pacientes ADD COLUMN IF NOT EXISTS nome VARCHAR(160);
+ALTER TABLE public.pacientes ADD COLUMN IF NOT EXISTS nascimento DATE;
+ALTER TABLE public.pacientes ADD COLUMN IF NOT EXISTS sexo VARCHAR(1);
+ALTER TABLE public.pacientes ADD COLUMN IF NOT EXISTS telefone VARCHAR(20);
+ALTER TABLE public.pacientes ADD COLUMN IF NOT EXISTS email VARCHAR(120);
+ALTER TABLE public.pacientes ADD COLUMN IF NOT EXISTS endereco VARCHAR(255);
+ALTER TABLE public.pacientes ADD COLUMN IF NOT EXISTS tipo_sanguineo VARCHAR(3);
+ALTER TABLE public.pacientes ADD COLUMN IF NOT EXISTS alergias TEXT[] DEFAULT '{}';
+ALTER TABLE public.pacientes ADD COLUMN IF NOT EXISTS doencas_cronicas TEXT[] DEFAULT '{}';
+ALTER TABLE public.pacientes ADD COLUMN IF NOT EXISTS medicamentos_uso TEXT;
+ALTER TABLE public.pacientes ADD COLUMN IF NOT EXISTS deficiencia VARCHAR(60);
+ALTER TABLE public.pacientes ADD COLUMN IF NOT EXISTS gestante BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.pacientes ADD COLUMN IF NOT EXISTS tabagista BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.pacientes ADD COLUMN IF NOT EXISTS responsavel_nome VARCHAR(160);
+ALTER TABLE public.pacientes ADD COLUMN IF NOT EXISTS responsavel_telefone VARCHAR(20);
+ALTER TABLE public.pacientes ADD COLUMN IF NOT EXISTS cartao_sus VARCHAR(20);
+ALTER TABLE public.pacientes ADD COLUMN IF NOT EXISTS criado_em TIMESTAMPTZ DEFAULT NOW();
+ALTER TABLE public.pacientes ADD COLUMN IF NOT EXISTS atualizado_em TIMESTAMPTZ DEFAULT NOW();
+
+ALTER TABLE public.usuarios ADD COLUMN IF NOT EXISTS id UUID DEFAULT gen_random_uuid();
+ALTER TABLE public.usuarios ADD COLUMN IF NOT EXISTS nome VARCHAR(160);
+ALTER TABLE public.usuarios ADD COLUMN IF NOT EXISTS cpf VARCHAR(11);
+ALTER TABLE public.usuarios ADD COLUMN IF NOT EXISTS email VARCHAR(120);
+ALTER TABLE public.usuarios ADD COLUMN IF NOT EXISTS senha_hash TEXT;
+ALTER TABLE public.usuarios ADD COLUMN IF NOT EXISTS perfil VARCHAR(20);
+ALTER TABLE public.usuarios ADD COLUMN IF NOT EXISTS registro_profissional VARCHAR(30);
+ALTER TABLE public.usuarios ADD COLUMN IF NOT EXISTS crm VARCHAR(30);
+ALTER TABLE public.usuarios ADD COLUMN IF NOT EXISTS coren VARCHAR(30);
+ALTER TABLE public.usuarios ADD COLUMN IF NOT EXISTS especialidade VARCHAR(100);
+ALTER TABLE public.usuarios ADD COLUMN IF NOT EXISTS ativo BOOLEAN DEFAULT TRUE;
+ALTER TABLE public.usuarios ADD COLUMN IF NOT EXISTS criado_em TIMESTAMPTZ DEFAULT NOW();
+
+ALTER TABLE public.consultas ADD COLUMN IF NOT EXISTS id UUID DEFAULT gen_random_uuid();
+ALTER TABLE public.consultas ADD COLUMN IF NOT EXISTS paciente_id UUID;
+ALTER TABLE public.consultas ADD COLUMN IF NOT EXISTS cpf VARCHAR(11);
+ALTER TABLE public.consultas ADD COLUMN IF NOT EXISTS unidade VARCHAR(80);
+ALTER TABLE public.consultas ADD COLUMN IF NOT EXISTS senha VARCHAR(6);
+ALTER TABLE public.consultas ADD COLUMN IF NOT EXISTS recepcao JSONB DEFAULT '{}';
+ALTER TABLE public.consultas ADD COLUMN IF NOT EXISTS triagem JSONB DEFAULT '{}';
+ALTER TABLE public.consultas ADD COLUMN IF NOT EXISTS diagnostico TEXT;
+ALTER TABLE public.consultas ADD COLUMN IF NOT EXISTS cid10 VARCHAR(10);
+ALTER TABLE public.consultas ADD COLUMN IF NOT EXISTS conduta TEXT;
+ALTER TABLE public.consultas ADD COLUMN IF NOT EXISTS orientacoes TEXT;
+ALTER TABLE public.consultas ADD COLUMN IF NOT EXISTS receita JSONB DEFAULT '[]';
+ALTER TABLE public.consultas ADD COLUMN IF NOT EXISTS exames JSONB DEFAULT '[]';
+ALTER TABLE public.consultas ADD COLUMN IF NOT EXISTS medico_nome VARCHAR(160);
+ALTER TABLE public.consultas ADD COLUMN IF NOT EXISTS medico_crm VARCHAR(30);
+ALTER TABLE public.consultas ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'em_fila';
+ALTER TABLE public.consultas ADD COLUMN IF NOT EXISTS guiche VARCHAR(10);
+ALTER TABLE public.consultas ADD COLUMN IF NOT EXISTS nome_chamado VARCHAR(160);
+ALTER TABLE public.consultas ADD COLUMN IF NOT EXISTS tipo_chamada VARCHAR(20) DEFAULT 'triagem';
+ALTER TABLE public.consultas ADD COLUMN IF NOT EXISTS consultorio VARCHAR(10);
+ALTER TABLE public.consultas ADD COLUMN IF NOT EXISTS chamado_em TIMESTAMPTZ;
+ALTER TABLE public.consultas ADD COLUMN IF NOT EXISTS criado_em TIMESTAMPTZ DEFAULT NOW();
+ALTER TABLE public.consultas ADD COLUMN IF NOT EXISTS finalizado_em TIMESTAMPTZ;
+ALTER TABLE public.consultas ADD COLUMN IF NOT EXISTS cancelado_em TIMESTAMPTZ;
+
+CREATE INDEX IF NOT EXISTS idx_pacientes_cpf ON public.pacientes(cpf);
+CREATE INDEX IF NOT EXISTS idx_usuarios_cpf ON public.usuarios(cpf);
+CREATE INDEX IF NOT EXISTS idx_consultas_status ON public.consultas(status);
+
+-- ============================================================
 -- 6. NOTIFICAÇÕES
 -- ============================================================
 CREATE TABLE IF NOT EXISTS public.notificacoes (

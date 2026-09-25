@@ -126,28 +126,58 @@
     return obj;
   }
 
-  // Escrita assíncrona no Supabase (fire-and-forget)
+  // Escrita assíncrona no Supabase. Os módulos mantêm a atualização local
+  // imediata, mas agora também recebem o erro real quando a gravação remota falha.
+  function reportarFalhaPersistencia(tabela, operacao, erro) {
+    const mensagem = erro && erro.message ? erro.message : String(erro || 'Erro desconhecido');
+    console.error('[Supabase ' + operacao + '] FALHOU em ' + tabela + ' → ' + mensagem);
+    if (listeners.persistencia_falhou) {
+      listeners.persistencia_falhou.forEach(fn => fn({ tabela, operacao, mensagem, erro }));
+    }
+  }
+
   function sbInsert(tabela, dados) {
     if (!temSupabase) return Promise.resolve();
     const linhas = Array.isArray(dados)
       ? dados.map(function (d) { return paraSupabase(tabela, d); })
       : paraSupabase(tabela, dados);
-    return supabaseClient.from(tabela).insert(linhas).then(({ error }) => {
-      if (error) console.warn('[Supabase insert] FALHOU em', tabela, '→', error.message);
+    return supabaseClient.from(tabela).insert(linhas).then(({ error, data }) => {
+      if (error) {
+        reportarFalhaPersistencia(tabela, 'insert', error);
+        return { ok: false, error };
+      }
+      return { ok: true, data };
+    }).catch(function (error) {
+      reportarFalhaPersistencia(tabela, 'insert', error);
+      return { ok: false, error };
     });
   }
 
   function sbUpdate(tabela, dados, filtro) {
     if (!temSupabase) return Promise.resolve();
-    return supabaseClient.from(tabela).update(paraSupabase(tabela, dados)).match(paraSupabase(tabela, filtro)).then(({ error }) => {
-      if (error) console.warn('[Supabase update] FALHOU em', tabela, '→', error.message);
+    return supabaseClient.from(tabela).update(paraSupabase(tabela, dados)).match(paraSupabase(tabela, filtro)).then(({ error, data }) => {
+      if (error) {
+        reportarFalhaPersistencia(tabela, 'update', error);
+        return { ok: false, error };
+      }
+      return { ok: true, data };
+    }).catch(function (error) {
+      reportarFalhaPersistencia(tabela, 'update', error);
+      return { ok: false, error };
     });
   }
 
   function sbUpsert(tabela, dados) {
     if (!temSupabase) return Promise.resolve();
-    return supabaseClient.from(tabela).upsert(paraSupabase(tabela, dados), { onConflict: 'id' }).then(({ error }) => {
-      if (error) console.warn('[Supabase upsert] FALHOU em', tabela, '→', error.message);
+    return supabaseClient.from(tabela).upsert(paraSupabase(tabela, dados), { onConflict: 'id' }).then(({ error, data }) => {
+      if (error) {
+        reportarFalhaPersistencia(tabela, 'upsert', error);
+        return { ok: false, error };
+      }
+      return { ok: true, data };
+    }).catch(function (error) {
+      reportarFalhaPersistencia(tabela, 'upsert', error);
+      return { ok: false, error };
     });
   }
 

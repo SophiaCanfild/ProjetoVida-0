@@ -217,10 +217,15 @@
 
         /* ---------- Atualização periódica ---------- */
     let ultimaChamadaId = null;
+    let atualizacaoEmAndamento = false;
 
-    function atualizar() {
+    async function atualizar() {
+      if (atualizacaoEmAndamento) return;
+      atualizacaoEmAndamento = true;
       try {
-        const recentes = (typeof TV !== 'undefined' && TV.getChamadasRecentes) ? TV.getChamadasRecentes() : [];
+        const recentes = (typeof TV !== 'undefined' && TV.getChamadasRecentes)
+          ? await TV.getChamadasRecentes()
+          : [];
         renderizarRecentes(recentes);
 
         const ultima = recentes[0] || null;
@@ -239,6 +244,8 @@
         }
       } catch (e) {
         console.error('[Telão] Erro:', e);
+      } finally {
+        atualizacaoEmAndamento = false;
       }
     }
 

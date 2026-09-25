@@ -118,6 +118,12 @@ function mostrarToast(mensagem, tipo = "success") {
     setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.3s'; setTimeout(() => toast.remove(), 300); }, 3000);
 }
 
+if (typeof DB !== 'undefined' && DB.on) {
+    DB.on('persistencia_falhou', function (falha) {
+        mostrarToast('Não foi possível salvar em ' + falha.tabela + ': ' + falha.mensagem, 'error');
+    });
+}
+
 // Salvar usuário logado na sessão
 function salvarSessao(usuario) {
     sessionStorage.setItem('usuarioLogado', JSON.stringify(usuario));
