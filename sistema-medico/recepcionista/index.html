@@ -228,8 +228,9 @@
                                         <label class="form-label">Sexo</label>
                                         <select class="form-input" id="pacSexo">
                                             <option value="">Selecione...</option>
-                                            <option value="Masculino">Masculino</option>
-                                            <option value="Feminino">Feminino</option>
+                                            <option value="M">Masculino</option>
+                                            <option value="F">Feminino</option>
+                                            <option value="O">Outro</option>
                                         </select>
                                     </div>
                                 </div>
@@ -462,6 +463,9 @@
         DB.on('paciente_chamado', () => { carregarFila(); });
         DB.on('triagem_realizada', () => { carregarFila(); });
         DB.on('consulta_finalizada', () => { atualizarDashboard(); });
+        DB.on('persistencia_falhou', evento => {
+            mostrarToast('Salvo no navegador, mas não no Supabase (' + evento.tabela + '): ' + evento.mensagem, 'error');
+        });
         
         // Mostrar página
         function mostrarPagina(pagina) {
@@ -598,7 +602,7 @@
                 nome: nome,
                 cpf: cpf,
                 nascimento: document.getElementById('pacNascimento').value,
-                sexo: document.getElementById('pacSexo').value === 'Masculino' ? 'M' : 'F',
+                sexo: document.getElementById('pacSexo').value || null,
                 telefone: document.getElementById('pacTelefone').value,
                 endereco: document.getElementById('pacEndereco').value,
                 tipo_sanguineo: document.getElementById('pacSangue').value,
@@ -612,7 +616,7 @@
             const consulta = DB.iniciarAtendimento(
                 paciente.id,
                 paciente.cpf,
-                'UBS Central',
+                APP_CONFIG.UNIDADES[0],
                 usuario ? usuario.nome : 'Recepção'
             );
             
@@ -676,7 +680,7 @@
             const consulta = DB.iniciarAtendimento(
                 paciente.id,
                 paciente.cpf,
-                'UBS Central',
+                APP_CONFIG.UNIDADES[0],
                 usuario ? usuario.nome : 'Recepção'
             );
             

@@ -22,6 +22,7 @@
 
   const PREFIXO = 'vidamais_';
   const DB = {};
+  const insercoesPacientesPendentes = new Map();
 
   // ============================================================
   // UTILIDADES
@@ -55,6 +56,12 @@
 
   function limparCpf(cpf) {
     return (cpf || '').replace(/\D/g, '');
+  }
+
+  function unidadePadrao() {
+    return typeof APP_CONFIG !== 'undefined' && APP_CONFIG.UNIDADES && APP_CONFIG.UNIDADES[0]
+      ? APP_CONFIG.UNIDADES[0]
+      : 'UBS Central Araucária';
   }
 
   // ============================================================
@@ -141,7 +148,14 @@
     const linhas = Array.isArray(dados)
       ? dados.map(function (d) { return paraSupabase(tabela, d); })
       : paraSupabase(tabela, dados);
-    return supabaseClient.from(tabela).insert(linhas).then(({ error, data }) => {
+    const pacienteId = tabela === 'consultas' && !Array.isArray(dados) ? dados.paciente_id : null;
+    const pacientePendente = pacienteId && insercoesPacientesPendentes.get(pacienteId);
+    const gravacao = Promise.resolve(pacientePendente).then(async function (resultadoPaciente) {
+      if (resultadoPaciente && resultadoPaciente.ok === false) {
+        throw new Error('O cadastro do paciente não foi salvo; atendimento não enviado.');
+      }
+      return supabaseClient.from(tabela).insert(linhas);
+    }).then(({ error, data }) => {
       if (error) {
         reportarFalhaPersistencia(tabela, 'insert', error);
         return { ok: false, error };
@@ -151,6 +165,15 @@
       reportarFalhaPersistencia(tabela, 'insert', error);
       return { ok: false, error };
     });
+    if (tabela === 'pacientes' && dados && dados.id) {
+      insercoesPacientesPendentes.set(dados.id, gravacao);
+      gravacao.finally(function () {
+        if (insercoesPacientesPendentes.get(dados.id) === gravacao) {
+          insercoesPacientesPendentes.delete(dados.id);
+        }
+      });
+    }
+    return gravacao;
   }
 
   function sbUpdate(tabela, dados, filtro) {
@@ -491,7 +514,7 @@
       id: gerarId(),
       paciente_id: pacienteId,
       cpf: limparCpf(cpf),
-      unidade: unidade || 'UBS Central',
+      unidade: unidade || unidadePadrao(),
       senha: senha,
       recepcao: { criado_por: criadoPor || 'Recepção', observacoes: '' },
       triagem: null,
@@ -692,7 +715,7 @@
       id: gerarId(),
       paciente_id: dados.paciente_id,
       paciente_cpf: dados.paciente_cpf ? limparCpf(dados.paciente_cpf) : null,
-      unidade: dados.unidade || 'UBS Central',
+      unidade: dados.unidade || unidadePadrao(),
       especialidade: dados.especialidade,
       medico_nome: dados.medico_nome,
       data_hora: dados.data_hora,
