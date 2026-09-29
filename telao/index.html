@@ -266,5 +266,13 @@
       DB.on('atendimento_iniciado', function() { atualizar(); });
     }
   </script>
+<script>
+  /* PWA: registra o service worker (offline + instalável) */
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('../sw.js').catch(function (e) { console.warn('[SW] não registrado:', e.message); });
+    });
+  }
+</script>
 </body>
 </html>

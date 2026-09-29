@@ -129,7 +129,7 @@ small { color: var(--texto-suave); }
   gap: 3px; text-decoration: none; color: var(--cinza); font-size: 0.66rem; font-weight: 600;
 }
 .bottomnav a svg { width: 22px; height: 22px; }
-bottomnav a.ativo { color: var(--verde); font-weight: 800; }
+.bottomnav a.ativo { color: var(--verde); font-weight: 800; }
 .pagina { padding: 16px 16px calc(var(--bottomnav) + 24px); }
 
 /* ---------- Botões ---------- */

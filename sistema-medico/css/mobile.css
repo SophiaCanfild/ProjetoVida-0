@@ -1,0 +1,180 @@
+/* ================================================
+   VIDA+ - SISTEMA MÉDICO
+   Camada MOBILE (celular / tablet pequeno)
+   -----------------------------------------------
+   Carregada DEPOIS do global.css. Não altera o
+   layout de desktop: tudo aqui vive dentro de
+   @media (max-width: ...).
+   ================================================ */
+
+/* ---------- Botão de menu (hambúrguer) ---------- */
+.menu-toggle {
+    display: none;
+    width: 42px;
+    height: 42px;
+    margin-right: 4px;
+    border: none;
+    border-radius: var(--radius-md);
+    background: var(--azul-50);
+    color: var(--azul-600);
+    font-size: 1.1rem;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.scrim {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(11, 31, 51, 0.45);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    z-index: 90;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+}
+
+body.menu-aberto .scrim {
+    display: block;
+    opacity: 1;
+}
+
+/* ---------- Celular (até 768px) ---------- */
+@media (max-width: 768px) {
+
+    html, body { font-size: 14px; }
+
+    /* Sidebar vira gaveta (drawer) fora da tela */
+    .layout { position: relative; }
+
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        height: 100dvh;
+        width: min(280px, 84vw);
+        z-index: 100;
+        transform: translateX(-105%);
+        transition: transform 0.28s ease;
+        box-shadow: none;
+    }
+
+    body.menu-aberto .sidebar {
+        transform: translateX(0);
+        box-shadow: var(--sombra-xl);
+    }
+
+    /* Na gaveta, rótulos voltam a aparecer */
+    .sidebar-logo .text,
+    .sidebar-logo .subtitle,
+    .menu-item span,
+    .menu-item .badge,
+    .user-details { display: revert; }
+
+    .sidebar-logo { justify-content: flex-start; }
+
+    .menu-item {
+        justify-content: flex-start;
+        padding: 12px 16px;
+        min-height: 44px;          /* alvo de toque confortável */
+    }
+
+    .sidebar-footer .user-info,
+    .sidebar-footer { padding: 12px 16px; }
+
+    .menu-toggle { display: inline-flex; }
+
+    /* Topbar compacta, respeitando o notch do iPhone */
+    .topbar {
+        height: 56px;
+        padding: 0 12px;
+        padding-top: env(safe-area-inset-top);
+        height: calc(56px + env(safe-area-inset-top));
+        position: sticky;
+        top: 0;
+        z-index: 50;
+    }
+
+    .page-title { font-size: 1rem; }
+
+    .topbar-right { gap: 4px; }
+
+    .topbar-btn { width: 42px; height: 42px; }
+
+    /* Conteúdo com respiro menor */
+    .content-area { -webkit-overflow-scrolling: touch; }
+
+    .p-6 { padding: 14px; }
+    .p-4 { padding: 12px; }
+
+    /* Grades de cards empilhadas (inclusive as inline style="repeat(4,1fr)") */
+    [style*="grid-template-columns"] {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+
+    /* Tabelas: rolagem horizontal com pista visual */
+    .table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin: 0 -14px;
+        padding: 0 14px;
+    }
+
+    .table th, .table td {
+        padding: 10px 12px;
+        white-space: nowrap;
+    }
+
+    .table th:first-child, .table td:first-child { padding-left: 14px; }
+
+    /* Cards e formulários */
+    .card-header { padding: 12px 14px; flex-wrap: wrap; gap: 8px; }
+    .card-body   { padding: 14px; }
+    .card-footer { padding: 12px 14px; }
+
+    .form-row, .form-row-3, .form-row-4 { grid-template-columns: 1fr; }
+
+    /* Botões: toque mínimo de 44px e quebra de linha quando precisar */
+    .btn {
+        min-height: 44px;
+        white-space: normal;
+        padding: 10px 16px;
+    }
+
+    .btn-sm { min-height: 36px; }
+
+    /* Modal ocupando a tela no celular */
+    .modal-box, .modal-content, .modal {
+        max-width: calc(100vw - 24px) !important;
+        width: calc(100vw - 24px) !important;
+        max-height: 86dvh;
+        overflow-y: auto;
+    }
+
+    /* Gráficos / áreas com largura fixa não estouram a tela */
+    canvas { max-width: 100%; height: auto !important; }
+
+    /* Esconde colunas de ação gigantescas? não — apenas garante toque */
+    .table .btn { min-height: 36px; }
+}
+
+/* ---------- Tablet (769–1024px): só ajustes finos ---------- */
+@media (min-width: 769px) and (max-width: 1024px) {
+    [style*="grid-template-columns: repeat(4"] {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+
+    [style*="grid-template-columns: repeat(5"] {
+        grid-template-columns: repeat(3, 1fr) !important;
+    }
+
+    .p-6 { padding: 18px; }
+}
+
+/* ---------- Impressão / acessibilidade ---------- */
+@media (prefers-reduced-motion: reduce) {
+    .sidebar { transition: none; }
+}
