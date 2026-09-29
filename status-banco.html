@@ -248,6 +248,38 @@
       }
     }
 
+    // 3.5) Schema: o banco tem as colunas que o código usa?
+    // (o teste de leitura acima usa select *, que NÃO detecta coluna faltando)
+    const schemaEsperado = {
+      consultas: ['status', 'guiche', 'nome_chamado', 'tipo_chamada', 'consultorio', 'chamado_em', 'finalizado_em', 'cancelado_em'],
+      agendamentos: ['status', 'paciente_cpf', 'especialidade', 'data_hora']
+    };
+    let schemaOk = true;
+    for (const [t, cols] of Object.entries(schemaEsperado)) {
+      addTeste('schema_' + t, 'Schema da tabela "' + t + '" (colunas do código)');
+      setTeste('schema_' + t, 'rodando');
+      try {
+        const { error } = await supabaseClient.from(t).select(cols.join(',')).limit(1);
+        if (error && /schema cache/i.test(error.message)) {
+          setTeste('schema_' + t, 'falha', 'faltam colunas');
+          log('SCHEMA DESATUALIZADO em ' + t + ': ' + error.message);
+          log('→ Rode o supabase/schema.sql COMPLETO no SQL Editor (os ALTER TABLE ... ADD COLUMN IF NOT EXISTS completam tabelas criadas por versões antigas).');
+          schemaOk = false;
+        } else if (error) {
+          setTeste('schema_' + t, 'falha', error.message);
+          log('ERRO ao conferir schema de ' + t + ': ' + error.message);
+          schemaOk = false;
+        } else {
+          setTeste('schema_' + t, 'sucesso', cols.length + ' colunas presentes');
+          log('Schema de ' + t + ': OK (' + cols.length + ' colunas conferidas).');
+        }
+      } catch (e) {
+        setTeste('schema_' + t, 'falha', 'rede: ' + e.message);
+        log('ERRO de rede ao conferir schema de ' + t + ': ' + e.message);
+        schemaOk = false;
+      }
+    }
+
     // 4) Teste de escrita (upsert + delete em configuracoes)
     addTeste('escrita', 'Escrita no banco (insert/update/delete)');
     setTeste('escrita', 'rodando');
@@ -289,7 +321,10 @@
     });
 
     // Resumo final
-    if (leituraOk && escritaOk && realtimeOk) {
+    if (!schemaOk) {
+      setResumo(false, 'Schema desatualizado ⚠️',
+        'O banco remoto não tem todas as colunas que o código usa. Rode o <code>supabase/schema.sql</code> <b>completo</b> no SQL Editor do Supabase — ele é seguro de reexecutar (tudo usa <code>IF NOT EXISTS</code>) e completa tabelas criadas por versões antigas do projeto.');
+    } else if (leituraOk && escritaOk && realtimeOk) {
       setResumo(true, 'Tudo funcionando! 🎉',
         'O banco está conectado, aceitando leitura/escrita e o tempo real está ativo. <br><code>' + APP_CONFIG.SUPABASE_URL.replace('https://', '') + '</code>');
       log('RESULTADO: tudo OK.');

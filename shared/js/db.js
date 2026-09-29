@@ -129,7 +129,18 @@
   // Escrita assíncrona no Supabase. Os módulos mantêm a atualização local
   // imediata, mas agora também recebem o erro real quando a gravação remota falha.
   function reportarFalhaPersistencia(tabela, operacao, erro) {
-    const mensagem = erro && erro.message ? erro.message : String(erro || 'Erro desconhecido');
+    let mensagem = erro && erro.message ? erro.message : String(erro || 'Erro desconhecido');
+
+    /* Erro clássico de banco DESATUALIZADO: a coluna existe no código e no
+       schema.sql, mas não na tabela criada no Supabase (o PostgREST monta a
+       API a partir da estrutura real do banco — "schema cache"). */
+    const faltaColuna = mensagem.match(/Could not find the '([^']+)' column of '([^']+)'/i);
+    if (faltaColuna) {
+      mensagem += ' → SCHEMA DESATUALIZADO: a coluna "' + faltaColuna[1] +
+        '" não existe na tabela "' + faltaColuna[2] +
+        '" do banco remoto. Rode o supabase/schema.sql COMPLETO no SQL Editor do Supabase (os ALTER TABLE ... ADD COLUMN IF NOT EXISTS completam tabelas antigas).';
+    }
+
     console.error('[Supabase ' + operacao + '] FALHOU em ' + tabela + ' → ' + mensagem);
     if (listeners.persistencia_falhou) {
       listeners.persistencia_falhou.forEach(fn => fn({ tabela, operacao, mensagem, erro }));
