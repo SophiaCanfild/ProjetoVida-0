@@ -147,65 +147,69 @@
     }
   }
 
-  function sbInsert(tabela, dados) {
-    if (!temClienteSupabase()) return Promise.resolve();
-    const linhas = Array.isArray(dados)
-      ? dados.map(function (d) { return paraSupabase(tabela, d); })
-      : paraSupabase(tabela, dados);
-    const pacienteId = tabela === 'consultas' && !Array.isArray(dados) ? dados.paciente_id : null;
-    const pacientePendente = pacienteId && insercoesPacientesPendentes.get(pacienteId);
-    const gravacao = Promise.resolve(pacientePendente).then(async function (resultadoPaciente) {
-      if (resultadoPaciente && resultadoPaciente.ok === false) {
+  async function sbInsert(tabela, dados) {
+    if (!temClienteSupabase()) return { ok: true, data: null };
+    try {
+      const linhas = Array.isArray(dados)
+        ? dados.map(function (d) { return paraSupabase(tabela, d); })
+        : paraSupabase(tabela, dados);
+
+      const pacienteId = tabela === 'consultas' && !Array.isArray(dados) ? dados.paciente_id : null;
+      const pacientePendente = pacienteId && insercoesPacientesPendentes.get(pacienteId);
+      if (pacientePendente && pacientePendente.ok === false) {
         throw new Error('O cadastro do paciente não foi salvo; atendimento não enviado.');
       }
-      return supabaseClient.from(tabela).insert(linhas);
-    }).then(({ error, data }) => {
+
+      const { error, data } = await supabaseClient.from(tabela).insert(linhas);
       if (error) {
         reportarFalhaPersistencia(tabela, 'insert', error);
         return { ok: false, error };
       }
       return { ok: true, data };
-    }).catch(function (error) {
+    } catch (error) {
       reportarFalhaPersistencia(tabela, 'insert', error);
       return { ok: false, error };
-    });
-    if (tabela === 'pacientes' && dados && dados.id) {
-      insercoesPacientesPendentes.set(dados.id, gravacao);
-      gravacao.finally(function () {
-        if (insercoesPacientesPendentes.get(dados.id) === gravacao) {
-          insercoesPacientesPendentes.delete(dados.id);
-        }
-      });
     }
-    return gravacao;
   }
 
-  function sbUpdate(tabela, dados, filtro) {
-    if (!temClienteSupabase()) return Promise.resolve();
-    return supabaseClient.from(tabela).update(paraSupabase(tabela, dados)).match(paraSupabase(tabela, filtro)).then(({ error, data }) => {
+  async function sbUpdate(tabela, dados, filtro) {
+    if (!temClienteSupabase()) return { ok: true, data: null };
+    try {
+      let query = supabaseClient.from(tabela).update(paraSupabase(tabela, dados));
+      const filtroFinal = paraSupabase(tabela, filtro || {});
+
+      Object.keys(filtroFinal).forEach(function (campo) {
+        const valor = filtroFinal[campo];
+        if (valor !== undefined && valor !== null && typeof query.eq === 'function') {
+          query = query.eq(campo, valor);
+        }
+      });
+
+      const { error, data } = await query;
       if (error) {
         reportarFalhaPersistencia(tabela, 'update', error);
         return { ok: false, error };
       }
       return { ok: true, data };
-    }).catch(function (error) {
+    } catch (error) {
       reportarFalhaPersistencia(tabela, 'update', error);
       return { ok: false, error };
-    });
+    }
   }
 
-  function sbUpsert(tabela, dados) {
-    if (!temClienteSupabase()) return Promise.resolve();
-    return supabaseClient.from(tabela).upsert(paraSupabase(tabela, dados), { onConflict: 'id' }).then(({ error, data }) => {
+  async function sbUpsert(tabela, dados) {
+    if (!temClienteSupabase()) return { ok: true, data: null };
+    try {
+      const { error, data } = await supabaseClient.from(tabela).upsert(paraSupabase(tabela, dados), { onConflict: 'id' });
       if (error) {
         reportarFalhaPersistencia(tabela, 'upsert', error);
         return { ok: false, error };
       }
       return { ok: true, data };
-    }).catch(function (error) {
+    } catch (error) {
       reportarFalhaPersistencia(tabela, 'upsert', error);
       return { ok: false, error };
-    });
+    }
   }
 
   // ============================================================
