@@ -84,7 +84,7 @@ small { color: var(--texto-suave); }
   display: flex; align-items: center; gap: 8px;
   font-weight: 800; font-size: 1.05rem; letter-spacing: 0.3px;
   /* nome do sistema em degradê azul→verde (igual ao telão) */
-  background: linear-gradient(90deg, var(--azul) 10%, var(--verde) 90%);
+ background: linear-gradient(135deg, #059669, #2563EB);
   -webkit-background-clip: text; background-clip: text;
   -webkit-text-fill-color: transparent; color: transparent;
 }
