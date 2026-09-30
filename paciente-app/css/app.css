@@ -393,13 +393,16 @@ textarea { min-height: 90px; resize: vertical; }
 }
 
 /* título e marca centralizados */
-.tela-login .marca { text-align: center; margin: 30px 0 34px; }
-
-/* regra-base do espaço do logo (centraliza, dimensiona e flutua) */
+.tela-login .marca {
+  /* logo e nome lado a lado, como na tela dos funcionários */
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+  gap: 2px 14px;
+  text-align: left; margin: 32px 0 34px;
+}
 .tela-login .marca .logo-g {
   width: 86px; height: 86px;
   background: linear-gradient(135deg, var(--azul), var(--verde));
-  border-radius: 26px; display: grid; place-items: center; margin: 0 auto 14px;
+  border-radius: 26px; display: grid; place-items: center; margin: 0;
   box-shadow: 0 10px 26px rgba(2, 132, 199, 0.28);
   animation: logo-flutua 3.4s ease-in-out infinite;
 }
@@ -433,6 +436,7 @@ textarea { min-height: 90px; resize: vertical; }
 }
 /* subtítulo em "pill", como o chip de data do relógio do telão */
 .tela-login .marca p {
+   width: 100%; text-align: center;
   display: inline-block; margin-top: 10px;
   background: rgba(255, 255, 255, 0.72);
   border: 1px solid var(--borda);
