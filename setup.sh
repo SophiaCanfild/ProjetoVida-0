@@ -144,7 +144,7 @@ echo ""
 find . -type f \( -name "*.html" -o -name "*.css" -o -name "*.js" -o -name "*.sql" -o -name "*.json" -o -name "*.md" -o -name "*.sh" \) \
     | grep -v node_modules | grep -v '.git/' | sort | head -50
 echo ""
-echo "🚀 Para abrir o sistema: abra 'index.html' no navegador"
+echo "🚀 Para abrir o sistema: execute 'python3 -m http.server 8000' na raiz e acesse http://localhost:8000"
 echo "🗄️  Banco de dados: supabase/schema.sql"
 echo "⚙️  Configuração: shared/js/config.js"
 echo ""

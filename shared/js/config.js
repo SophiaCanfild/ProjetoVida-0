@@ -39,11 +39,23 @@ const TV_CONFIG = {
 const SUPABASE_CONFIGURADO = !!(APP_CONFIG.SUPABASE_URL && APP_CONFIG.SUPABASE_ANON_KEY);
 
 /* Inicializar cliente Supabase (se configurado) */
-/* NÃO usar "var supabase" — conflita com window.supabase do CDN */
+/* Compatível com o CDN do Supabase e com ambientes que expõem o cliente em globalThis */
 var supabaseClient = null;
 try {
-  if (SUPABASE_CONFIGURADO && window.supabase && window.supabase.createClient) {
-    supabaseClient = window.supabase.createClient(APP_CONFIG.SUPABASE_URL, APP_CONFIG.SUPABASE_ANON_KEY);
+  const supabaseFactory = (
+    typeof window !== 'undefined' &&
+    window.supabase &&
+    typeof window.supabase.createClient === 'function'
+      ? window.supabase
+      : (typeof globalThis !== 'undefined' &&
+         globalThis.supabase &&
+         typeof globalThis.supabase.createClient === 'function'
+        ? globalThis.supabase
+        : null)
+  );
+
+  if (SUPABASE_CONFIGURADO && supabaseFactory) {
+    supabaseClient = supabaseFactory.createClient(APP_CONFIG.SUPABASE_URL, APP_CONFIG.SUPABASE_ANON_KEY);
     console.log('[Vida+] Supabase conectado');
   } else {
     console.log('[Vida+] Modo demo (localStorage)');

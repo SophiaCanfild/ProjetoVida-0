@@ -114,7 +114,13 @@ SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIs...",
 
 ### 3️⃣ Abrir o sistema
 
-Abra `index.html` no navegador — é o portal com todos os acessos.
+Na pasta raiz do projeto, inicie um servidor local:
+
+```bash
+python3 -m http.server 8000
+```
+
+Abra `http://localhost:8000` no navegador — é o portal com todos os acessos. Mantenha o terminal aberto enquanto usar o sistema.
 
 > 💡 **Modo Demo:** Enquanto o Supabase não estiver configurado, o sistema funciona com dados locais no navegador (localStorage). Perfeito para testar!
 

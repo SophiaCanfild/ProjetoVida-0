@@ -72,7 +72,11 @@
   // removemos chaves que NÃO existem como coluna no banco —
   // sem isso o PostgREST rejeitaria a gravação inteira.
   // ============================================================
-  const temSupabase = typeof supabaseClient !== 'undefined' && supabaseClient !== null;
+  function temClienteSupabase() {
+    return typeof supabaseClient !== 'undefined' &&
+      supabaseClient !== null &&
+      typeof supabaseClient.from === 'function';
+  }
 
   const MAPA_TABELAS = {
     usuarios: {
@@ -144,7 +148,7 @@
   }
 
   function sbInsert(tabela, dados) {
-    if (!temSupabase) return Promise.resolve();
+    if (!temClienteSupabase()) return Promise.resolve();
     const linhas = Array.isArray(dados)
       ? dados.map(function (d) { return paraSupabase(tabela, d); })
       : paraSupabase(tabela, dados);
@@ -177,7 +181,7 @@
   }
 
   function sbUpdate(tabela, dados, filtro) {
-    if (!temSupabase) return Promise.resolve();
+    if (!temClienteSupabase()) return Promise.resolve();
     return supabaseClient.from(tabela).update(paraSupabase(tabela, dados)).match(paraSupabase(tabela, filtro)).then(({ error, data }) => {
       if (error) {
         reportarFalhaPersistencia(tabela, 'update', error);
@@ -191,7 +195,7 @@
   }
 
   function sbUpsert(tabela, dados) {
-    if (!temSupabase) return Promise.resolve();
+    if (!temClienteSupabase()) return Promise.resolve();
     return supabaseClient.from(tabela).upsert(paraSupabase(tabela, dados), { onConflict: 'id' }).then(({ error, data }) => {
       if (error) {
         reportarFalhaPersistencia(tabela, 'upsert', error);
@@ -208,7 +212,7 @@
   // SINCRONIZAÇÃO INICIAL — Supabase → localStorage
   // ============================================================
   async function sincronizarDoSupabase() {
-    if (!temSupabase) return;
+    if (!temClienteSupabase()) return;
     try {
       const tabelas = ['usuarios', 'pacientes', 'consultas', 'agendamentos', 'notificacoes'];
       const resultados = await Promise.all(
@@ -220,7 +224,7 @@
           console.warn('[Vida+] Falha ao ler tabela', tabela, '→', error.message);
           return;
         }
-        if (data && data.length > 0) {
+        if (Array.isArray(data)) {
           // Converte as linhas do formato do banco para o formato interno
           gravar(tabela, data.map(linha => doSupabase(tabela, linha)));
         }
@@ -238,7 +242,7 @@
     // "channel" é método do CLIENTE (supabaseClient), não da lib global (window.supabase).
     // A verificação antiga (!supabase.channel) era sempre falsa positiva e o realtime
     // nunca era ativado.
-    if (!temSupabase || typeof supabaseClient.channel !== 'function') return;
+    if (!temClienteSupabase() || typeof supabaseClient.channel !== 'function') return;
 
     try {
       const channel = supabaseClient.channel('vida-mais-sync');
@@ -1048,7 +1052,7 @@
   // ============================================================
   // INICIALIZAÇÃO
   // ============================================================
-  if (temSupabase) {
+  if (temClienteSupabase()) {
     // Sincroniza dados do Supabase → localStorage
     sincronizarDoSupabase();
     // Ativa Realtime para atualizações automáticas
@@ -1059,7 +1063,7 @@
   // DIAGNÓSTICO — Teste de conexão (usado por status-banco.html)
   // ============================================================
   DB.testarConexao = async function () {
-    if (!temSupabase) {
+    if (!temClienteSupabase()) {
       return { ok: false, modo: 'demo', mensagem: 'Supabase não configurado — rodando em modo demo (localStorage)' };
     }
     try {
