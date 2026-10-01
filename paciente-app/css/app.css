@@ -434,6 +434,12 @@ textarea { min-height: 90px; resize: vertical; }
   border-radius: 20px;
   box-shadow: 0 10px 24px rgba(2, 132, 199, 0.16);
 }
+.tela-login .marca h1 {
+  font-size: 1.9rem; font-weight: 800; letter-spacing: 0.4px;
+  background: linear-gradient(135deg, #059669, #2563EB);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+}
 /* subtítulo em "pill", como o chip de data do relógio do telão */
 .tela-login .marca p {
    width: 100%; text-align: center;
