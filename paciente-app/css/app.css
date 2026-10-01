@@ -82,8 +82,8 @@ small { color: var(--texto-suave); }
 .topbar .logo {
   display: flex; align-items: center; gap: 8px;
   font-weight: 800; font-size: 1.05rem; letter-spacing: 0.3px;
-  /* nome do sistema: mesmo degradê do "Vida+" do sistema médico (esmeralda→azul) */
-  background: linear-gradient(135deg, #059669, #2563EB);
+  /* nome do sistema: mesma cor do "Vida+" do sistema dos funcionários (azul → verde) */
+  background: linear-gradient(90deg, #0284C7 10%, #16A34A 90%);
   -webkit-background-clip: text; background-clip: text;
   -webkit-text-fill-color: transparent; color: transparent;
 }
@@ -491,8 +491,8 @@ textarea { min-height: 90px; resize: vertical; }
 }
 .tela-login .marca h1 {
   font-size: 1.9rem; font-weight: 800; letter-spacing: 0.4px;
-  /* "Vida+" com o MESMO degradê do sistema médico: linear-gradient(135deg, verde-600, azul-600) */
-  background: linear-gradient(135deg, #059669, #2563EB);
+  /* "Vida+" com a mesma cor do sistema dos funcionários (azul → verde) */
+  background: linear-gradient(90deg, #0284C7 10%, #16A34A 90%);
   -webkit-background-clip: text; background-clip: text;
   -webkit-text-fill-color: transparent; color: transparent;
 }
