@@ -39,14 +39,14 @@
             height: 92px;
             object-fit: contain;
             display: block;
-            filter: drop-shadow(0 14px 30px rgba(5, 150, 105, 0.28));
-            animation: logo-flutua 3.4s ease-in-out infinite;
-        }
-        @keyframes logo-flutua { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-        @media (prefers-reduced-motion: reduce) { .logo-marca img { animation: none; } }
-        @media (max-width: 420px) {
-            .logo-marca { gap: 14px; }
-            .logo-marca img { width: 74px; height: 74px; }
+           border-radius: 22px;
+    filter: drop-shadow(0 14px 30px rgba(5, 150, 105, 0.28));
+    animation: logo-flutua 3.4s ease-in-out infinite;
+}
+
+@media (max-width: 420px) {
+    .logo-marca { gap: 14px; }
+    .logo-marca img { width: 74px; height: 74px; border-radius: 18px; }
         }
         .logo-area h1 {
             font-size: 3.5rem;
