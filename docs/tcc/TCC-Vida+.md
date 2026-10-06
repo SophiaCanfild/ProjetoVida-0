@@ -246,26 +246,29 @@
 
 ## 1.2 OBJETIVOS
 
-<!-- Estrutura idêntica à do modelo de TCC adotado: objetivo geral e
-     objetivos específicos em alíneas (NBR 6024:2012). -->
+<!-- Estrutura do modelo adotado: objetivo geral e objetivos específicos em
+     alíneas. As alíneas começam com letra minúscula, têm recuo próprio e,
+     exceto a última, terminam em ponto e vírgula (NBR 6024:2012). -->
+
+A seguir são apresentados o objetivo geral e os objetivos específicos desta pesquisa.
 
 ### 1.2.1 Objetivo geral
 
-Desenvolver um sistema de saúde digital integrado, denominado Vida+, capaz de acompanhar o atendimento do paciente na atenção primária desde a recepção até a entrega do resultado da consulta, integrando recepção, triagem, atendimento médico, sala de espera e o próprio paciente por meio de um banco de dados único e em tempo real.
+Desenvolver um sistema de saúde digital integrado, denominado Vida+, capaz de acompanhar o atendimento do paciente na atenção primária desde a recepção até a entrega do resultado da consulta, integrando as equipes de recepção, de triagem e de atendimento médico, o painel de chamadas da sala de espera e o próprio paciente por meio de um único banco de dados com atualização em tempo real.
 
 ### 1.2.2 Objetivos específicos
 
-a) [[analisar os processos de recepção, triagem e atendimento médico de uma unidade de saúde;]]
+[a] a) analisar o fluxo de atendimento de uma unidade de atenção primária, identificando os pontos de espera, de retrabalho e de perda de informação entre a recepção, a triagem e a consulta médica;
 
-b) modelar um banco de dados relacional que centralize pacientes, usuários, unidades de saúde, consultas, agendamentos, notificações, medicamentos e configurações;
+[a] b) modelar e implementar um banco de dados relacional único, capaz de centralizar o cadastro de pacientes e de profissionais, as consultas, os agendamentos, as notificações, o controle de medicamentos e as configurações do sistema;
 
-c) desenvolver os painéis de uso da equipe de saúde para administrador, médico, enfermeiro e recepcionista;
+[a] c) desenvolver os painéis de uso da equipe de saúde, contemplando as funções de recepcionista, enfermeiro, médico e administrador, com o cadastro de pacientes, a geração de senhas, a triagem com registro de sinais vitais e classificação de risco, o prontuário, a prescrição de medicamentos e a solicitação de exames;
 
-d) desenvolver um aplicativo instalável (PWA) para o paciente acompanhar a fila, o histórico, os exames e os agendamentos;
+[a] d) desenvolver um aplicativo instalável no celular, no formato de aplicação web progressiva, para que o paciente acompanhe a posição na fila em tempo real, receba notificações das chamadas e da liberação de resultados e consulte o seu histórico de atendimentos, exames e agendamentos;
 
-e) desenvolver o painel de chamada para o telão da sala de espera, integrado em tempo real à fila de atendimento;
+[a] e) implementar o painel de chamada exibido no telão da sala de espera, integrado à fila de atendimento, com a apresentação da senha, do nome e do local de destino do paciente e a emissão de aviso sonoro;
 
-f) [[validar o sistema por meio de testes funcionais e de uma demonstração assistida com usuários.]]
+[a] f) avaliar o sistema desenvolvido por meio de testes funcionais por perfil de usuário, verificando o atendimento aos requisitos levantados e a sincronização das informações entre os módulos.
 
 ## 1.3 JUSTIFICATIVA
 

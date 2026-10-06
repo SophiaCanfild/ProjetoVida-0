@@ -42,6 +42,7 @@ SINTAXE ACEITA NO ARQUIVO .md
     [n]              bloco "natureza do trabalho", dedicatória e epígrafe
     [s]              sem recuo de primeira linha (resumo e palavras-chave)
     [l]              item de lista com pontilhado — "texto | página"
+    [a]              alínea a) b) c) com recuo próprio (NBR 6024:2012)
     [c14] [cb14]     idem, com fonte 14 (títulos de capa)
 """
 
@@ -298,7 +299,7 @@ def configurar_secao(secao, cabecalho_paginado: bool = False, inicio: int | None
 # Leitura do Markdown
 # ==================================================================
 INLINE = re.compile(r"(\[\[.+?\]\]|\*\*.+?\*\*|\*[^*\n]+?\*)")
-ETIQUETA = re.compile(r"^\[(c|cb|r|rb|n|e|l|s|t|f)(\d+)?\]\s?(.*)$", re.S)
+ETIQUETA = re.compile(r"^\[(c|cb|r|rb|n|e|l|s|t|f|a)(\d+)?\]\s?(.*)$", re.S)
 
 
 def _limpar_inline(texto: str) -> str:
@@ -622,6 +623,10 @@ def construir(blocos, destino: Path):
                 pf.line_spacing = 1.0
                 pf.alignment = WD_ALIGN_PARAGRAPH.CENTER
                 pf.space_after = Pt(4)
+            elif etiqueta == "a":        # alínea: a) b) c) — NBR 6024:2012
+                pf.line_spacing = ESPACAMENTO
+                pf.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+                pf.left_indent = Cm(1.25)
             elif etiqueta == "f":        # fonte/legenda de ilustração ou tabela
                 pf.line_spacing = 1.0
                 pf.alignment = WD_ALIGN_PARAGRAPH.LEFT
