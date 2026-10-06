@@ -15,8 +15,7 @@
 -- antiga, rode ESTA versão por cima — ela remove as policies
 -- antigas, cria as novas (permissivas p/ demo), adiciona a
 -- coluna cartao_sus e habilita o Realtime das tabelas.
--- ============================================================
-
+-- =======================================================
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- ============================================================

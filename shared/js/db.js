@@ -584,8 +584,19 @@
       enfermeiro: dadosTriagem.enfermeiro || dadosTriagem.enfermeira
     };
 
+    c.status = 'em_fila';
+    c.chamado_em = null;
+    c.tipo_chamada = null;
+    c.guiche = null;
+    c.consultorio = null;
+    c.nome_chamado = null;
+
     gravar('consultas', lista);
-    sbUpdate('consultas', { triagem: c.triagem }, { id: consultaId });
+    sbUpdate('consultas', {
+      triagem: c.triagem, status: c.status, chamado_em: c.chamado_em,
+      tipo_chamada: c.tipo_chamada, guiche: c.guiche, consultorio: c.consultorio,
+      nome_chamado: c.nome_chamado
+    }, { id: consultaId });
 
     DB.criarNotificacao({
       cpf: c.cpf,
