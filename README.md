@@ -190,6 +190,14 @@ Abra `http://localhost:8000` no navegador — é o portal com todos os acessos. 
 
 ---
 
+## 🩺 Os pacientes não estão salvando no Supabase?
+
+Rode **`supabase/diagnostico.sql`** no SQL Editor e abra **`status-banco.html`**. O guia completo (causas, códigos de erro `PGRST204`/`22P02`/`23502`/`42501` e passo a passo de correção) está em **[DIAGNOSTICO-BANCO.md](DIAGNOSTICO-BANCO.md)**.
+
+> Em resumo: o app espera o schema de `supabase/schema.sql` (ids **UUID**). Um banco criado com o modelo antigo (ids `BIGINT`, `pacientes.id_paciente`) recusa todos os `INSERT`.
+
+---
+
 ## 📄 Licença
 
 Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.

@@ -75,6 +75,10 @@
       }
       inputCpf.parentElement.classList.remove('erro');
 
+      // Espera a primeira carga do Supabase: sem isso o app consultava o
+      // cache vazio e dizia "cadastro não encontrado" no primeiro acesso.
+      if (DB.aguardarSincronizacao) { await DB.aguardarSincronizacao(); }
+
       const paciente = await DB.getPaciente(cpf);
       if (!paciente) {
         UI.toast('Cadastro não encontrado. Fale com a recepção da unidade.', 'erro');

@@ -266,6 +266,72 @@
       escritaOk = false;
     }
 
+    // 4.1) O banco tem as colunas que o app realmente usa?
+    // Um SELECT com a lista de colunas devolve erro 42703 / PGRST204 quando
+    // o schema do Supabase é de outro modelo (ex.: id_paciente BIGINT).
+    const colunasEsperadas = {
+      pacientes: ['id', 'cpf', 'nome', 'nascimento', 'sexo', 'telefone', 'email', 'endereco',
+                  'tipo_sanguineo', 'alergias', 'doencas_cronicas', 'medicamentos_uso',
+                  'cartao_sus', 'criado_em', 'atualizado_em'],
+      consultas: ['id', 'paciente_id', 'cpf', 'unidade', 'senha', 'recepcao', 'triagem', 'status', 'criado_em'],
+      usuarios:  ['id', 'nome', 'cpf', 'email', 'senha_hash', 'perfil', 'ativo'],
+      notificacoes: ['id', 'cpf', 'tipo', 'titulo', 'texto', 'link', 'lida', 'criado_em']
+    };
+    let esquemaOk = true;
+
+    for (const tabela of Object.keys(colunasEsperadas)) {
+      addTeste('esquema_' + tabela, 'Colunas esperadas em "' + tabela + '"');
+      setTeste('esquema_' + tabela, 'rodando');
+      const { error } = await supabaseClient
+        .from(tabela)
+        .select(colunasEsperadas[tabela].join(','))
+        .limit(1);
+      if (error) {
+        setTeste('esquema_' + tabela, 'falha', error.message);
+        log('ESQUEMA ' + tabela + ': ' + error.message +
+            (error.code ? ' (code ' + error.code + ')' : '') +
+            (error.hint ? ' — ' + error.hint : ''));
+        esquemaOk = false;
+      } else {
+        setTeste('esquema_' + tabela, 'sucesso', colunasEsperadas[tabela].length + ' colunas OK');
+      }
+    }
+
+    // 4.2) INSERT real na tabela pacientes (reproduz o cadastro da recepção)
+    addTeste('insert_paciente', 'Cadastro de paciente (INSERT real + limpeza)');
+    setTeste('insert_paciente', 'rodando');
+    let insertOk = true;
+    const cpfTeste = '9' + String(Date.now()).slice(-10);
+    try {
+      const novo = {
+        // O app envia um UUID gerado no navegador. Se a tabela usar
+        // BIGINT (id_paciente), este INSERT falha com 22P02.
+        id: (crypto.randomUUID ? crypto.randomUUID() : '00000000-0000-4000-8000-' + String(Date.now()).slice(-12)),
+        cpf: cpfTeste,
+        nome: 'Teste automático Vida+',
+        sexo: 'O',
+        gestante: false,
+        tabagista: false,
+        criado_em: new Date().toISOString()
+      };
+      const { error } = await supabaseClient.from('pacientes').insert(novo);
+      if (error) throw error;
+
+      const del = await supabaseClient.from('pacientes').delete().eq('cpf', cpfTeste);
+      if (del.error) log('AVISO: paciente de teste não pôde ser apagado — remova o CPF ' + cpfTeste);
+
+      setTeste('insert_paciente', 'sucesso', 'INSERT aceito pelo banco');
+      log('INSERT pacientes: OK (linha de teste criada e removida).');
+    } catch (e) {
+      insertOk = false;
+      const detalhe = (e.code ? '[' + e.code + '] ' : '') + e.message;
+      setTeste('insert_paciente', 'falha', detalhe);
+      log('ERRO no INSERT de pacientes: ' + detalhe +
+          (e.details ? ' | details: ' + e.details : '') +
+          (e.hint ? ' | hint: ' + e.hint : ''));
+      await supabaseClient.from('pacientes').delete().eq('cpf', cpfTeste);
+    }
+
     // 5) Realtime
     addTeste('realtime', 'Tempo real (Realtime)');
     setTeste('realtime', 'rodando');
@@ -289,13 +355,16 @@
     });
 
     // Resumo final
-    if (leituraOk && escritaOk && realtimeOk) {
+    if (leituraOk && escritaOk && realtimeOk && esquemaOk && insertOk) {
       setResumo(true, 'Tudo funcionando! 🎉',
         'O banco está conectado, aceitando leitura/escrita e o tempo real está ativo. <br><code>' + APP_CONFIG.SUPABASE_URL.replace('https://', '') + '</code>');
       log('RESULTADO: tudo OK.');
-    } else if (leituraOk && escritaOk) {
+    } else if (leituraOk && escritaOk && esquemaOk && insertOk) {
       setResumo(true, 'Conectado (atenção ao Realtime)',
         'Leitura e escrita OK, mas o Realtime falhou. Rode o <code>schema.sql</code> atualizado para habilitar a publicação das tabelas.');
+    } else if (!esquemaOk || !insertOk) {
+      setResumo(false, 'Schema do banco diferente do app',
+        'As tabelas existem, mas as colunas que o sistema usa não batem. Veja os testes de esquema/INSERT acima e siga o <code>DIAGNOSTICO-BANCO.md</code>.');
     } else {
       setResumo(false, 'Problemas encontrados',
         'Veja os testes marcados em vermelho. Na maioria dos casos, rodar o <code>supabase/schema.sql</code> atualizado no SQL Editor resolve.');

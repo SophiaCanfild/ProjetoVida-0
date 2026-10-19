@@ -225,7 +225,7 @@
         });
         
         // Login
-        document.getElementById('formLogin').addEventListener('submit', function(e) {
+        document.getElementById('formLogin').addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const cpf = document.getElementById('cpf').value;
@@ -233,6 +233,10 @@
             const alertError = document.getElementById('alertError');
             
             // Verificar login
+            // Espera a primeira carga do Supabase (senão o login consulta o
+            // cache local vazio e responde "usuário não encontrado").
+            if (DB.aguardarSincronizacao) { await DB.aguardarSincronizacao(); }
+
             const usuario = verificarLogin(cpf, senha);
             
             if (usuario) {

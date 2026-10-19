@@ -22,7 +22,14 @@
 
   const PREFIXO = 'vidamais_';
   const DB = {};
+  // Promessas de INSERT de pacientes ainda em andamento (evita corrida de FK).
   const insercoesPacientesPendentes = new Map();
+  // Contador de versão por tabela: detecta gravação local durante um sync.
+  const versoesTabela = {};
+  // Resolve quando a primeira sincronização com o Supabase termina
+  // (ou imediatamente, no modo demo).
+  let liberarSincronizacao = null;
+  const sincronizacaoInicial = new Promise(function (resolve) { liberarSincronizacao = resolve; });
 
   // ============================================================
   // UTILIDADES
@@ -34,6 +41,11 @@
 
   function gravar(chave, valor) {
     localStorage.setItem(PREFIXO + chave, JSON.stringify(valor));
+    versoesTabela[chave] = (versoesTabela[chave] || 0) + 1;
+  }
+
+  function versaoDe(chave) {
+    return versoesTabela[chave] || 0;
   }
 
   function gerarId() {
@@ -154,12 +166,6 @@
         ? dados.map(function (d) { return paraSupabase(tabela, d); })
         : paraSupabase(tabela, dados);
 
-      const pacienteId = tabela === 'consultas' && !Array.isArray(dados) ? dados.paciente_id : null;
-      const pacientePendente = pacienteId && insercoesPacientesPendentes.get(pacienteId);
-      if (pacientePendente && pacientePendente.ok === false) {
-        throw new Error('O cadastro do paciente não foi salvo; atendimento não enviado.');
-      }
-
       const { error, data } = await supabaseClient.from(tabela).insert(linhas);
       if (error) {
         reportarFalhaPersistencia(tabela, 'insert', error);
@@ -170,6 +176,26 @@
       reportarFalhaPersistencia(tabela, 'insert', error);
       return { ok: false, error };
     }
+  }
+
+  // Insere linhas que dependem de um paciente (FK consultas.paciente_id).
+  // Se o cadastro do paciente ainda está sendo enviado, espera o resultado:
+  // sem isso o INSERT da consulta podia chegar antes e falhar com erro 23503.
+  async function sbInsertDependente(tabela, dados) {
+    const pacienteId = dados && !Array.isArray(dados) ? dados.paciente_id : null;
+    const envioPaciente = pacienteId ? insercoesPacientesPendentes.get(pacienteId) : null;
+
+    if (envioPaciente) {
+      const resultado = await envioPaciente;
+      if (!resultado || resultado.ok === false) {
+        const erro = (resultado && resultado.error) ||
+          new Error('O cadastro do paciente não foi salvo no Supabase; atendimento não enviado.');
+        reportarFalhaPersistencia(tabela, 'insert', erro);
+        return { ok: false, error: erro };
+      }
+    }
+
+    return sbInsert(tabela, dados);
   }
 
   async function sbUpdate(tabela, dados, filtro) {
@@ -216,11 +242,18 @@
   // SINCRONIZAÇÃO INICIAL — Supabase → localStorage
   // ============================================================
   async function sincronizarDoSupabase() {
-    if (!temClienteSupabase()) return;
+    if (!temClienteSupabase()) {
+      if (liberarSincronizacao) liberarSincronizacao();
+      return;
+    }
+
+    const tabelas = ['usuarios', 'pacientes', 'consultas', 'agendamentos', 'notificacoes'];
+    const versoesAntes = {};
+    tabelas.forEach(t => { versoesAntes[t] = versaoDe(t); });
+
     try {
-      const tabelas = ['usuarios', 'pacientes', 'consultas', 'agendamentos', 'notificacoes'];
       const resultados = await Promise.all(
-        tabelas.map(t => supabaseClient.from(t).select('*'))
+        tabelas.map(t => supabaseClient.from(t).select('*').limit(5000))
       );
       tabelas.forEach((tabela, i) => {
         const { data, error } = resultados[i];
@@ -229,13 +262,27 @@
           return;
         }
         if (Array.isArray(data)) {
-          // Converte as linhas do formato do banco para o formato interno
-          gravar(tabela, data.map(linha => doSupabase(tabela, linha)));
+          const remotas = data.map(linha => doSupabase(tabela, linha));
+
+          // Se o usuário gravou nesta tabela enquanto o download acontecia,
+          // NÃO sobrescreve: une o que veio do banco com o que é local.
+          // (antes, um cadastro feito durante o carregamento era apagado)
+          if (versaoDe(tabela) !== versoesAntes[tabela]) {
+            const locais = ler(tabela) || [];
+            const porId = new Map(remotas.map(r => [r.id, r]));
+            locais.forEach(l => { if (!porId.has(l.id)) porId.set(l.id, l); });
+            gravar(tabela, Array.from(porId.values()));
+            console.warn('[Vida+] Sync de ' + tabela + ': preservadas alterações locais recentes');
+          } else {
+            gravar(tabela, remotas);
+          }
         }
       });
       console.log('[Vida+] Dados sincronizados do Supabase');
     } catch (e) {
       console.warn('[Vida+] Sync Supabase falhou, usando localStorage:', e.message);
+    } finally {
+      if (liberarSincronizacao) liberarSincronizacao();
     }
   }
 
@@ -427,7 +474,9 @@
     if (existente) {
       Object.assign(existente, dados, { cpf: cpfLimpo, atualizado_em: agora() });
       gravar('pacientes', lista);
-      sbUpdate('pacientes', { ...dados, atualizado_em: agora() }, { cpf: cpfLimpo });
+      // upsert (e não update): se o INSERT original falhou, o update não
+      // encontraria a linha e o cadastro continuaria só no navegador.
+      sbUpsert('pacientes', existente);
       DB.emit('paciente_atualizado', existente);
       return existente;
     }
@@ -457,7 +506,14 @@
 
     lista.push(paciente);
     gravar('pacientes', lista);
-    sbInsert('pacientes', paciente);
+
+    // Guarda a promessa para que o INSERT da consulta (FK paciente_id)
+    // espere este resultado. Antes a promessa era descartada, a consulta
+    // podia chegar antes do paciente e falhar com 23503 (foreign key).
+    const envioPaciente = sbInsert('pacientes', paciente);
+    insercoesPacientesPendentes.set(paciente.id, envioPaciente);
+    setTimeout(function () { insercoesPacientesPendentes.delete(paciente.id); }, 120000);
+
     DB.emit('paciente_cadastrado', paciente);
     return paciente;
   };
@@ -469,7 +525,7 @@
     if (idx === -1) return null;
     Object.assign(lista[idx], dados, { cpf: cpfLimpo, atualizado_em: agora() });
     gravar('pacientes', lista);
-    sbUpdate('pacientes', { ...dados, atualizado_em: agora() }, { cpf: cpfLimpo });
+    sbUpsert('pacientes', lista[idx]);
     DB.emit('paciente_atualizado', lista[idx]);
     return lista[idx];
   };
@@ -547,7 +603,7 @@
 
     lista.unshift(consulta);
     gravar('consultas', lista);
-    sbInsert('consultas', consulta);
+    sbInsertDependente('consultas', consulta);
 
     DB.criarNotificacao({
       cpf: consulta.cpf,
@@ -955,6 +1011,10 @@
   // SEED — Dados de demonstração
   // ============================================================
   DB.seedDemo = function () {
+    // Com Supabase configurado os dados reais vêm do banco. Semear demo aqui
+    // misturava IDs fake ('u1'/'p1') com UUIDs e mascarava falhas de gravação.
+    if (temClienteSupabase()) return;
+
     // Só cria se não existirem dados
     if (ler('usuarios') && ler('usuarios').length > 0) return;
 
@@ -1073,6 +1133,20 @@
     // Ativa Realtime para atualizações automáticas
     setupRealtime();
   }
+
+  // ============================================================
+  // SINCRONIZAÇÃO — espera da primeira carga
+  // Permite que as telas aguardem o banco antes de decidir
+  // "paciente não encontrado" (antes o app abria vazio e redirecionava).
+  // ============================================================
+  DB.aguardarSincronizacao = function () {
+    // Corrida com um teto de 8s: se a rede estiver pendurada, a tela
+    // continua (mostrando o cache local) em vez de travar no login.
+    return Promise.race([
+      sincronizacaoInicial,
+      new Promise(function (resolve) { setTimeout(resolve, 8000); })
+    ]);
+  };
 
   // ============================================================
   // DIAGNÓSTICO — Teste de conexão (usado por status-banco.html)
