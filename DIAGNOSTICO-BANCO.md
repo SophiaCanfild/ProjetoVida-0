@@ -109,28 +109,40 @@ Bônus: no app do paciente, `login.html`, `index.html` e `perfil.html` consultav
 
 ---
 
-## 6. Correção recomendada
+## 6. Correção: um único script resolve os dois cenários
 
-### Cenário A — o diagnóstico diz “MODELO DO APP” (colunas ok)
-1. Rode `supabase/schema.sql` inteiro (é idempotente: cria o que falta, liga RLS, recria as políticas e publica o Realtime).
-2. Recarregue `status-banco.html`. Os testes de escrita, colunas e INSERT de paciente devem ficar verdes.
-3. Confirme no SQL Editor: `select count(*) from public.pacientes;` depois de cadastrar alguém.
+O `supabase/schema.sql` foi reescrito como **instalador completo e idempotente**. Um único RUN resolve
+os dois cenários (inclusive o modelo antigo), sem precisar decidir nada antes:
 
-### Cenário B — o diagnóstico diz “MODELO ANTIGO”
-O app **nunca** vai funcionar nesse modelo (é outro desenho de banco). Duas saídas:
+| Fase | O que faz |
+|:---|:---|
+| 0 | Detecta o modelo antigo e **renomeia** as tabelas para `*_legado` (nada é apagado) |
+| 1 | Cria as 8 tabelas do app com os tipos exatos que o `db.js` envia |
+| 2 | Repara colunas faltantes em bancos de versões anteriores |
+| 3 | Garante PK/defaults e NOT NULL nos campos que o app sempre envia |
+| 4 | Garante FKs e índices únicos (CPF, e-mail, chave de configuração) |
+| 5 | Índices de performance (fila, CPF, notificações) |
+| 6 | Liga RLS e recria as políticas permissivas do `anon` |
+| 7 | Concede GRANTs a `anon`/`authenticated` |
+| 8 | Publica as tabelas no Realtime |
+| 9 | Recria a view `fila_espera` e a função `posicao_fila` |
+| 10 | Insere os dados de exemplo (logins do README + 2 pacientes) |
+| 11 | **Verificação final**: lista o que faltar + contagens + `NOTIFY pgrst` |
 
-**B1 — Projeto novo, limpo (mais rápido e seguro para TCC)**
-1. Crie um projeto novo no Supabase.
-2. Rode `supabase/schema.sql`.
-3. Troque `SUPABASE_URL`/`SUPABASE_ANON_KEY` em `shared/js/config.js` (são públicas, é normal ficarem no front).
-4. Abra `status-banco.html` e valide.
+**Passo a passo**
+1. Supabase → SQL Editor → cole **todo** o `supabase/schema.sql` → RUN.
+2. A última consulta (11.1) deve voltar **vazia** — é a prova de que o schema está 100% compatível.
+3. Abra `status-banco.html`: colunas, escrita e INSERT real devem ficar verdes.
+4. Cadastre um paciente e confirme com `select count(*) from public.pacientes;`.
 
-**B2 — Mesmo projeto, preservando os dados antigos**
-1. Faça **backup** (Supabase → Database → Backups, ou `pg_dump`).
-2. Rode `supabase/migrar-modelo-antigo.sql` — ele renomeia as tabelas do modelo antigo para `*_legado` (nada é apagado) e **aborta sozinho** se o banco não estiver nesse modelo.
-3. Rode `supabase/schema.sql`.
-4. Valide com `status-banco.html`.
-5. Se quiser, migre os pacientes antigos:
+> Testado em PostgreSQL 16: (a) banco vazio, (b) segunda execução, (c) execução sobre o modelo
+> antigo do SQL que você enviou — nos três casos o script roda sem erro e o `INSERT` do app passa.
+
+Se você preferir um projeto novo e limpo (recomendado para a banca): crie o projeto, rode o
+`schema.sql` e troque `SUPABASE_URL`/`SUPABASE_ANON_KEY` em `shared/js/config.js` (são chaves públicas).
+
+### Migrar os pacientes do modelo antigo (opcional)
+Depois de rodar o `schema.sql`, se quiser trazer os pacientes antigos de `*_legado`:
    ```sql
    INSERT INTO public.pacientes (cpf, nome, nascimento, telefone, sexo)
    SELECT regexp_replace(p.cpf, '\D', '', 'g'),
@@ -144,7 +156,9 @@ O app **nunca** vai funcionar nesse modelo (é outro desenho de banco). Duas sa�
    ```
    (descomente/ajuste conforme as colunas reais que o diagnóstico mostrar).
 
-> ⚠️ **Não** rode o `schema.sql` “por cima” do modelo antigo esperando que ele corrija: os `CREATE TABLE IF NOT EXISTS` são ignorados e os `ALTER TABLE ... ADD COLUMN` apenas **adicionam** colunas novas — `id_paciente` e `id_usuario` continuam `NOT NULL` e o `INSERT` continua falhando com `23502`.
+> ⚠️ A versão **antiga** do `schema.sql` não resolvia esse caso: `CREATE TABLE IF NOT EXISTS` era
+> ignorado e os `ALTER TABLE` só acrescentavam colunas, deixando `id_paciente`/`id_usuario` NOT NULL.
+> Por isso a FASE 0 (renomear para `*_legado`) foi incluída no instalador.
 
 ---
 
@@ -173,7 +187,7 @@ O app **nunca** vai funcionar nesse modelo (é outro desenho de banco). Duas sa�
 | `paciente-app/service-worker.js` | `CACHE_VERSION` → `vidaplus-paciente-v2` (força atualização do `db.js` em cache). |
 | `status-banco.html` | Novos testes: colunas esperadas por tabela, INSERT real em `pacientes` com limpeza e leitura do código de erro; resumo específico “Schema do banco diferente do app”. |
 | `supabase/diagnostico.sql` | **Novo.** Script somente-leitura que responde: qual modelo está instalado, colunas, NOT NULL/FK, RLS, políticas, grants do `anon`, Realtime e contagens. |
-| `supabase/migrar-modelo-antigo.sql` | **Novo.** Renomeia (não apaga) as tabelas do modelo antigo para `*_legado`, com aborto automático se o banco já estiver correto. |
+| `supabase/schema.sql` | **Reescrito** como instalador único em 11 fases (migração do modelo antigo, tabelas, reparo de colunas, PK/FK/índices, RLS, GRANTs, Realtime, view/função, seeds e verificação final). Validado em PostgreSQL 16 nos três cenários. |
 
 ### Observação de segurança (para a banca)
 O desenho atual guarda `senha_hash` em **texto puro** e usa políticas RLS `USING (TRUE)` com a anon key exposta no front. Isso é aceitável para demonstração/TCC, mas deve ser citado como limitação: em produção usaríamos **Supabase Auth**, `bcrypt`/`pgcrypto` e políticas por perfil. Sugestão de texto para o capítulo de trabalhos futuros.
@@ -182,7 +196,9 @@ O desenho atual guarda `senha_hash` em **texto puro** e usa políticas RLS `USIN
 
 ## 9. Próximo passo (TL;DR)
 
-1. Rode **`supabase/diagnostico.sql`** e veja o veredito da seção 3.
-2. Se = **MODELO ANTIGO** → cenário **B1** (projeto novo) ou **B2** (`migrar-modelo-antigo.sql` + `schema.sql`).
-3. Se = **MODELO DO APP** → rode **`supabase/schema.sql`** para RLS/Realtime e valide com `status-banco.html`.
+1. Supabase → SQL Editor → cole **`supabase/schema.sql`** inteiro → RUN.
+2. Confirme que a verificação final (FASE 11.1) voltou **vazia**.
+3. Abra **`status-banco.html`** e veja tudo verde (colunas + INSERT real).
 4. Cadastre um paciente e confirme com `select count(*) from public.pacientes;`.
+
+Se algo ainda falhar, rode **`supabase/diagnostico.sql`** e o código de erro aparecerá na seção 7.
