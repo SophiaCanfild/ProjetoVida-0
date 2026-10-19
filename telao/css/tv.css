@@ -674,7 +674,7 @@ relogio { text-align: right; display: flex; align-items: center; gap: 14px; }
 /* Modo triagem: senha GRANDE (chamada por código) e destino em verde */
 .tv-destaque.modo-triagem .destino-box {
   background: linear-gradient(160deg, #15803D 0%, #166534 55%, #0F766E 115%);
-
+}
 /* Guichê/destino com cor por tipo nas recentes */
 .item-recente .guiche { background: linear-gradient(135deg, var(--azul-claro), var(--azul)); }
 .item-recente .guiche.guiche-consulta { background: linear-gradient(135deg, var(--verde-claro), var(--verde)); box-shadow: 0 4px 10px rgba(22, 163, 74, 0.25); }
