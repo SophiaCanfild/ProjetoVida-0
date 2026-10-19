@@ -160,7 +160,7 @@ relogio { text-align: right; display: flex; align-items: center; gap: 14px; }
   border: 1px solid rgba(220, 238, 249, 0.9);
   border-radius: var(--raio);
   box-shadow: var(--sombra);
-  padding: 20px 40px;
+  padding: clamp(14px, 2.2vh, 26px) clamp(20px, 3vw, 48px);
   min-height: 0;
   position: relative;
   overflow: hidden;
@@ -180,37 +180,66 @@ relogio { text-align: right; display: flex; align-items: center; gap: 14px; }
 .tv-destaque > * { position: relative; z-index: 1; }
 
 .tv-destaque .rotulo-chamada {
-  display: inline-flex; align-items: center; gap: 10px;
-  font-size: 0.95rem; text-transform: uppercase; letter-spacing: 4px;
-  color: #fff; font-weight: 800;
-  background: linear-gradient(135deg, var(--azul) 0%, var(--azul-claro) 55%, var(--verde-claro) 130%);
-  padding: 10px 26px;
+  display: inline-flex; align-items: center; gap: 11px;
+  font-size: clamp(0.7rem, 1.05vw, 0.9rem);
+  text-transform: uppercase; letter-spacing: 3px;
+  color: var(--azul-tinta); font-weight: 800;
+  background: rgba(224, 242, 254, 0.72);
+  border: 1px solid #BAE6FD;
+  padding: 9px 22px 9px 16px;
   border-radius: 40px;
-  box-shadow: 0 8px 22px rgba(2, 132, 199, 0.35);
+  margin-bottom: clamp(6px, 1.4vh, 14px);
 }
-.tv-destaque .rotulo-chamada::before {
-  content: '';
-  width: 10px; height: 10px; border-radius: 50%;
-  background: #fff;
-  animation: pisca 1.4s infinite;
+.tv-destaque .rotulo-chamada .ponto {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--verde); flex-shrink: 0;
+  animation: pulso-chamada 1.8s ease-out infinite;
+}
+@keyframes pulso-chamada {
+  0%   { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.45); }
+  65%  { box-shadow: 0 0 0 9px rgba(22, 163, 74, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
 }
 @keyframes pisca { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.45; transform: scale(0.8); } }
 
+/* Estrutura da chamada: senha à esquerda, destino em destaque à direita */
+.tv-destaque .chamada {
+  width: 100%;
+  display: flex; flex-direction: column; justify-content: center;
+  min-height: 0;
+}
+.tv-destaque .chamada-grade {
+  display: grid;
+  grid-template-columns: minmax(0, 1.12fr) minmax(260px, 0.88fr);
+  align-items: center;
+  gap: clamp(24px, 4vw, 64px);
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+.tv-destaque .chamada-principal {
+  display: flex; flex-direction: column; align-items: flex-start;
+  min-width: 0;
+  text-align: left;
+}
+
 .tv-destaque .senha-chamada {
-  font-size: clamp(4rem, 9vw, 7.5rem);
-  font-weight: 900; letter-spacing: 8px;
-  line-height: 1.05;
-  margin: 8px 0;
-  background: linear-gradient(92deg, var(--azul) 5%, var(--azul-claro) 40%, var(--verde) 95%);
+  font-size: clamp(3.4rem, min(9vw, 16vh), 8rem);
+  font-weight: 800; letter-spacing: 0.02em;
+  line-height: 0.95;
+  margin: 0 0 clamp(4px, 1vh, 10px);
+  font-variant-numeric: tabular-nums;
+  background: linear-gradient(135deg, #0C4A6E 0%, #0369A1 48%, #15803D 112%);
   -webkit-background-clip: text; background-clip: text;
   -webkit-text-fill-color: transparent; color: transparent;
-  filter: drop-shadow(0 6px 18px rgba(2, 132, 199, 0.18));
+  filter: drop-shadow(0 10px 24px rgba(2, 132, 199, 0.16));
 }
 .tv-destaque .nome-chamada {
-  font-size: clamp(1.6rem, 3.4vw, 2.6rem);
-  font-weight: 800;
-  margin-bottom: 10px;
-  color: var(--tinta);
+  font-size: clamp(1.15rem, 2vw, 1.75rem);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--texto-suave);
+  margin: 0;
 }
 .tv-destaque .guiche-chamada {
   display: inline-block;
@@ -221,7 +250,24 @@ relogio { text-align: right; display: flex; align-items: center; gap: 14px; }
   letter-spacing: 1px;
   box-shadow: 0 8px 22px rgba(22, 163, 74, 0.30);
 }
-.tv-destaque .pista-chamada { font-size: 0.95rem; color: var(--texto-suave); margin-top: 14px; font-weight: 600; }
+.tv-destaque .pista-chamada {
+  display: inline-flex; align-items: center; gap: 9px;
+  margin-top: clamp(10px, 1.8vh, 18px);
+  padding: 7px 16px;
+  border-radius: 30px;
+  background: #F1F9FF;
+  border: 1px solid var(--borda);
+  font-size: clamp(0.82rem, 1.02vw, 0.98rem);
+  color: var(--texto-suave);
+  font-weight: 700;
+  text-align: left;
+}
+.tv-destaque .pista-chamada::before {
+  content: '';
+  width: 22px; height: 2px; border-radius: 2px;
+  background: linear-gradient(90deg, var(--azul-claro), var(--verde-claro));
+  flex-shrink: 0;
+}
 
 /* Animação de entrada da chamada */
 .tv-destaque.animando .anim-item {
@@ -239,15 +285,33 @@ relogio { text-align: right; display: flex; align-items: center; gap: 14px; }
 }
 
 /* Estado "aguardando" */
-.tv-destaque .aguardando { display: flex; flex-direction: column; align-items: center; gap: 10px; }
-.tv-destaque .aguardando h2 {
-  font-size: clamp(1.6rem, 3vw, 2.4rem); font-weight: 800;
-  background: linear-gradient(90deg, var(--azul-tinta), var(--verde));
-  -webkit-background-clip: text; background-clip: text;
-  -webkit-text-fill-color: transparent; color: transparent;
+.tv-destaque .aguardando {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 12px; text-align: center;
+  animation: entra 0.7s cubic-bezier(0.2, 0.9, 0.3, 1.15) both;
 }
-.tv-destaque .aguardando p { color: var(--texto-suave); font-size: 1.1rem; font-weight: 600; }
-
+.tv-destaque .aguardando .aguardando-icone {
+  display: grid; place-items: center;
+  width: clamp(64px, 7vw, 92px); height: clamp(64px, 7vw, 92px);
+  margin-bottom: 6px;
+  border-radius: 50%;
+  color: var(--azul);
+  background: radial-gradient(circle at 32% 28%, #FFFFFF, var(--azul-suave));
+  border: 1px solid #BAE6FD;
+  box-shadow: 0 16px 34px -18px rgba(2, 132, 199, 0.55);
+}
+.tv-destaque .aguardando .aguardando-icone svg { width: 52%; height: 52%; display: block; }
+.tv-destaque .aguardando h2 {
+  font-size: clamp(1.75rem, 3.4vw, 2.8rem); font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--azul-tinta);
+}
+.tv-destaque .aguardando p {
+  max-width: 46ch;
+  color: var(--texto-suave);
+  font-size: clamp(1rem, 1.35vw, 1.2rem);
+  font-weight: 600; line-height: 1.5;
+}
 /* ============ Painéis inferiores ============ */
 .tv-paineis {
   display: grid;
@@ -520,73 +584,127 @@ relogio { text-align: right; display: flex; align-items: center; gap: 14px; }
 
 /* Modo consulta: nome GRANDE */
 .tv-destaque.modo-consulta .senha-chamada {
-  font-size: clamp(1.6rem, 3vw, 2.2rem);
-  letter-spacing: 3px;
-  margin: 4px 0 0;
-  background: none;
-  -webkit-text-fill-color: var(--texto-suave); color: var(--texto-suave);
+  font-size: clamp(0.9rem, 1.25vw, 1.1rem);
+  font-weight: 800;
+  letter-spacing: 4px;
+  margin: 0 0 6px;
+  padding: 5px 14px;
+  border-radius: 10px;
+  background: var(--azul-suave);
+  -webkit-background-clip: border-box; background-clip: border-box;
+  -webkit-text-fill-color: var(--azul-tinta); color: var(--azul-tinta);
   filter: none;
 }
 .tv-destaque.modo-consulta .nome-chamada {
-  font-size: clamp(2.4rem, 5vw, 4rem);
-  font-weight: 900;
-  background: linear-gradient(92deg, var(--verde) 5%, var(--verde-claro) 55%, var(--azul) 110%);
-  -webkit-background-clip: text; background-clip: text;
-  -webkit-text-fill-color: transparent; color: transparent;
-  margin: 8px 0;
+  font-size: clamp(2rem, 4.2vw, 3.4rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--tinta);
+  margin: 0;
 }
 .tv-destaque.modo-consulta .rotulo-chamada {
-  background: linear-gradient(135deg, var(--verde) 0%, var(--verde-claro) 60%, var(--azul-claro) 130%);
-  box-shadow: 0 8px 22px rgba(22, 163, 74, 0.35);
+  color: var(--verde-tinta);
+  background: rgba(220, 252, 231, 0.8);
+  border-color: #BBF7D0;
 }
+/* Cartão de destino: bloco colorido, legível de longe */
 .tv-destaque .destino-box {
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  background: linear-gradient(180deg, #F0F9FF, #E8F6FE);
-  border: 1.5px solid #BAE6FD;
-  border-radius: 20px;
-  padding: 12px 40px;
-  margin-top: 10px;
-  box-shadow: var(--sombra-suave);
+  position: relative;
+  overflow: hidden;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 2px;
+  text-align: center;
+  min-width: 0;
+  padding: clamp(16px, 2.4vh, 28px) clamp(18px, 2.4vw, 34px);
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: #fff;
+  background: linear-gradient(160deg, #15803D 0%, #166534 55%, #0F766E 115%);
+  box-shadow: 0 22px 45px -22px rgba(21, 128, 61, 0.75);
 }
+.tv-destaque .destino-box::before,
+.tv-destaque .destino-box::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.10);
+  pointer-events: none;
+}
+.tv-destaque .destino-box::before { width: 190px; height: 190px; top: -95px; right: -60px; }
+.tv-destaque .destino-box::after { width: 150px; height: 150px; bottom: -85px; left: -50px; }
+.tv-destaque .destino-box > * { position: relative; z-index: 1; }
+
+.tv-destaque .destino-box .destino-icone {
+  display: grid; place-items: center;
+  width: clamp(36px, 4vw, 48px); height: clamp(36px, 4vw, 48px);
+  margin-bottom: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.30);
+}
+.tv-destaque .destino-box .destino-icone svg { width: 52%; height: 52%; display: block; }
+
 .tv-destaque .destino-box .destino-rotulo {
-  font-size: 0.8rem; text-transform: uppercase; letter-spacing: 3px; color: var(--azul); font-weight: 800;
+  font-size: clamp(0.6rem, 0.9vw, 0.76rem);
+  text-transform: uppercase; letter-spacing: 3px;
+  color: rgba(255, 255, 255, 0.95); font-weight: 800;
 }
 .tv-destaque .destino-box .destino-valor {
-  font-size: clamp(1.8rem, 3.6vw, 2.8rem); font-weight: 900; color: var(--azul-tinta);
+  font-size: clamp(1.6rem, min(3.2vw, 4.6vh), 2.8rem);
+  font-weight: 800; line-height: 1.05; color: #fff;
+  letter-spacing: -0.01em;
 }
 .tv-destaque .destino-box .destino-medico {
-  font-size: clamp(1rem, 1.8vw, 1.4rem); font-weight: 700; color: var(--texto-suave);
+  margin-top: 10px;
+  padding: 6px 18px;
+  border-radius: 30px;
+  background: rgba(15, 42, 67, 0.32);
+  border: 1px solid rgba(255, 255, 255, 0.20);
+  font-size: clamp(0.82rem, 1.15vw, 1rem);
+  font-weight: 700; color: #fff;
+}
+.tv-destaque .destino-box .destino-medico:empty { display: none; }
+.tv-destaque.modo-consulta .destino-box {
+  background: linear-gradient(160deg, #0C4A6E 0%, #075985 55%, #0369A1 115%);
+  box-shadow: 0 22px 45px -22px rgba(2, 132, 199, 0.75);
 }
 
-/* Modo triagem: senha GRANDE (chamada por código) */
-.tv-destaque.modo-triagem .nome-chamada {
-  font-size: clamp(1.2rem, 2vw, 1.6rem);
-  font-weight: 600;
-  color: var(--texto-suave);
-  margin: 2px 0 8px;
-}
+/* Modo triagem: senha GRANDE (chamada por código) e destino em verde */
 .tv-destaque.modo-triagem .destino-box {
-  background: linear-gradient(180deg, #F0FDF6, #E6F9EE);
-  border-color: #86EFAC;
-  padding: 10px 36px;
-}
-.tv-destaque.modo-triagem .destino-box .destino-rotulo { color: var(--verde); }
-.tv-destaque.modo-triagem .destino-box .destino-valor { font-size: clamp(1.5rem, 3vw, 2.2rem); color: var(--verde-tinta); }
+  background: linear-gradient(160deg, #15803D 0%, #166534 55%, #0F766E 115%);
 
 /* Guichê/destino com cor por tipo nas recentes */
 .item-recente .guiche { background: linear-gradient(135deg, var(--azul-claro), var(--azul)); }
 .item-recente .guiche.guiche-consulta { background: linear-gradient(135deg, var(--verde-claro), var(--verde)); box-shadow: 0 4px 10px rgba(22, 163, 74, 0.25); }
+        
+//* Telas baixas (ex.: 1366x768): compacta a chamada sem perder legibilidade */
+@media (min-width: 901px) and (max-height: 780px) {
+  .tv-destaque .chamada-grade { gap: 32px; }
+  .tv-destaque .destino-box { padding: 14px 22px; }
+  .tv-destaque .destino-box .destino-icone { width: 34px; height: 34px; margin-bottom: 2px; }
+  .tv-destaque .destino-box .destino-medico { margin-top: 6px; }
+  .tv-destaque .rotulo-chamada { margin-bottom: 6px; }
+  .tv-destaque .pista-chamada { margin-top: 8px; }
+}
 
 /* ============================================================
    RESPONSIVO (telas menores / celular)
    ============================================================ */
 @media (max-width: 900px) {
-  html, body { overflow: auto; }
-  .tv-app { max-height: none; padding: 14px; gap: 14px; }
+  html, body { height: auto; min-height: 100%; overflow: auto; }
+  body { display: block; }
+  .tv-app { flex: none; min-height: 100vh; max-height: none; padding: 14px; gap: 14px; }
+  .tv-destaque { flex: none; overflow: visible; }
   .tv-topo { flex-direction: column; text-align: center; gap: 12px; }
   .tv-relogio { flex-direction: column; gap: 8px; }
   .tv-relogio .hora { font-size: 2rem; }
   .tv-paineis { grid-template-columns: 1fr; max-height: none; }
-  .tv-destaque { padding: 24px 18px; }
-  .tv-destaque .senha-chamada { letter-spacing: 4px; }
+  .tv-destaque { padding: 20px 16px; }
+  .tv-destaque .chamada, .tv-destaque .chamada-grade { min-height: 0; }
+  .tv-destaque .chamada-grade { grid-template-columns: 1fr; gap: 18px; max-width: 460px; }
+  .tv-destaque .chamada-principal { align-items: center; text-align: center; }
+  .tv-destaque .destino-box { width: 100%; }
+  .tv-destaque .senha-chamada { letter-spacing: 0.02em; }
 }

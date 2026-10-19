@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/tv.css?v=20260917">
+  <link rel="stylesheet" href="css/tv.css?v=2026101">
 </head>
 <body>
 
@@ -31,25 +31,46 @@
       </div>
     </header>
 
-    <!-- ===== Destaque: última chamada ===== -->
+       <!-- ===== Destaque: última chamada ===== -->
     <section class="tv-destaque" id="destaque">
       <div class="aguardando" id="aguardando">
+        <span class="aguardando-icone" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" focusable="false">
+            <path d="M4 21V8.5a2 2 0 0 1 1-1.73l6-3.5a2 2 0 0 1 2 0l6 3.5a2 2 0 0 1 1 1.73V21"/>
+            <path d="M2 21h20"/>
+            <path d="M9.5 12.5h5M12 10v5"/>
+          </svg>
+        </span>
         <h2>Bem-vindo(a) ao Hospital</h2>
         <p>Fique atento(a) à sua senha no telão e no seu celular.</p>
       </div>
 
       <div class="chamada" id="chamada" style="display:none;">
-        <div class="rotulo-chamada anim-item">🔔 Chamando</div>
-        <!-- Triagem: senha gigante + "Dirija-se à Triagem"
-             Consulta: nome gigante + Consultório X + médico -->
-        <div class="senha-chamada anim-item" id="chamada-senha">A000</div>
-        <div class="nome-chamada anim-item" id="chamada-nome">—</div>
-        <div class="destino-box anim-item" id="chamada-destino">
-          <span class="destino-rotulo" id="chamada-destino-rotulo">Destino</span>
-          <span class="destino-valor" id="chamada-destino-valor">—</span>
-          <span class="destino-medico" id="chamada-destino-medico"></span>
+        <div class="chamada-grade">
+          <!-- Coluna da senha: quem está sendo chamado -->
+          <div class="chamada-principal">
+            <div class="rotulo-chamada anim-item">
+              <span class="ponto" aria-hidden="true"></span>
+              Chamando agora
+            </div>
+            <div class="senha-chamada anim-item" id="chamada-senha">A000</div>
+            <div class="nome-chamada anim-item" id="chamada-nome">—</div>
+            <div class="pista-chamada anim-item" id="chamada-pista">Por favor, dirija-se ao local indicado</div>
+          </div>
+
+          <!-- Coluna do destino: para onde ir -->
+          <div class="destino-box anim-item" id="chamada-destino">
+            <span class="destino-icone" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false">
+                <path d="M12 21s-7-5.686-7-11a7 7 0 1 1 14 0c0 5.314-7 11-7 11z"/>
+                <circle cx="12" cy="10" r="2.6"/>
+              </svg>
+            </span>
+            <span class="destino-rotulo" id="chamada-destino-rotulo">Destino</span>
+            <span class="destino-valor" id="chamada-destino-valor">—</span>
+            <span class="destino-medico" id="chamada-destino-medico"></span>
+          </div>
         </div>
-        <div class="pista-chamada anim-item" id="chamada-pista">Por favor, dirija-se ao local indicado</div>
       </div>
     </section>
 
@@ -158,7 +179,7 @@
         return;
       }
       aguardando.style.display = 'none';
-      chamadaEl.style.display = 'block';
+      chamadaEl.style.display = 'flex';
 
       const tipo = chamada.tipo_chamada || 'triagem';
       const nome = chamada.nome_chamado || chamada.nome_paciente || 'Paciente';
