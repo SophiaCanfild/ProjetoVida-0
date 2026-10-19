@@ -1,279 +1,546 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vida+ | Sistema de Saúde Digital</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Inter', sans-serif;
-            min-height: 100vh;
-            background: linear-gradient(135deg, #f0fdf4 0%, #eff6ff 40%, #f0fdf4 100%);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 30px 20px;
-            color: #1f2937;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vida+ | Sistema de Saúde Digital</title>
+  <meta name="description" content="O Vida+ conecta recepção, equipe médica e pacientes em um único fluxo digital, com tudo atualizado em tempo real.">
+  <meta name="theme-color" content="#F4FAFF">
 
-        /* Logo */
-.logo-area {
-    text-align: center;
-    margin-bottom: 40px;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-.logo-marca {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    margin-bottom: 16px;
-    width: 100%;
-}
-        .logo-marca img {
-            width: 92px;
-            height: 92px;
-            object-fit: contain;
-            display: block;
-           border-radius: 22px;
-    filter: drop-shadow(0 14px 30px rgba(5, 150, 105, 0.28));
-    animation: logo-flutua 3.4s ease-in-out infinite;
-}
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 
-@media (max-width: 420px) {
-    .logo-marca { gap: 14px; }
-    .logo-marca img { width: 74px; height: 74px; border-radius: 18px; }
-        }
-        .logo-area h1 {
-            font-size: 3.5rem;
-            font-weight: 800;
-            background: linear-gradient(135deg, #059669, #2563eb);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            line-height: 1;
-        }
-        .logo-area .tagline {
-            font-size: 1.15rem;
-            color: #6b7280;
-            margin-top: 8px;
-        }
-        .logo-area .versao {
-            display: inline-block;
-            background: #f3f4f6;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            color: #9ca3af;
-            margin-top: 12px;
-        }
+  <style>
+    /* ============================================================
+       VIDA+ — PORTAL (tela inicial)
+       Simples: uma breve apresentação + os três módulos.
+       ============================================================ */
 
-        /* Grid de acessos */
-        .acessos {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
-            max-width: 1200px;
-            width: 100%;
-            margin-bottom: 40px;
-        }
+    :root {
+      --ink: #0F2A43;
+      --ink-2: #3F5E7A;
+      --muted: #557490;
+      --line: #DCEEF9;
 
-        .card-acesso {
-            background: white;
-            border-radius: 20px;
-            padding: 32px 28px;
-            border: 2px solid #e5e7eb;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            color: inherit;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-        }
-        .card-acesso:hover {
-            transform: translateY(-6px);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-        }
-        .card-acesso .icone {
-            width: 72px;
-            height: 72px;
-            border-radius: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2rem;
-            margin-bottom: 18px;
-        }
-        .card-acesso h2 {
-            font-size: 1.25rem;
-            font-weight: 700;
-            margin-bottom: 8px;
-        }
-        .card-acesso p {
-            font-size: 0.875rem;
-            color: #6b7280;
-            line-height: 1.5;
-        }
-        .card-acesso .tag {
-            position: absolute;
-            top: 14px;
-            right: 14px;
-            font-size: 0.65rem;
-            font-weight: 700;
-            padding: 3px 10px;
-            border-radius: 20px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
+      --blue: #0284C7;
+      --blue-700: #0369A1;
+      --blue-100: #E0F2FE;
+      --green: #16A34A;
+      --green-700: #15803D;
+      --green-100: #DCFCE7;
+      --amber: #D97706;
+      --amber-700: #B45309;
+      --amber-100: #FEF3C7;
 
-        /* Cores por módulo */
-        .card-equipe { border-color: #bfdbfe; }
-        .card-equipe:hover { border-color: #60a5fa; }
-        .card-equipe .icone { background: #dbeafe; color: #2563eb; }
-        .card-equipe .tag { background: #dbeafe; color: #1e40af; }
+      --grad: linear-gradient(120deg, #38BDF8 0%, #4ADE80 100%);
+      --grad-deep: linear-gradient(120deg, #0369A1 0%, #15803D 100%);
 
-        .card-paciente { border-color: #a7f3d0; }
-        .card-paciente:hover { border-color: #34d399; }
-        .card-paciente .icone { background: #d1fae5; color: #059669; }
-        .card-paciente .tag { background: #d1fae5; color: #065f46; }
+      --shadow-xs: 0 2px 8px rgba(2, 132, 199, .07);
+      --shadow-md: 0 18px 42px rgba(2, 132, 199, .12);
 
-        .card-telao { border-color: #fde68a; }
-        .card-telao:hover { border-color: #fbbf24; }
-        .card-telao .icone { background: #fef3c7; color: #d97706; }
-        .card-telao .tag { background: #fef3c7; color: #92400e; }
+      --r-md: 18px;
+      --r-lg: 26px;
 
-        /* Sub-acessos do sistema médico */
-        .sub-acessos {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            width: 100%;
-            margin-top: 16px;
-        }
-        .sub-link {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 14px;
-            background: #f9fafb;
-            border-radius: 10px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            color: #374151;
-            text-decoration: none;
-            transition: background 0.2s;
-        }
-        .sub-link:hover { background: #f0f9ff; }
-        .sub-link i { font-size: 0.9rem; color: #6b7280; }
+      --font: 'Plus Jakarta Sans', 'Segoe UI', system-ui, -apple-system, Roboto, 'Helvetica Neue', sans-serif;
+    }
 
-        /* Footer */
-        .footer {
-            text-align: center;
-            color: #9ca3af;
-            font-size: 0.85rem;
-        }
-        .footer p { margin-bottom: 6px; }
-        .footer .badges {
-            display: flex;
-            gap: 8px;
-            justify-content: center;
-            flex-wrap: wrap;
-            margin-top: 10px;
-        }
-        .footer .badge {
-            background: #f3f4f6;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.7rem;
-            color: #6b7280;
-        }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
-        /* Responsive */
-        @media (max-width: 640px) {
-            .logo-area h1 { font-size: 2.5rem; }
-            .acessos { grid-template-columns: repeat(3, 1fr); }
-            .sub-acessos { grid-template-columns: 1fr; }
-        }
-    </style>
+    html { -webkit-text-size-adjust: 100%; }
+
+    body {
+      font-family: var(--font);
+      color: var(--ink);
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-color: #F4FAFF;
+      background-image:
+        radial-gradient(760px 420px at 6% -8%, rgba(56, 189, 248, .22), transparent 62%),
+        radial-gradient(720px 400px at 98% 2%, rgba(74, 222, 128, .20), transparent 62%),
+        linear-gradient(180deg, #F4FAFF 0%, #FFFFFF 46%, #F3FBF7 100%);
+      background-attachment: fixed;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    img { max-width: 100%; display: block; }
+    a { color: inherit; }
+
+    .wrap {
+      width: min(100% - 40px, 1040px);
+      margin-inline: auto;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    a:focus-visible {
+      outline: 3px solid rgba(2, 132, 199, .45);
+      outline-offset: 3px;
+      border-radius: 10px;
+    }
+
+    /* ============================================================
+       TOPO
+       ============================================================ */
+    .topo { position: relative; }
+
+    .topo::before {
+      content: '';
+      position: absolute;
+      inset: 0 0 auto;
+      height: 3px;
+      background: var(--grad);
+    }
+
+    .topo-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      height: 84px;
+    }
+
+    .marca {
+      display: inline-flex;
+      align-items: center;
+      gap: 11px;
+      text-decoration: none;
+    }
+
+    .marca img {
+      width: 44px;
+      height: 44px;
+      object-fit: contain;
+      filter: drop-shadow(0 8px 16px rgba(5, 150, 105, .20));
+    }
+
+    .marca-txt { display: flex; flex-direction: column; line-height: 1.15; }
+
+    .marca-txt strong {
+      font-size: 1.32rem;
+      font-weight: 800;
+      letter-spacing: -.02em;
+      background: linear-gradient(120deg, #059669, #2563EB);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      color: transparent;
+    }
+
+    .marca-txt small {
+      margin-top: 2px;
+      font-size: .63rem;
+      font-weight: 700;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .versao {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 13px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .8);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow-xs);
+      font-size: .72rem;
+      font-weight: 700;
+      color: var(--ink-2);
+    }
+
+    .versao i { font-size: .6rem; color: var(--green); }
+
+    /* ============================================================
+       ABERTURA (texto curto)
+       ============================================================ */
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: clamp(18px, 3vw, 34px) 0 clamp(30px, 4vw, 46px);
+    }
+
+    .abertura {
+      max-width: 720px;
+      margin: 0 auto clamp(30px, 4.4vw, 46px);
+      text-align: center;
+      animation: aparece .7s cubic-bezier(.22, .68, .36, 1) both;
+    }
+
+    .selo {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      padding: 7px 15px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .8);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow-xs);
+      font-size: .75rem;
+      font-weight: 700;
+      color: var(--ink-2);
+    }
+
+    .selo .pulso {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 0 rgba(22, 163, 74, .45);
+      animation: pulso 2.6s ease-out infinite;
+    }
+
+    @keyframes pulso {
+      0%   { box-shadow: 0 0 0 0 rgba(22, 163, 74, .45); }
+      60%  { box-shadow: 0 0 0 9px rgba(22, 163, 74, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
+    }
+
+    .abertura h1 {
+      margin: 20px 0 14px;
+      font-size: clamp(1.95rem, 4.6vw, 3.05rem);
+      line-height: 1.1;
+      letter-spacing: -.035em;
+      font-weight: 800;
+      text-wrap: balance;
+    }
+
+    .abertura h1 .grad {
+      background: var(--grad-deep);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      color: transparent;
+    }
+
+    .abertura p {
+      max-width: 58ch;
+      margin-inline: auto;
+      font-size: clamp(.98rem, 1.1vw, 1.06rem);
+      line-height: 1.7;
+      color: var(--ink-2);
+    }
+
+    .abertura p strong { color: var(--ink); font-weight: 700; }
+
+    /* ============================================================
+       MÓDULOS
+       ============================================================ */
+    .modulos {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 20px;
+      max-width: 1000px;
+      margin-inline: auto;
+    }
+
+    .card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 30px 24px 24px;
+      border: 1px solid var(--line);
+      border-radius: var(--r-lg);
+      background: rgba(255, 255, 255, .94);
+      box-shadow: var(--shadow-xs);
+      overflow: hidden;
+      transition: transform .28s ease, box-shadow .28s ease, border-color .28s ease;
+      animation: aparece .7s cubic-bezier(.22, .68, .36, 1) both;
+      animation-delay: var(--d, 0s);
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      inset: 0 0 auto;
+      height: 4px;
+      background: var(--acento);
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      border-color: var(--acento-borda);
+      box-shadow: var(--shadow-md);
+    }
+
+    .card.equipe {
+      --acento: linear-gradient(90deg, #38BDF8, #0284C7);
+      --acento-cor: #0369A1;
+      --acento-bg: #E0F2FE;
+      --acento-borda: #BAE6FD;
+    }
+
+    .card.paciente {
+      --acento: linear-gradient(90deg, #4ADE80, #16A34A);
+      --acento-cor: #15803D;
+      --acento-bg: #DCFCE7;
+      --acento-borda: #BBF7D0;
+    }
+
+    .card.telao {
+      --acento: linear-gradient(90deg, #FBBF24, #D97706);
+      --acento-cor: #92400E;
+      --acento-bg: #FEF3C7;
+      --acento-borda: #FDE68A;
+    }
+
+    .icone {
+      display: grid;
+      place-items: center;
+      width: 58px;
+      height: 58px;
+      margin-bottom: 14px;
+      border-radius: 17px;
+      background: var(--acento-bg);
+      color: var(--acento-cor);
+      font-size: 1.35rem;
+      transition: transform .28s ease;
+    }
+
+    .card:hover .icone { transform: translateY(-2px) scale(1.05); }
+
+    .etiqueta {
+      margin-bottom: 8px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--acento-bg);
+      color: var(--acento-cor);
+      font-size: .61rem;
+      font-weight: 800;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+
+    .card h2 {
+      font-size: 1.16rem;
+      font-weight: 800;
+      letter-spacing: -.02em;
+    }
+
+    .card p {
+      margin-top: 6px;
+      font-size: .86rem;
+      line-height: 1.55;
+      color: var(--ink-2);
+    }
+
+    .acoes {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      width: 100%;
+      margin-top: auto;
+      padding-top: 20px;
+    }
+
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 12px 15px;
+      border-radius: 13px;
+      background: var(--acento-bg);
+      color: var(--acento-cor);
+      font-size: .84rem;
+      font-weight: 700;
+      text-decoration: none;
+      transition: filter .2s ease, transform .2s ease, box-shadow .2s ease;
+    }
+
+    .btn:hover {
+      filter: brightness(.975);
+      transform: translateY(-1px);
+      box-shadow: 0 10px 22px -14px rgba(2, 132, 199, .7);
+    }
+
+    .btn i { font-size: .72rem; transition: transform .2s ease; }
+    .btn:hover i { transform: translateX(2px); }
+
+    .link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 6px 4px 0;
+      font-size: .76rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color .2s ease;
+    }
+
+    .link:hover { color: var(--acento-cor); }
+    .link i { font-size: .66rem; }
+
+    /* ============================================================
+       RODAPÉ
+       ============================================================ */
+    .rodape {
+      border-top: 1px solid var(--line);
+      text-align: center;
+      padding: 18px 0 22px;
+      font-size: .76rem;
+      color: var(--muted);
+    }
+
+    /* ============================================================
+       ANIMAÇÃO DE ENTRADA
+       ============================================================ */
+    @keyframes aparece {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    /* ============================================================
+       RESPONSIVO
+       ============================================================ */
+    @media (max-width: 900px) {
+      .modulos {
+        grid-template-columns: 1fr;
+        max-width: 460px;
+      }
+      .card { padding: 26px 22px 22px; }
+    }
+
+    @media (max-width: 640px) {
+      .wrap { width: min(100% - 32px, 1040px); }
+      .topo-inner { height: 72px; }
+      .marca img { width: 38px; height: 38px; }
+      .marca-txt strong { font-size: 1.18rem; }
+      .marca-txt small { font-size: .56rem; letter-spacing: .13em; }
+      .versao { padding: 5px 10px; font-size: .66rem; }
+      .abertura p { font-size: .95rem; }
+    }
+
+    /* ============================================================
+       MOVIMENTO REDUZIDO
+       ============================================================ */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: .001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .001ms !important;
+      }
+    }
+  </style>
 </head>
 <body>
 
-    <!-- Logo -->
-    <div class="logo-area">
-       <div class="logo-marca">
-            <img src="paciente-app/icons/logo.png" alt="Logo Vida+">
-            <h1>Vida+</h1>
-        </div>
-        <p class="tagline">Sistema de Saúde Digital</p>
-        <span class="versao"><i class="fas fa-code"></i> v2.0 Unificado</span>
+  <!-- ===================== TOPO ===================== -->
+  <header class="topo">
+    <div class="wrap topo-inner">
+      <a class="marca" href="index.html" title="Vida+ — início">
+        <img src="assets/logo-vida.png" alt="">
+        <span class="marca-txt">
+          <strong>Vida+</strong>
+          <small>Saúde Digital</small>
+        </span>
+      </a>
+
+      <span class="versao"><i class="fas fa-circle" aria-hidden="true"></i> v2.0</span>
     </div>
+  </header>
 
-    <!-- Cards de acesso -->
-    <div class="acessos">
+  <main>
+    <!-- ===================== ABERTURA ===================== -->
+    <section class="wrap abertura" aria-labelledby="titulo">
+      <span class="selo">
+        <span class="pulso" aria-hidden="true"></span>
+        Sistema de Saúde Digital · Projeto TCC
+      </span>
 
-        <!-- 1. Sistema Médico (Equipe) -->
-        <div class="card-acesso card-equipe">
-            <span class="tag">Equipe</span>
-            <div class="icone">
-                <i class="fas fa-user-shield"></i>
-            </div>
-            <h2>Sistema Médico</h2>
-            <p>Painel para administradores, médicos, enfermeiros e recepcionistas</p>
-            <div class="sub-acessos">
-                <a class="sub-link" href="sistema-medico/login/admin.html">
-                    <i class="fas fa-cog"></i> Admin
-                </a>
-                <a class="sub-link" href="sistema-medico/login/funcionario.html">
-                    <i class="fas fa-user-md"></i> Funcionário
-                </a>
-            </div>
-        </div>
+      <h1 id="titulo">
+        Todo o atendimento, <span class="grad">em um só lugar.</span>
+      </h1>
+
+      <p>
+        O <strong>Vida+</strong> conecta a recepção, a equipe de saúde e o paciente em um único
+        fluxo digital — do check-in ao resultado da consulta, tudo atualizado em tempo real.
+      </p>
+    </section>
+
+    <!-- ===================== MÓDULOS ===================== -->
+    <section class="wrap" aria-labelledby="titulo-modulos">
+      <h2 id="titulo-modulos" class="sr-only">Módulos do sistema</h2>
+
+      <div class="modulos">
+
+        <!-- 1. Sistema Médico -->
+        <article class="card equipe" style="--d: .05s">
+          <div class="icone"><i class="fas fa-user-doctor" aria-hidden="true"></i></div>
+          <span class="etiqueta">Para a equipe</span>
+          <h2>Sistema Médico</h2>
+          <p>Recepção, triagem, consultas e gestão em um só painel.</p>
+          <div class="acoes">
+            <a class="btn" href="sistema-medico/login/funcionario.html">
+              Entrar como funcionário
+              <i class="fas fa-arrow-right" aria-hidden="true"></i>
+            </a>
+            <a class="link" href="sistema-medico/login/admin.html">
+              <i class="fas fa-gear" aria-hidden="true"></i> Acesso administrativo
+            </a>
+          </div>
+        </article>
 
         <!-- 2. App do Paciente -->
-        <div class="card-acesso card-paciente" onclick="window.location.href='paciente-app/index.html'">
-            <span class="tag">Paciente</span>
-            <div class="icone">
-                <i class="fas fa-mobile-alt"></i>
-            </div>
-            <h2>App do Paciente</h2>
-            <p>Pré-atendimento digital: fila, senha, histórico, exames e agendamentos</p>
-        </div>
+        <article class="card paciente" style="--d: .12s">
+          <div class="icone"><i class="fas fa-mobile-screen-button" aria-hidden="true"></i></div>
+          <span class="etiqueta">Para o paciente</span>
+          <h2>App do Paciente</h2>
+          <p>Senha, fila, exames e histórico na palma da mão.</p>
+          <div class="acoes">
+            <a class="btn" href="paciente-app/index.html">
+              Abrir app
+              <i class="fas fa-arrow-right" aria-hidden="true"></i>
+            </a>
+          </div>
+        </article>
 
         <!-- 3. Telão -->
-        <div class="card-acesso card-telao" onclick="window.location.href='telao/index.html'">
-            <span class="tag">TV</span>
-            <div class="icone">
-                <i class="fas fa-tv"></i>
-            </div>
-            <h2>Telão</h2>
-            <p>Display da sala de espera — exibe chamadas de senha e avisos automaticamente</p>
-        </div>
+        <article class="card telao" style="--d: .19s">
+          <div class="icone"><i class="fas fa-tv" aria-hidden="true"></i></div>
+          <span class="etiqueta">Para a sala de espera</span>
+          <h2>Telão</h2>
+          <p>Chamadas de senha claras e automáticas na sala de espera.</p>
+          <div class="acoes">
+            <a class="btn" href="telao/index.html">
+              Abrir telão
+              <i class="fas fa-arrow-right" aria-hidden="true"></i>
+            </a>
+          </div>
+        </article>
 
+      </div>
+    </section>
+  </main>
+
+  <!-- ===================== RODAPÉ ===================== -->
+  <footer class="rodape">
+    <div class="wrap">
+      Vida+ · Sistema de Saúde Digital — Projeto TCC · v2.0
     </div>
+  </footer>
 
-    <!-- Footer -->
-    <div class="footer">
-        <p>Sistema desenvolvido para gestão de unidades de saúde</p>
-        <p><small>Projeto TCC • Integrado ao Supabase</small></p>
-        <div class="badges">
-            <span class="badge"><i class="fas fa-hospital"></i> Sistema Médico</span>
-            <span class="badge"><i class="fas fa-mobile-alt"></i> App Paciente</span>
-            <span class="badge"><i class="fas fa-tv"></i> Telão</span>
-            <span class="badge"><i class="fas fa-database"></i> Supabase</span>
-        </div>
-    </div>
-
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3160a4229ce2570',t:'MTc4Nzc4MDkwMA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</body>
 </html>
