@@ -87,7 +87,7 @@ Bônus: no app do paciente, `login.html`, `index.html` e `perfil.html` consultav
 | **“Bug do Supabase”** | Não. O Supabase/PostgREST está corretamente recusando `INSERT` em tabela/coluna inexistente ou bloqueada por RLS. O erro real está no schema/políticas. |
 | **“GitHub está perdendo os dados”** | Não. O GitHub guarda **código**. Ele não participa da gravação. O que acontece: o app salva no `localStorage` **do navegador** e o GitHub Pages serve arquivos estáticos — cada navegador/aba tem seu próprio `localStorage`. Se a gravação no Supabase falha, cada dispositivo vê apenas os dados locais dele. |
 | **Credenciais** | Estão preenchidas em `shared/js/config.js` (URL e anon key do projeto `ofqyqorsedxveersqful`) e o `ref` do JWT bate com a URL. Se a chave tivesse sido rotacionada/revogada, o erro seria `401 / Invalid API key` — vale conferir no teste 1 de `status-banco.html`. |
-| **Cache da PWA** | Pode servir uma versão antiga de `db.js`. O `service-worker.js` já foi atualizado para `vidaplus-paciente-v2`; no navegador faça *hard reload* (Ctrl+Shift+R) ou “Limpar dados do site”. |
+| **Cache da PWA** | Pode servir uma versão antiga de `db.js`. O `service-worker.js` está em `vidaplus-paciente-v3`; no navegador faça *hard reload* (Ctrl+Shift+R) ou “Limpar dados do site”. |
 
 ---
 
@@ -139,7 +139,7 @@ os dois cenários (inclusive o modelo antigo), sem precisar decidir nada antes:
 > antigo do SQL que você enviou — nos três casos o script roda sem erro e o `INSERT` do app passa.
 
 Se você preferir um projeto novo e limpo (recomendado para a banca): crie o projeto, rode o
-`schema.sql` e troque `SUPABASE_URL`/`SUPABASE_ANON_KEY` em `shared/js/config.js` (são chaves públicas).
+`schema.sql` e troque `SUPABASE_URL`/`SUPABASE_ANON_KEY` em `shared/js/config.js` e na cópia `paciente-app/js/config.js` (são chaves públicas).
 
 ### Migrar os pacientes do modelo antigo (opcional)
 Depois de rodar o `schema.sql`, se quiser trazer os pacientes antigos de `*_legado`:
@@ -184,7 +184,8 @@ Depois de rodar o `schema.sql`, se quiser trazer os pacientes antigos de `*_lega
 |:---|:---|
 | `shared/js/db.js` | `sbInsertDependente()`: o `INSERT` de `consultas` agora **espera** o resultado do `INSERT` do paciente (corrige a corrida de FK `23503`); a `Map` de pendências passou a ser realmente preenchida. `cadastrarPaciente`/`atualizarPaciente` usam **upsert** (um `UPDATE` em paciente que nunca chegou ao banco afetava 0 linhas e “sumia” silenciosamente). Sync com Supabase não **sobrescreve** mais gravações feitas durante o download (merge por `id`). `seedDemo()` não semeia dados fake quando há Supabase configurado. Nova API `DB.aguardarSincronizacao()` (com teto de 8s). Sync com `.limit(5000)`. |
 | `paciente-app/login.html`, `perfil.html`, `index.html` e `sistema-medico/login/*.html` | Esperam `DB.aguardarSincronizacao()` antes de decidir “cadastro/usuário não encontrado”. |
-| `paciente-app/service-worker.js` | `CACHE_VERSION` → `vidaplus-paciente-v2` (força atualização do `db.js` em cache). |
+| `paciente-app/service-worker.js` | `CACHE_VERSION` → `vidaplus-paciente-v3` (força atualização do `db.js` em cache). Leitura com `matchAny()` nos caches de precache e runtime, precache com `allSettled` e escopo restrito a `/paciente-app/`. |
+| `paciente-app/js/config.js` e `paciente-app/js/db.js` | **Novos.** Cópias de `shared/js/config.js` e `shared/js/db.js` para dentro do escopo do service worker — antes esses arquivos ficavam em `../shared/js/`, fora do escopo, e o app não abria offline. As 9 páginas de `paciente-app/` passaram a usar `js/config.js` e `js/db.js`. **Ao mudar credenciais ou a camada de dados, atualize os dois arquivos.** |
 | `status-banco.html` | Novos testes: colunas esperadas por tabela, INSERT real em `pacientes` com limpeza e leitura do código de erro; resumo específico “Schema do banco diferente do app”. |
 | `supabase/diagnostico.sql` | **Novo.** Script somente-leitura que responde: qual modelo está instalado, colunas, NOT NULL/FK, RLS, políticas, grants do `anon`, Realtime e contagens. |
 | `supabase/schema.sql` | **Reescrito** como instalador único em 11 fases (migração do modelo antigo, tabelas, reparo de colunas, PK/FK/índices, RLS, GRANTs, Realtime, view/função, seeds e verificação final). Validado em PostgreSQL 16 nos três cenários. |
@@ -213,8 +214,8 @@ Marque cada item; o primeiro que falhar é a causa.
 |:--:|---|---|---|
 | 1 | O SQL rodou **sem erro** no projeto certo? | SQL Editor → aba **Messages**: `Success. No rows returned` e nenhum `ERROR:`. O nome do projeto aparece no topo da tela. | Cole o erro exato (as 3 primeiras linhas) — provavelmente faltou colar uma parte do arquivo |
 | 2 | A **FASE 11.1** voltou vazia? | última consulta do script: colunas faltantes | Se listou linhas, o script parou no meio: rode de novo o arquivo completo |
-| 3 | O app usa **este** projeto? | `status-banco.html` → teste **“Projeto Supabase em uso”** mostra o ref (ex.: `ofqyqorsedxveersqful`). Compare com o ref do projeto onde você rodou o SQL. | Ajuste `SUPABASE_URL`/`SUPABASE_ANON_KEY` em `shared/js/config.js` (ou rode o schema no projeto do config) |
-| 4 | A página está **atualizada**? | Ctrl+Shift+R (hard reload) e, no DevTools → Application → Service Workers, **Unregister**; depois recarregue. | Cache antigo do `db.js` — a versão nova é `vidaplus-paciente-v2` |
+| 3 | O app usa **este** projeto? | `status-banco.html` → teste **“Projeto Supabase em uso”** mostra o ref (ex.: `ofqyqorsedxveersqful`). Compare com o ref do projeto onde você rodou o SQL. | Ajuste `SUPABASE_URL`/`SUPABASE_ANON_KEY` em `shared/js/config.js` **e** em `paciente-app/js/config.js` (ou rode o schema no projeto do config) |
+| 4 | A página está **atualizada**? | Ctrl+Shift+R (hard reload) e, no DevTools → Application → Service Workers, **Unregister**; depois recarregue. | Cache antigo do `db.js` — a versão nova é `vidaplus-paciente-v3` |
 | 5 | O **INSERT real** passa? | `status-banco.html` → teste “Cadastro de paciente (INSERT real + limpeza)” | O detalhe em vermelho traz o código: `42501` = RLS, `PGRST204` = coluna, `22P02` = tipo, `23503` = FK |
 | 6 | O cadastro na recepção **confirma** no banco? | cadastre alguém → abra o console (F12). Deve aparecer `[Vida+] Supabase conectado` e **nenhum** `[Supabase insert] FALHOU`. Depois `select count(*) from public.pacientes;` | Copie a linha `[Supabase insert] FALHOU em pacientes → ...` |
 
