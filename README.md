@@ -194,6 +194,8 @@ Abra `http://localhost:8000` no navegador — é o portal com todos os acessos. 
 
 Rode **`supabase/schema.sql`** inteiro no SQL Editor: ele é o instalador único (cria/repara as tabelas, migra o modelo antigo para `*_legado`, liga RLS, GRANTs e Realtime) e termina com uma verificação que lista o que faltar.
 
+Não é preciso apagar nada antes: o script preserva o modelo antigo como `*_legado`. Se depois quiser remover essas sobras, use `supabase/limpar-legado.sql` (opcional).
+
 Depois abra **`status-banco.html`** (testa as colunas e faz um INSERT real). O guia completo, com os códigos de erro `PGRST204`/`22P02`/`23502`/`42501`, está em **[DIAGNOSTICO-BANCO.md](DIAGNOSTICO-BANCO.md)**; o diagnóstico somente-leitura está em `supabase/diagnostico.sql`.
 
 > Em resumo: o app espera o schema de `supabase/schema.sql` (ids **UUID**). Um banco criado com o modelo antigo (ids `BIGINT`, `pacientes.id_paciente`) recusa todos os `INSERT` — o instalador agora detecta e preserva esse modelo automaticamente.
