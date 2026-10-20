@@ -35,11 +35,11 @@ const APP_SHELL = [
   './js/notificacao.js',
   '../shared/js/config.js',
   '../shared/js/db.js',
-  './manifest.json',
+    './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
-  './icons/icon-maskable-512.png',
-  './icons/apple-touch-icon.png',
+  './icons/icon-maskable-512.png',   
+  './icons/apple-touch-icon.png',    
   './icons/logo.png'
 ];
 
