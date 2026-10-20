@@ -228,3 +228,32 @@ Marque cada item; o primeiro que falhar é a causa.
 
 > Atalho: a partir de agora a recepção **não mostra mais “✅ cadastrado” antes do banco confirmar**. Se aparecer o toast vermelho
 > “Paciente NÃO foi salvo no Supabase [código]: mensagem”, esse texto é exatamente o que precisamos.
+
+### 10.1 Se o `schema.sql` der erro no SQL Editor
+
+Use o **`supabase/minimo.sql`**: mesma estrutura de tabelas, sem migração, sem seeds, sem
+Realtime e sem blocos condicionais — são ~180 linhas e a mensagem de erro aponta a linha exata.
+Se o mínimo passar, o problema estava numa das fases extras (0, 8, 9 ou 10).
+
+Erros mais comuns do SQL Editor e o que fazer:
+
+| Mensagem | Causa | Correção |
+|---|---|---|
+| `syntax error at or near ...` / `LINE n` | texto colado incompleto (ou só um trecho selecionado) | **Ctrl+A** para nada ficar selecionado, cole o arquivo inteiro; prefira copiar do **Raw** no GitHub |
+| `relation "public.X" already exists` | você rodou uma versão antiga sem `IF NOT EXISTS` | rode o `minimo.sql` (usa `IF NOT EXISTS`) |
+| `policy "demo X" for table "Y" already exists` | a FASE 6 rodou sem os `DROP POLICY` (colagem parcial) | rode o arquivo completo a partir do topo |
+| `permission denied for schema public` / `must be owner of table` | não está logado como `postgres` do projeto | confira o projeto no topo e o papel em **Settings → Database** |
+| `duplicate key value violates unique constraint` (nos seeds) | já existe registro com o mesmo CPF/e-mail | os seeds usam `ON CONFLICT DO NOTHING`; no `minimo.sql` não há seeds |
+| `there is no unique or exclusion constraint matching the ON CONFLICT` | índice único de `cpf` não foi criado (há duplicatas antigas) | limpe duplicados em `pacientes` e rode de novo |
+| `function gen_random_uuid() does not exist` | extensão `pgcrypto` ausente | a primeira linha do script cria (`CREATE EXTENSION IF NOT EXISTS pgcrypto`) |
+| `canceling statement due to statement timeout` | projeto pausado / instável | rode o `minimo.sql` (mais curto) e depois as fases extras |
+
+### 10.2 Confirmar QUAL projeto Supabase você está usando
+
+1. No painel do Supabase, o **nome do projeto** fica no topo; o **ref** aparece na URL
+   (`https://supabase.com/dashboard/project/<REF>`).
+2. Abra `shared/js/config.js` e confira `SUPABASE_URL`: `https://<REF>.supabase.co`.
+3. Os dois `<REF>` precisam ser **iguais**. Se você rodou o SQL em outro projeto, o app
+   continua apontando para o banco velho e nada muda.
+
+> A página `status-banco.html` agora mostra o **ref em uso** no teste “Projeto Supabase em uso”.
