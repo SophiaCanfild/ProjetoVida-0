@@ -586,7 +586,7 @@
         });
         
         // Form paciente — CADASTRA + INSERE NA FILA (integrado!)
-        document.getElementById('formPaciente')?.addEventListener('submit', function(e) {
+        document.getElementById('formPaciente')?.addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const cpf = document.getElementById('pacCpf').value.replace(/\D/g, '');
@@ -596,6 +596,9 @@
                 mostrarToast('Preencha nome e CPF!', 'error');
                 return;
             }
+            
+            // 0. Garante que o banco já foi carregado (evita sobrescrita)
+            if (DB.aguardarSincronizacao) { await DB.aguardarSincronizacao(); }
             
             // 1. Cadastrar paciente no banco compartilhado
             const paciente = DB.cadastrarPaciente({
@@ -611,7 +614,25 @@
                 cartao_sus: document.getElementById('pacSus').value
             });
             
-            // 2. Iniciar atendimento (inserir na fila automaticamente)
+            // 2. Só continua depois que o Supabase confirmar o cadastro.
+            // Antes, o "✅ cadastrado" aparecia mesmo quando o banco recusava.
+            const envio = DB.envioPaciente ? await DB.envioPaciente(paciente.id) : { ok: true };
+            if (envio && envio.ok === false) {
+                const detalhe = envio.error && (envio.error.message || envio.error.error_description);
+                const codigo = envio.error && (envio.error.code || envio.error.status);
+                mostrarToast(
+                    'Paciente NÃO foi salvo no Supabase' + (codigo ? ' [' + codigo + ']' : '') +
+                    (detalhe ? ': ' + detalhe : '') +
+                    '. Veja o console (F12) e abra status-banco.html.',
+                    'error'
+                );
+                // Mantém o paciente apenas no navegador para não perder o que foi digitado.
+                atualizarDashboard();
+                carregarTabelaRecentes();
+                return;
+            }
+            
+            // 3. Iniciar atendimento (inserir na fila automaticamente)
             const usuario = getUsuarioLogado();
             const consulta = DB.iniciarAtendimento(
                 paciente.id,
@@ -620,7 +641,7 @@
                 usuario ? usuario.nome : 'Recepção'
             );
             
-            mostrarToast('✅ ' + nome + ' cadastrado e inserido na fila! Senha: ' + consulta.senha, 'success');
+            mostrarToast('✅ ' + nome + ' salvo no banco e inserido na fila! Senha: ' + consulta.senha, 'success');
             
             // Limpar form
             this.reset();

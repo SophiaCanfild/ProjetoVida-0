@@ -1139,6 +1139,25 @@
   // Permite que as telas aguardem o banco antes de decidir
   // "paciente não encontrado" (antes o app abria vazio e redirecionava).
   // ============================================================
+  // Status do envio de um paciente para o Supabase.
+  // Uso: const r = await DB.envioPaciente(p.id); if (r.ok === false) ...
+  // Assim a tela só comemora o cadastro depois do banco confirmar.
+  DB.envioPaciente = function (id) {
+    if (!id) return Promise.resolve({ ok: true, data: null });
+    const pendente = insercoesPacientesPendentes.get(id);
+    return pendente || Promise.resolve({ ok: true, data: null });
+  };
+
+  // Onde os dados estão sendo gravados de verdade.
+  DB.modoBanco = function () {
+    if (!temClienteSupabase()) {
+      return { modo: 'demo', url: null, projeto: null };
+    }
+    const url = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.SUPABASE_URL) || '';
+    const projeto = (url.match(/^https:\/\/([^.]+)\.supabase\.co/) || [])[1] || null;
+    return { modo: 'supabase', url: url, projeto: projeto };
+  };
+
   DB.aguardarSincronizacao = function () {
     // Corrida com um teto de 8s: se a rede estiver pendurada, a tela
     // continua (mostrando o cache local) em vez de travar no login.

@@ -202,3 +202,29 @@ O desenho atual guarda `senha_hash` em **texto puro** e usa políticas RLS `USIN
 4. Cadastre um paciente e confirme com `select count(*) from public.pacientes;`.
 
 Se algo ainda falhar, rode **`supabase/diagnostico.sql`** e o código de erro aparecerá na seção 7.
+
+---
+
+## 10. “Rodei o schema.sql e ainda não deu certo” — checklist
+
+Marque cada item; o primeiro que falhar é a causa.
+
+| # | Verificação | Como conferir | Se falhar |
+|:--:|---|---|---|
+| 1 | O SQL rodou **sem erro** no projeto certo? | SQL Editor → aba **Messages**: `Success. No rows returned` e nenhum `ERROR:`. O nome do projeto aparece no topo da tela. | Cole o erro exato (as 3 primeiras linhas) — provavelmente faltou colar uma parte do arquivo |
+| 2 | A **FASE 11.1** voltou vazia? | última consulta do script: colunas faltantes | Se listou linhas, o script parou no meio: rode de novo o arquivo completo |
+| 3 | O app usa **este** projeto? | `status-banco.html` → teste **“Projeto Supabase em uso”** mostra o ref (ex.: `ofqyqorsedxveersqful`). Compare com o ref do projeto onde você rodou o SQL. | Ajuste `SUPABASE_URL`/`SUPABASE_ANON_KEY` em `shared/js/config.js` (ou rode o schema no projeto do config) |
+| 4 | A página está **atualizada**? | Ctrl+Shift+R (hard reload) e, no DevTools → Application → Service Workers, **Unregister**; depois recarregue. | Cache antigo do `db.js` — a versão nova é `vidaplus-paciente-v2` |
+| 5 | O **INSERT real** passa? | `status-banco.html` → teste “Cadastro de paciente (INSERT real + limpeza)” | O detalhe em vermelho traz o código: `42501` = RLS, `PGRST204` = coluna, `22P02` = tipo, `23503` = FK |
+| 6 | O cadastro na recepção **confirma** no banco? | cadastre alguém → abra o console (F12). Deve aparecer `[Vida+] Supabase conectado` e **nenhum** `[Supabase insert] FALHOU`. Depois `select count(*) from public.pacientes;` | Copie a linha `[Supabase insert] FALHOU em pacientes → ...` |
+
+### O que me enviar se continuar falhando
+
+1. A mensagem exata do SQL Editor (se houve `ERROR`).
+2. O resultado da **FASE 11.1** e da **FASE 11.2**.
+3. Print ou texto da página `status-banco.html` (principalmente os itens vermelhos).
+4. A linha do console do navegador que começa com `[Supabase insert] FALHOU`.
+5. O **ref do projeto** (o trecho antes de `.supabase.co` na URL do painel).
+
+> Atalho: a partir de agora a recepção **não mostra mais “✅ cadastrado” antes do banco confirmar**. Se aparecer o toast vermelho
+> “Paciente NÃO foi salvo no Supabase [código]: mensagem”, esse texto é exatamente o que precisamos.
