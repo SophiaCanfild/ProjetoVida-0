@@ -10,12 +10,30 @@
    - Push: mostra notificação de chamada mesmo com o app
      fechado (quando houver assinatura push ativa)
 
+   IMPORTANTE — escopo do SW:
+   O service worker é registrado em /paciente-app/, então só
+   controla requisições DENTRO dessa pasta. Por isso config.js
+   e db.js foram copiados para paciente-app/js/ — antes eles
+   ficavam em ../shared/js/ (fora do escopo) e eram servidos
+   direto da rede; offline o app quebrava.
+
+   Cache:
+   - STATIC_CACHE  : app shell gravado na instalação (precache)
+   - RUNTIME_CACHE : atualizações obtidas em segundo plano
+   As leituras usam matchAny(), que procura nos DOIS caches
+   (antes o staleWhileRevalidate só lia o RUNTIME_CACHE e
+   ignorava o precache).
+
    Ao publicar nova versão do app, incremente CACHE_VERSION.
    ============================================================ */
 
-const CACHE_VERSION = 'vidaplus-paciente-v2';
+const CACHE_VERSION = 'vidaplus-paciente-v3';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const RUNTIME_CACHE = CACHE_VERSION + '-runtime';
+
+/* Ordem de leitura: RUNTIME (cópias mais recentes, vindas da
+   rede) primeiro; STATIC (precache) como fallback offline. */
+const CACHES_APP = [RUNTIME_CACHE, STATIC_CACHE];
 
 /* ---------- App shell (precache na instalação) ---------- */
 const APP_SHELL = [
@@ -30,27 +48,73 @@ const APP_SHELL = [
   './notificacoes.html',
   './perfil.html',
   './css/app.css',
+  './js/config.js',
+  './js/db.js',
   './js/nav.js',
   './js/ui.js',
   './js/notificacao.js',
-  '../shared/js/config.js',
-  '../shared/js/db.js',
-    './manifest.json',
+  './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
-  './icons/icon-maskable-512.png',   
-  './icons/apple-touch-icon.png',    
+  './icons/icon-maskable-512.png',
+  './icons/apple-touch-icon.png',
   './icons/logo.png'
 ];
 
-/* ---------- Instalação: guarda o app shell ---------- */
+/* ---------- Utilidades de cache ---------- */
+
+/* Procura a requisição em TODOS os caches do app (runtime e
+   precache), não só em um. Retorna Response ou null. */
+async function matchAny(req, opcoes) {
+  for (const nome of CACHES_APP) {
+    const cache = await caches.open(nome);
+    const hit = await cache.match(req, opcoes);
+    if (hit) return hit;
+  }
+  return null;
+}
+
+/* Grava uma cópia no cache em segundo plano. O clone é feito
+   de forma SÍNCRONA, antes de o navegador começar a consumir o
+   corpo da resposta devolvida ao cliente. */
+function guardar(req, res, cacheName) {
+  if (!res || (!res.ok && res.type !== 'opaque')) return Promise.resolve(false);
+
+  let copia;
+  try { copia = res.clone(); } catch (err) { return Promise.resolve(false); }
+
+  return caches.open(cacheName || RUNTIME_CACHE)
+    .then((cache) => cache.put(req, copia))
+    .catch(() => false);
+}
+
+/* ---------- Instalação: guarda o app shell ----------
+   Usa allSettled: um arquivo faltando/404 não derruba o
+   precache inteiro (com addAll, um erro descartava tudo). */
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(STATIC_CACHE)
-      .then((cache) => cache.addAll(APP_SHELL))
-      .then(() => self.skipWaiting())
-      .catch((err) => console.error('[SW] Falha no precache:', err))
-  );
+  event.waitUntil((async () => {
+    try {
+      const cache = await caches.open(STATIC_CACHE);
+      const resultados = await Promise.allSettled(
+        APP_SHELL.map((url) => {
+          const destino = new URL(url, self.registration.scope).href;
+          /* cache: 'reload' ignora o cache HTTP e busca a versão nova */
+          return cache.add(new Request(destino, { cache: 'reload' }));
+        })
+      );
+
+      const falhas = APP_SHELL.filter((_, i) => resultados[i].status === 'rejected');
+      if (falhas.length) {
+        console.warn('[SW] Itens não precacheados (seguindo mesmo assim):', falhas);
+      } else {
+        console.info('[SW] Precache completo:', APP_SHELL.length, 'itens');
+      }
+    } catch (err) {
+      console.error('[SW] Falha ao abrir o cache de precache:', err);
+    }
+
+    await self.skipWaiting();
+  })());
 });
 
 /* ---------- Ativação: limpa caches antigos e assume ---------- */
@@ -70,45 +134,51 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-/* ---------- Respostas ---------- */
-async function doCache(req, cacheName) {
-  const cache = await caches.open(cacheName);
-  const hit = await cache.match(req, { ignoreSearch: false });
-  return { cache, hit };
-}
+/* ---------- Estratégias ---------- */
 
-/* Rede primeiro, cache como fallback (navegação e API não-crítica) */
+/* Rede primeiro, cache como fallback (navegação) */
 async function networkFirst(req, fallbackUrl) {
   try {
     const res = await fetch(req);
     if (res && res.ok) {
-      const { cache } = await doCache(req, RUNTIME_CACHE);
-      cache.put(req, res.clone());
+      /* grava em segundo plano, sem atrasar a resposta */
+      guardar(req, res, RUNTIME_CACHE).catch(() => {});
     }
     return res;
   } catch (err) {
-    const { hit } = await doCache(req, RUNTIME_CACHE);
+    /* Navegação: ignora query string ao procurar no cache */
+    const opcoes = req.mode === 'navigate' ? { ignoreSearch: true } : undefined;
+    const hit = await matchAny(req, opcoes);
     if (hit) return hit;
-    const { cache } = await doCache(req, STATIC_CACHE);
-    const estatico = await cache.match(req, { ignoreSearch: false });
-    if (estatico) return estatico;
+
+    /* Ainda offline: entrega o app shell (index) cacheado */
     if (fallbackUrl) {
-      const fallback = await cache.match(fallbackUrl);
-      if (fallback) return fallback;
+      const shellUrl = new URL(fallbackUrl, self.registration.scope).href;
+      const shell = await matchAny(new Request(shellUrl), { ignoreSearch: true });
+      if (shell) return shell;
     }
+
     throw err;
   }
 }
 
 /* Cache primeiro, atualiza em segundo plano (estáticos e CDN) */
-async function staleWhileRevalidate(req, cacheName) {
-  const { cache, hit } = await doCache(req, cacheName);
-  const buscar = fetch(req).then((res) => {
-    if (res && (res.ok || res.type === 'opaque')) {
-      cache.put(req, res.clone());
-    }
-    return res;
-  }).catch(() => hit);
+async function staleWhileRevalidate(req) {
+  const hit = await matchAny(req);
+
+  const buscar = fetch(req)
+    .then((res) => {
+      if (res && (res.ok || res.type === 'opaque')) {
+        /* Atualização em segundo plano — não bloqueia a resposta */
+        guardar(req, res, RUNTIME_CACHE).catch(() => {});
+      }
+      return res;
+    })
+    .catch((err) => {
+      if (hit) return hit;
+      throw err;
+    });
+
   return hit || buscar;
 }
 
@@ -120,6 +190,7 @@ self.addEventListener('fetch', (event) => {
   if (req.method !== 'GET') return;
 
   const url = new URL(req.url);
+  const escopo = new URL(self.registration.scope).pathname;
 
   /* 1. API Supabase: sempre rede, nunca cache */
   if (url.hostname.endsWith('.supabase.co')) {
@@ -137,9 +208,9 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  /* 3. Arquivos do app (mesma origem): cache + atualização */
-  if (url.origin === self.location.origin) {
-    event.respondWith(staleWhileRevalidate(req, RUNTIME_CACHE));
+  /* 3. Arquivos do app (mesma origem, dentro do escopo): cache + atualização */
+  if (url.origin === self.location.origin && url.pathname.startsWith(escopo)) {
+    event.respondWith(staleWhileRevalidate(req));
     return;
   }
 
@@ -147,7 +218,7 @@ self.addEventListener('fetch', (event) => {
   if (url.hostname === 'cdn.jsdelivr.net' ||
       url.hostname === 'fonts.googleapis.com' ||
       url.hostname === 'fonts.gstatic.com') {
-    event.respondWith(staleWhileRevalidate(req, RUNTIME_CACHE));
+    event.respondWith(staleWhileRevalidate(req));
     return;
   }
 

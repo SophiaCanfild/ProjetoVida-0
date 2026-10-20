@@ -81,6 +81,9 @@ vida-mais/
 │   ├── historico.html            ← Histórico
 │   ├── exames.html               ← Exames
 │   ├── agendamentos.html         ← Agendamentos
+│   ├── js/config.js              ← cópia de shared/js/config.js (escopo do SW)
+│   ├── js/db.js                  ← cópia de shared/js/db.js (escopo do SW)
+│   ├── service-worker.js         ← cache offline (CACHE_VERSION v3)
 │   └── manifest.json             ← PWA manifest
 │
 ├── telao/                        ← 📺 Display da sala de espera
@@ -105,7 +108,8 @@ cd vida-mais
 1. Crie uma conta em [supabase.com](https://supabase.com) e crie um projeto
 2. Vá em **SQL Editor** → cole o conteúdo de `supabase/schema.sql` → **Run**
 3. Vá em **Settings > API** → copie a **URL** e a **anon key**
-4. Edite `shared/js/config.js`:
+4. Edite `shared/js/config.js` **e a cópia `paciente-app/js/config.js`** (o app do paciente usa a
+   cópia para poder funcionar offline — os dois arquivos precisam ter as mesmas credenciais):
 
 ```javascript
 SUPABASE_URL: "https://seu-projeto.supabase.co",
