@@ -162,6 +162,7 @@
       // Logado
       areaLogado.classList.remove('escondido');
       try {
+        if (DB.aguardarSincronizacao) { await DB.aguardarSincronizacao(); }
         const p = await DB.getPaciente(cpf);
         if (p && p.nome) {
           document.getElementById('saudacao-logado').textContent =

@@ -117,6 +117,7 @@
     }
 
     async function carregar() {
+      if (DB.aguardarSincronizacao) { await DB.aguardarSincronizacao(); }
       paciente = await DB.getPaciente(cpf);
       if (!paciente) { location.href = 'index.html'; return; }
       document.getElementById('nome-perfil').textContent = paciente.nome;
