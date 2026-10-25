@@ -26,10 +26,12 @@ const APP_CONFIG = {
   GUICHES: ["1", "2", "3"],
   TEMPO_POR_POSICAO: 12,
 
-  /* ---- MÉDICOS DISPONÍVEIS (para o telão) ---- */
+  /* ---- CONSULTÓRIO PADRÃO POR MÉDICO ----
+     O painel médico reconhece o usuário por CPF/CRM (nome é fallback).
+     O médico pode trocar a sala; a escolha fica salva por unidade. */
   MEDICOS: [
-    { consultorio: "1", nome: "Dr. Carlos Pereira",   especialidade: "Clínico Geral" },
-    { consultorio: "2", nome: "Dra. Carla Dermatologia", especialidade: "Dermatologia" }
+    { consultorio: "1", cpf: "12345678901", crm: "CRM/PR 12345", nome: "Dr. Alexandre Medicina", especialidade: "Clínico Geral" },
+    { consultorio: "2", cpf: "23456789012", crm: "CRM/PR 67890", nome: "Dra. Carla Dermatologia", especialidade: "Dermatologia" }
   ]
 };
 

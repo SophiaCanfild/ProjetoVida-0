@@ -40,18 +40,113 @@
     <div class="alert alert-warning mapa-aviso-demo">
       <strong>Confirmação presencial obrigatória.</strong>
       O exemplo inicial é ilustrativo. Antes de publicar, percorra as rotas na unidade, confira sentidos, andares,
-      tempos e acessibilidade, e marque a confirmação na aba <strong>Destinos e teste</strong>.
+      tempos e acessibilidade, e marque a confirmação na aba <strong>Testar e publicar</strong>.
       Rascunhos nunca alteram o telão.
     </div>
 
     <nav class="mapa-abas" aria-label="Etapas do editor">
-      <button type="button" class="mapa-aba ativa" data-aba="pontos" aria-selected="true">1. Pontos e planta</button>
-      <button type="button" class="mapa-aba" data-aba="caminhos" aria-selected="false">2. Caminhos <span id="total-caminhos" class="mapa-contador">0</span></button>
-      <button type="button" class="mapa-aba" data-aba="destinos" aria-selected="false">3. Destinos e teste</button>
+      <button type="button" class="mapa-aba ativa" data-aba="equipe" aria-selected="true">1. Equipe e salas</button>
+      <button type="button" class="mapa-aba" data-aba="pontos" aria-selected="false">2. Planta avançada</button>
+      <button type="button" class="mapa-aba" data-aba="caminhos" aria-selected="false">3. Caminhos <span id="total-caminhos" class="mapa-contador">0</span></button>
+      <button type="button" class="mapa-aba" data-aba="destinos" aria-selected="false">4. Testar e publicar</button>
     </nav>
 
-    <!-- PONTOS -->
-    <section id="aba-pontos" class="mapa-aba-conteudo">
+    <!-- EQUIPE E CADASTRO RÁPIDO DE CONSULTÓRIOS -->
+    <section id="aba-equipe" class="mapa-aba-conteudo">
+      <div class="mapa-resumo-equipe" aria-label="Resumo da equipe">
+        <div class="mapa-resumo-item"><strong id="total-medicos-equipe">0</strong><span>médicos cadastrados</span></div>
+        <div class="mapa-resumo-item"><strong id="total-medicos-vinculados">0</strong><span>com consultório</span></div>
+        <div class="mapa-resumo-item"><strong id="total-consultorios-operacional">0</strong><span>consultórios no mapa</span></div>
+      </div>
+
+      <section class="card mapa-equipe-card">
+        <div class="card-header mapa-card-header">
+          <div>
+            <h2>Médicos e consultórios</h2>
+            <p>Defina a sala principal de cada médico nesta unidade. Especialidade e CRM vêm do cadastro do usuário.</p>
+          </div>
+          <a href="index.html?pagina=funcionarios" class="btn btn-primary btn-sm">+ Cadastrar médico</a>
+        </div>
+        <div class="card-body">
+          <div class="table-container mapa-equipe-tabela">
+            <table class="table">
+              <thead><tr><th>Médico</th><th>Especialidade</th><th>CRM</th><th>Consultório principal</th><th>Ação</th></tr></thead>
+              <tbody id="lista-equipe-medicos"></tbody>
+            </table>
+          </div>
+          <p class="mapa-texto-ajuda">O vínculo é salvo centralmente por CPF e unidade. Se a sala ainda existir apenas no rascunho, publique o mapa antes de usá-la nas chamadas.</p>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-header mapa-card-header">
+          <div>
+            <h2>Consultórios da unidade</h2>
+            <p>Cadastre a sala uma vez. O sistema cria o ponto, o destino e o caminho automaticamente.</p>
+          </div>
+          <button type="button" id="btn-novo-consultorio-rapido" class="btn btn-primary btn-sm">+ Novo consultório</button>
+        </div>
+        <div class="card-body">
+          <div id="lista-consultorios-operacional" class="mapa-cartoes-consultorios"></div>
+        </div>
+      </section>
+
+      <section id="card-form-consultorio" class="card mapa-form-consultorio" hidden>
+        <div class="card-header">
+          <h2 id="titulo-form-consultorio">Novo consultório</h2>
+          <p>Sem identificadores técnicos ou coordenadas: eles serão gerados automaticamente.</p>
+        </div>
+        <div class="card-body">
+          <form id="form-consultorio-rapido">
+            <input type="hidden" id="consultorio-original">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="consultorio-numero">Número da sala *</label>
+                <input id="consultorio-numero" type="text" required placeholder="Ex.: 3">
+              </div>
+              <div class="form-group">
+                <label for="consultorio-nome">Nome exibido *</label>
+                <input id="consultorio-nome" type="text" required placeholder="Ex.: Consultório 3">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="consultorio-bloco">Bloco / ala</label>
+                <input id="consultorio-bloco" type="text" placeholder="Ex.: Bloco B">
+              </div>
+              <div class="form-group">
+                <label for="consultorio-andar">Andar</label>
+                <input id="consultorio-andar" type="text" placeholder="Ex.: Térreo">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="consultorio-origem">Caminho a partir de *</label>
+                <select id="consultorio-origem" required></select>
+              </div>
+              <div class="form-group">
+                <label for="consultorio-tempo">Tempo estimado (segundos) *</label>
+                <input id="consultorio-tempo" type="number" min="0" step="1" value="30" required>
+              </div>
+            </div>
+            <div class="form-group mapa-check-linha">
+              <label><input id="consultorio-acessivel" type="checkbox" checked> Caminho sem escadas ou obstáculos conhecidos</label>
+            </div>
+            <div class="form-group">
+              <label for="consultorio-instrucao">Orientação ao paciente</label>
+              <textarea id="consultorio-instrucao" rows="3" placeholder="Se ficar em branco, uma orientação objetiva será gerada."></textarea>
+            </div>
+            <div class="mapa-form-acoes">
+              <button type="submit" class="btn btn-primary">Salvar consultório</button>
+              <button type="button" id="btn-cancelar-consultorio" class="btn btn-secondary">Cancelar</button>
+            </div>
+          </form>
+        </div>
+      </section>
+    </section>
+
+    <!-- PLANTA AVANÇADA -->
+    <section id="aba-pontos" class="mapa-aba-conteudo" hidden>
       <div class="mapa-grade-editor">
         <section class="card mapa-canvas-card">
           <div class="card-header mapa-card-header">
@@ -227,10 +322,10 @@
         </section>
 
         <section class="card">
-          <div class="card-header mapa-card-header"><h2>Consultórios</h2><button type="button" id="btn-add-consultorio" class="btn btn-secondary btn-sm">+ Consultório</button></div>
+          <div class="card-header mapa-card-header"><h2>Consultórios — edição avançada</h2><button type="button" id="btn-add-consultorio" class="btn btn-secondary btn-sm">+ Destino manual</button></div>
           <div class="card-body">
             <div id="lista-destinos-consultorios" class="mapa-lista-destinos"></div>
-            <p class="mapa-texto-ajuda">O número deve ser o mesmo informado na chamada médica, por exemplo: 1, 2 ou 3.</p>
+            <p class="mapa-texto-ajuda">No dia a dia, use <strong>Equipe e salas</strong>. Esta seção permite ajustar manualmente números e pontos, se necessário.</p>
           </div>
         </section>
 
@@ -305,7 +400,9 @@
   <script src="../js/config.js"></script>
   <script src="../../telao/config/mapa-hospital.js"></script>
   <script src="../../shared/js/mapa-store.js"></script>
+  <script src="../../shared/js/equipe-consultorios.js"></script>
   <script src="../../telao/js/tv-mapa.js"></script>
+  <script src="../js/medico-consultorios.js"></script>
   <script src="../js/mapa-admin.js"></script>
   <script>
     if (typeof verificarAcesso === 'function' && verificarAcesso('admin')) {

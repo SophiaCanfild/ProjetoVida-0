@@ -106,6 +106,52 @@
 .mapa-contador { display: inline-block; min-width: 20px; padding: 1px 5px; border-radius: 10px; background: rgba(255,255,255,.22); }
 .mapa-aba:not(.ativa) .mapa-contador { background: var(--cinza-100); }
 
+.mapa-resumo-equipe { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-bottom: 18px; }
+.mapa-resumo-item {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 16px 18px;
+  border: 1px solid var(--cinza-200);
+  border-radius: var(--radius-lg);
+  background: var(--branco);
+  box-shadow: var(--sombra-sm);
+}
+.mapa-resumo-item strong { color: var(--azul-600); font-size: 1.65rem; line-height: 1; }
+.mapa-resumo-item span { color: var(--cinza-500); font-size: .78rem; font-weight: 700; }
+.mapa-equipe-card { margin-bottom: 18px; }
+.mapa-equipe-tabela { max-height: 520px; overflow: auto; }
+.mapa-equipe-tabela table { min-width: 860px; }
+.mapa-equipe-tabela td { vertical-align: middle; font-size: .8rem; }
+.mapa-equipe-medico { display: flex; align-items: center; gap: 10px; min-width: 210px; }
+.mapa-equipe-avatar {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--azul-100);
+  color: var(--azul-700);
+  font-size: .75rem;
+  font-weight: 850;
+}
+.mapa-equipe-medico small { display: block; margin-top: 3px; color: var(--cinza-500); font-size: .7rem; }
+.mapa-equipe-select { min-width: 190px; }
+.mapa-equipe-vazio { padding: 32px !important; color: var(--cinza-500); text-align: center; }
+.mapa-equipe-vinculo-inconsistente { color: var(--alerta); font-size: .7rem; }
+
+.mapa-cartoes-consultorios { display: grid; grid-template-columns: repeat(auto-fill, minmax(245px, 1fr)); gap: 12px; }
+.mapa-consultorio-card { padding: 15px; border: 1px solid var(--cinza-200); border-radius: 12px; background: var(--cinza-50); }
+.mapa-consultorio-topo { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.mapa-consultorio-topo h3 { margin: 0; color: var(--azul-900); font-size: .92rem; }
+.mapa-consultorio-numero { padding: 4px 9px; border-radius: var(--radius-full); background: var(--azul-100); color: var(--azul-700); font-size: .7rem; font-weight: 850; white-space: nowrap; }
+.mapa-consultorio-local { min-height: 20px; margin: 8px 0 12px; color: var(--cinza-500); font-size: .75rem; }
+.mapa-consultorio-equipe { margin-bottom: 12px; color: var(--cinza-600); font-size: .72rem; line-height: 1.5; }
+.mapa-consultorio-acoes { display: flex; gap: 7px; }
+.mapa-consultorio-vazio { grid-column: 1 / -1; padding: 26px; border: 1px dashed var(--cinza-300); border-radius: 12px; color: var(--cinza-500); text-align: center; }
+.mapa-form-consultorio { margin-top: 18px; border-color: var(--azul-200); }
+
 .mapa-grade-editor { display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(315px, .75fr); gap: 18px; align-items: start; }
 .mapa-grade-caminhos { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(350px, .85fr); gap: 18px; align-items: start; }
 .mapa-grade-destinos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
@@ -211,6 +257,8 @@
   .mapa-abas { width: 100%; overflow-x: auto; }
   .mapa-aba { flex: 1 0 auto; padding: 9px 12px; }
   .mapa-grade-destinos, .mapa-teste-grade, .mapa-publicacao-grade { grid-template-columns: 1fr; }
+  .mapa-resumo-equipe { grid-template-columns: 1fr; }
+  .mapa-resumo-item { padding: 12px 15px; }
   .mapa-canvas-rodape { align-items: flex-start; flex-direction: column; }
   .mapa-destino-linha { grid-template-columns: 90px minmax(130px,1fr) auto; }
   .mapa-acoes-topo .btn { flex: 1 1 auto; }

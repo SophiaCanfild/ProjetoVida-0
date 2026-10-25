@@ -713,11 +713,17 @@
     const c = lista.find(x => x.id === consultaId);
     if (!c) throw new Error('Consulta não encontrada');
 
+    const tipoChamada = (opcoes && opcoes.tipo) || 'triagem';
+    const consultorio = String((opcoes && opcoes.consultorio) || '').trim() || null;
+    if (tipoChamada === 'consulta' && !consultorio) {
+      throw new Error('Selecione um consultório antes de chamar o paciente para a consulta.');
+    }
+
     c.status = 'chamado';
     c.chamado_em = agora();
-    c.tipo_chamada = (opcoes && opcoes.tipo) || 'triagem';
+    c.tipo_chamada = tipoChamada;
     c.guiche = (opcoes && opcoes.guiche) || null;
-    c.consultorio = (opcoes && opcoes.consultorio) || null;
+    c.consultorio = consultorio;
 
     const paciente = DB.getPacientePorId(c.paciente_id);
     c.nome_chamado = paciente ? paciente.nome : 'Paciente';
@@ -725,12 +731,15 @@
     if (opcoes && opcoes.medico_nome) {
       c.medico_nome = opcoes.medico_nome;
     }
+    if (opcoes && opcoes.medico_crm) {
+      c.medico_crm = opcoes.medico_crm;
+    }
 
     gravar('consultas', lista);
     sbUpdate('consultas', {
       status: c.status, chamado_em: c.chamado_em, tipo_chamada: c.tipo_chamada,
       guiche: c.guiche, consultorio: c.consultorio, nome_chamado: c.nome_chamado,
-      medico_nome: c.medico_nome
+      medico_nome: c.medico_nome, medico_crm: c.medico_crm
     }, { id: consultaId });
 
     const destino = c.tipo_chamada === 'consulta'

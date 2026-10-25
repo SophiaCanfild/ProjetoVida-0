@@ -12,7 +12,32 @@
     <style>
         .content-area { display: none; }
         .content-area.active { display: block; }
-        
+
+        .consultorio-chamada {
+            padding: 16px;
+            border-bottom: 1px solid var(--cinza-200);
+            background: var(--azul-50);
+        }
+        .consultorio-chamada label {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            margin-bottom: 8px;
+            color: var(--cinza-700);
+            font-size: 0.8125rem;
+            font-weight: 700;
+        }
+        .consultorio-chamada select { width: 100%; }
+        .consultorio-chamada select:disabled { opacity: 0.75; cursor: wait; }
+        .consultorio-ajuda {
+            margin-top: 8px;
+            color: var(--cinza-600);
+            font-size: 0.72rem;
+            line-height: 1.45;
+        }
+        .consultorio-ajuda.alerta { color: var(--alerta); }
+        .consultorio-ajuda.erro { color: var(--erro); }
+
         .patient-detail-card {
             background: var(--verde-50);
             border-left: 4px solid var(--verde-400);
@@ -234,6 +259,18 @@
                         <div class="card">
                             <div class="card-header">
                                 <h3><i class="fas fa-list-ol me-2" style="color: var(--azul-500);"></i> Fila de Espera</h3>
+                            </div>
+                            <div class="consultorio-chamada">
+                                <label for="consultorioChamada">
+                                    <i class="fas fa-door-open" style="color: var(--azul-500);"></i>
+                                    Consultório para as chamadas
+                                </label>
+                                <select id="consultorioChamada" class="form-input" disabled>
+                                    <option value="">Carregando consultórios...</option>
+                                </select>
+                                <div id="consultorioAjuda" class="consultorio-ajuda" role="status" aria-live="polite">
+                                    O destino será usado no telão, no aplicativo e na chamada por voz.
+                                </div>
                             </div>
                             <div class="card-body p-0" style="max-height: 600px; overflow-y: auto;">
                                 <div id="listaEspera">
@@ -716,14 +753,23 @@
     
         <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../../shared/js/config.js"></script>
+    <script src="../../telao/config/mapa-hospital.js"></script>
+    <script src="../../shared/js/mapa-store.js"></script>
+    <script src="../../shared/js/equipe-consultorios.js"></script>
     <script src="../../shared/js/db.js"></script>
     <script src="../js/config.js"></script>
+    <script src="../js/medico-consultorios.js"></script>
     <script src="../js/prescricoes.js"></script>
     <script src="../js/medico-prescricoes.js"></script>
     <script>
         let consultaSelecionada = null;
         let pacienteSelecionado = null;
-        
+        let mapaConsultorios = null;
+        let equipeConsultorios = null;
+        let unidadeConsultorios = APP_CONFIG.UNIDADES[0];
+        let carregamentoConsultorios = null;
+        let chamadaEmAndamento = false;
+
         verificarAcesso('medico');
         DB.seedDemo();
         atualizarInfoUsuario();
@@ -733,6 +779,13 @@
             carregarFilaEspera();
             carregarHistorico();
             iniciarPrescricoes();
+            configurarConsultorios(unidadeConsultorios);
+            document.getElementById('consultorioChamada').addEventListener('change', function() {
+                if (this.value) {
+                    MedicoConsultorios.salvarPreferencia(getUsuarioLogado(), unidadeConsultorios, this.value);
+                }
+                atualizarAjudaConsultorio();
+            });
         });
         
         DB.on('triagem_realizada', () => carregarFilaEspera());
@@ -751,6 +804,127 @@
             if (pagina === 'exames') carregarExamesPagina();
         }
         
+        function atualizarAjudaConsultorio() {
+            const ajuda = document.getElementById('consultorioAjuda');
+            const select = document.getElementById('consultorioChamada');
+            const usuario = getUsuarioLogado();
+            ajuda.className = 'consultorio-ajuda';
+
+            if (!mapaConsultorios) {
+                ajuda.textContent = 'Carregando os destinos de ' + unidadeConsultorios + '...';
+                return;
+            }
+
+            const disponiveis = MedicoConsultorios.listar(mapaConsultorios);
+            if (!disponiveis.length) {
+                ajuda.classList.add('erro');
+                ajuda.textContent = 'Nenhum consultório está mapeado para ' + unidadeConsultorios +
+                    '. Solicite a configuração ao administrador antes de chamar um paciente.';
+                return;
+            }
+
+            if (!select.value) {
+                ajuda.textContent = 'Selecione a sala em que você atenderá. A escolha ficará salva para ' +
+                    (usuario ? usuario.nome : 'seu usuário') + ' nesta unidade.';
+                return;
+            }
+
+            const destino = disponiveis.find(function(item) { return item.numero === select.value; });
+            if (!destino) {
+                ajuda.classList.add('erro');
+                ajuda.textContent = 'A sala selecionada não está mais disponível no mapa. Escolha outro consultório.';
+                return;
+            }
+
+            const local = [destino.bloco, destino.andar].filter(Boolean).join(' • ');
+            const central = equipeConsultorios && typeof EquipeConsultorioStore !== 'undefined'
+                ? EquipeConsultorioStore.obterVinculo(equipeConsultorios, usuario) : null;
+            const origem = central && central.consultorio === select.value
+                ? ' Vínculo definido pelo Administrativo.' : '';
+            ajuda.textContent = destino.nome + (local ? ' — ' + local : '') + ' • ' + unidadeConsultorios +
+                '. O telão, o app e a voz usarão este destino.' + origem;
+            if (mapaConsultorios.configurado !== true) {
+                ajuda.classList.add('alerta');
+                ajuda.textContent += ' O trajeto ainda é demonstrativo até a publicação da planta validada.';
+            }
+        }
+
+        function renderizarConsultorios() {
+            const select = document.getElementById('consultorioChamada');
+            const disponiveis = MedicoConsultorios.listar(mapaConsultorios);
+            const usuario = getUsuarioLogado();
+            select.innerHTML = '';
+
+            const inicial = document.createElement('option');
+            inicial.value = '';
+            inicial.textContent = disponiveis.length ? 'Selecione o consultório' : 'Nenhum consultório mapeado';
+            select.appendChild(inicial);
+
+            disponiveis.forEach(function(destino) {
+                const option = document.createElement('option');
+                const local = [destino.bloco, destino.andar].filter(Boolean).join(' • ');
+                option.value = destino.numero;
+                option.textContent = destino.nome + (local ? ' — ' + local : '');
+                select.appendChild(option);
+            });
+
+            const vinculoCentral = equipeConsultorios && typeof EquipeConsultorioStore !== 'undefined'
+                ? EquipeConsultorioStore.obterVinculo(equipeConsultorios, usuario) : null;
+            select.value = MedicoConsultorios.escolhaInicial(
+                mapaConsultorios, usuario, unidadeConsultorios, vinculoCentral
+            );
+            select.disabled = !disponiveis.length;
+            atualizarAjudaConsultorio();
+        }
+
+        function configurarConsultorios(unidade) {
+            const nomeUnidade = unidade || APP_CONFIG.UNIDADES[0];
+            if (mapaConsultorios && unidadeConsultorios === nomeUnidade) {
+                return Promise.resolve(mapaConsultorios);
+            }
+            if (carregamentoConsultorios && unidadeConsultorios === nomeUnidade) {
+                return carregamentoConsultorios;
+            }
+
+            unidadeConsultorios = nomeUnidade;
+            mapaConsultorios = null;
+            equipeConsultorios = null;
+            const select = document.getElementById('consultorioChamada');
+            const ajuda = document.getElementById('consultorioAjuda');
+            select.disabled = true;
+            select.innerHTML = '<option value="">Carregando consultórios...</option>';
+            ajuda.className = 'consultorio-ajuda';
+            ajuda.textContent = 'Carregando os destinos de ' + nomeUnidade + '...';
+
+            const carregamento = Promise.all([
+                MedicoConsultorios.carregarMapa(nomeUnidade),
+                typeof EquipeConsultorioStore !== 'undefined'
+                    ? EquipeConsultorioStore.carregar(nomeUnidade).catch(function(erro) {
+                        console.warn('[Consultórios] Vínculo administrativo indisponível:', erro.message);
+                        return null;
+                    })
+                    : Promise.resolve(null)
+            ]);
+            carregamentoConsultorios = carregamento;
+            return carregamento.then(function(resultado) {
+                if (carregamentoConsultorios !== carregamento) return null;
+                mapaConsultorios = resultado[0];
+                equipeConsultorios = resultado[1];
+                carregamentoConsultorios = null;
+                renderizarConsultorios();
+                return mapaConsultorios;
+            }).catch(function(erro) {
+                if (carregamentoConsultorios !== carregamento) return null;
+                carregamentoConsultorios = null;
+                mapaConsultorios = null;
+                equipeConsultorios = null;
+                select.innerHTML = '<option value="">Falha ao carregar consultórios</option>';
+                ajuda.className = 'consultorio-ajuda erro';
+                ajuda.textContent = 'Não foi possível carregar os consultórios: ' + erro.message;
+                return null;
+            });
+        }
+
         function carregarFilaEspera() {
             const lista = document.getElementById('listaEspera');
             const fila = DB.getFila().filter(c => c.triagem);
@@ -769,13 +943,37 @@
             }).join('');
         }
         
-        function chamarParaConsulta(consultaId) {
-            const u = getUsuarioLogado();
+        async function chamarParaConsulta(consultaId) {
+            if (chamadaEmAndamento) return;
+            chamadaEmAndamento = true;
             try {
-                DB.chamarPaciente(consultaId, { tipo:'consulta', consultorio:'1', medico_nome:u?u.nome:'Médico(a)' });
-                mostrarToast('📢 Paciente chamado! Apareceu no telão e no app.', 'success');
+                const u = getUsuarioLogado();
+                const consulta = DB.getConsultaPorId(consultaId);
+                if (!u) throw new Error('Sua sessão expirou. Entre novamente.');
+                if (!consulta) throw new Error('Consulta não encontrada. Atualize a fila.');
+
+                const unidade = consulta.unidade || APP_CONFIG.UNIDADES[0];
+                const mapa = await configurarConsultorios(unidade);
+                if (!mapa) throw new Error('Não foi possível validar o consultório desta unidade. Tente novamente.');
+
+                const select = document.getElementById('consultorioChamada');
+                const destino = MedicoConsultorios.validar(mapa, select.value, unidade);
+                MedicoConsultorios.salvarPreferencia(u, unidade, destino.numero);
+
+                DB.chamarPaciente(consultaId, {
+                    tipo: 'consulta',
+                    consultorio: destino.numero,
+                    medico_nome: u.nome || 'Médico(a)',
+                    medico_crm: u.crm || u.registroProfissional || u.registro_profissional || null
+                });
+                mostrarToast('📢 Paciente chamado para o Consultório ' + destino.numero +
+                    '. O telão e o app foram atualizados.', 'success');
                 carregarFilaEspera();
-            } catch(e) { mostrarToast('Erro: '+e.message, 'error'); }
+            } catch(e) {
+                mostrarToast('Erro: ' + e.message, 'error');
+            } finally {
+                chamadaEmAndamento = false;
+            }
         }
         
         function selecionarPaciente(consultaId) {
