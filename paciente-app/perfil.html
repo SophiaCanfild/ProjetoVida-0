@@ -78,14 +78,6 @@
       </div>
     </div>
 
-     <div id="banner-demo" class="banner-demo escondido mt-16">
-      <b>🎛️ Área de demonstração</b>
-      <p style="margin-bottom:10px;">Carregue um paciente de exemplo (com consultas, exames, agendamentos e notificações) para testar o app completo na banca.</p>
-      <div class="botoes">
-        <button class="btn" id="btn-seed">✨ Carregar paciente de exemplo</button>
-        <button class="btn" id="btn-limpar">🗑️ Limpar dados demo</button>
-      </div>
-    </div>
   </main>
 
   <nav class="bottomnav">
@@ -146,7 +138,6 @@
       document.getElementById('ed-end').value = paciente.endereco || '';
       document.getElementById('ed-meds').value = paciente.medicamentos_uso || '';
 
-      document.getElementById('banner-demo').classList.toggle('escondido', SUPABASE_CONFIGURADO);
     }
 
     document.getElementById('btn-editar').onclick = () => {
@@ -172,30 +163,32 @@
 
     UI.mascararTelefone(document.getElementById('ed-tel'));
 
-    /* Demo */
-    document.getElementById('btn-seed').onclick = () => {
-      DB.seedDemo();
-      DB.setSessao('12345678909');
-      UI.toast('Paciente de exemplo carregado ✨', 'sucesso');
-      setTimeout(() => location.href = 'index.html', 1000);
-    };
-    document.getElementById('btn-limpar').onclick = () => {
-      UI.modalConfirmar({
-        titulo: 'Limpar dados demo?', texto: 'Todos os dados locais serão apagados.',
-        botao: 'Limpar', perigo: true,
-        onConfirmar: () => { DB.limparDemo(); DB.clearSessao(); location.href = 'index.html'; }
-      });
-    };
-
     carregar();
   </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3091264aaf293a8',t:'MTc4NzY0NDkxOA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3167ad8c8036ea3',t:'MTc4Nzc4NTUxMQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+
 <script>
 /* Vida+ PWA — registra o service worker (offline + push) */
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('service-worker.js')
-      .then((reg) => console.log('[PWA] Service worker ativo:', reg.scope))
+    /* updateViaCache: 'none' → o navegador NUNCA usa uma cópia em cache
+       HTTP do service-worker.js ao procurar atualização. Sem isso, um SW
+       antigo pode ficar preso por dias e o app continua quebrado offline. */
+    /* Quando um service worker novo assume o controle, recarrega a pagina
+       uma vez (no maximo 2 por sessao, para nao entrar em laco). Sem isso
+       o app no iPhone continuava exibindo a versao antiga em cache. */
+    const tinhaControlador = !!navigator.serviceWorker.controller;
+    const recargas = Number(sessionStorage.getItem('vidamais_recargas_sw') || 0);
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!tinhaControlador || recargas >= 2) return;
+      sessionStorage.setItem('vidamais_recargas_sw', String(recargas + 1));
+      location.reload();
+    });
+
+    navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' })
+      .then((reg) => {
+        console.log('[PWA] Service worker ativo:', reg.scope);
+        reg.update().catch(() => {});
+      })
       .catch((err) => console.warn('[PWA] Falha ao registrar SW:', err));
   });
 }

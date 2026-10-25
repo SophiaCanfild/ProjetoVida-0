@@ -86,13 +86,30 @@
 
     carregar();
   </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a30911c58f7193a8',t:'MTc4NzY0NDg5Mw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3167a798c886ea3',t:'MTc4Nzc4NTQ5Ng=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+
 <script>
 /* Vida+ PWA — registra o service worker (offline + push) */
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('service-worker.js')
-      .then((reg) => console.log('[PWA] Service worker ativo:', reg.scope))
+    /* updateViaCache: 'none' → o navegador NUNCA usa uma cópia em cache
+       HTTP do service-worker.js ao procurar atualização. Sem isso, um SW
+       antigo pode ficar preso por dias e o app continua quebrado offline. */
+    /* Quando um service worker novo assume o controle, recarrega a pagina
+       uma vez (no maximo 2 por sessao, para nao entrar em laco). Sem isso
+       o app no iPhone continuava exibindo a versao antiga em cache. */
+    const tinhaControlador = !!navigator.serviceWorker.controller;
+    const recargas = Number(sessionStorage.getItem('vidamais_recargas_sw') || 0);
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!tinhaControlador || recargas >= 2) return;
+      sessionStorage.setItem('vidamais_recargas_sw', String(recargas + 1));
+      location.reload();
+    });
+
+    navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' })
+      .then((reg) => {
+        console.log('[PWA] Service worker ativo:', reg.scope);
+        reg.update().catch(() => {});
+      })
       .catch((err) => console.warn('[PWA] Falha ao registrar SW:', err));
   });
 }

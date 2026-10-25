@@ -11,8 +11,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Vida+</title>
   <link rel="manifest" href="manifest.json">
-- <link rel="apple-touch-icon" href="icons/icon-192.png">
-+ <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="stylesheet" href="css/app.css">
 </head>
 <body class="tela-login">
@@ -27,22 +26,25 @@
 
     <!-- Visitante (não logado) -->
     <div id="area-visitante" class="escondido">
-      <h2>👋 Bem-vindo(a)!</h2>
-      <p class="suave" style="margin-bottom:18px;">
-        Seu cadastro é feito pela recepção da unidade. É só entrar com seu CPF para acompanhar tudo.
-      </p>
 
-      <button class="btn btn-primario" id="btn-entrar">🔐 Entrar com meu CPF</button>
+      <div class="inicio">
+        <div class="inicio-icone" id="inicio-icone"></div>
+        <h2>Bem-vindo(a)</h2>
+        <p class="suave">
+          A recepção faz seu cadastro. Aqui você acompanha seu atendimento
+          sem precisar de senha — é só o CPF.
+        </p>
+        <button class="btn btn-primario" id="btn-entrar">Entrar com meu CPF</button>
+      </div>
+
+      <ul class="vantagens">
+        <li><span class="vantagem-ic"></span> Acompanhe pelo celular</li>
+        <li><span class="vantagem-ic"></span> Senha e posição na fila</li>
+        <li><span class="vantagem-ic"></span> Histórico de consultas</li>
+      </ul>
 
       <a class="btn btn-contorno btn-bloco" href="../index.html" style="text-align:center;">← Voltar ao Portal Vida+</a>
 
-      <div class="banner-demo mt-16" style="background:linear-gradient(135deg,#6B4FA0,#4A3573);">
-        <b>🎬 MODO DEMONSTRAÇÃO</b>
-        <p style="margin-bottom:10px;">Para testar na banca, carregue um paciente de exemplo (cadastrado pela recepção) e entre com um toque.</p>
-        <div class="botoes">
-          <button class="btn" id="btn-demo-entrar">✨ Entrar como paciente demo</button>
-        </div>
-      </div>
     </div>
 
     <!-- Logado -->
@@ -51,20 +53,11 @@
       <p class="suave" style="margin-bottom:14px;">Como podemos ajudar hoje?</p>
 
       <!-- Atendimento ativo (senha) -->
-      <div id="cartao-ativo"></div>
+      <div id="cartao-ativo" class="cartao-ativo escondido"></div>
 
       <!-- Aviso de atendimento iniciado / nenhum -->
       <div id="faixa-status"></div>
 
-      <!-- Área demo: recepção inicia atendimento -->
-       <div id="banner-demo-logado" class="banner-demo escondido">
-        <b>🎬 MODO DEMONSTRAÇÃO</b>
-        <p style="margin-bottom:10px;">Simule a equipe da unidade trabalhando:</p>
-        <div class="botoes">
-          <button class="btn" id="btn-demo-iniciar">🩺 Simular: recepção iniciou atendimento</button>
-          <button class="btn" id="btn-demo-agendar">🗓️ Simular: agendamento de consulta</button>
-        </div>
-      </div>
 
       <!-- Atalhos -->
       <a class="mini-card" href="fila.html">
@@ -93,7 +86,7 @@
         <div class="seta-mini" id="seta-5"></div>
       </a>
 
-      <button class="btn btn-perigo btn-bloco" id="btn-sair-home">🚪 Sair da conta</button>
+      <button class="btn btn-perigo btn-bloco" id="btn-sair-home">Sair da conta</button>
       <a class="btn btn-contorno btn-bloco" href="../index.html" style="text-align:center;">← Voltar ao Portal Vida+</a>
     </div>
 
@@ -126,9 +119,16 @@
       document.getElementById(id).innerHTML = UI.icone('seta');
     });
 
+    /* Ícones do bloco de boas-vindas (visitante) */
+    document.getElementById('inicio-icone').innerHTML = UI.icone('coracao');
+    document.querySelectorAll('.vantagem-ic').forEach(el => {
+      el.innerHTML = UI.icone('check');
+    });
+
     function montarCartaoAtivo(ativa) {
       const el = document.getElementById('cartao-ativo');
-      if (!ativa) { el.innerHTML = ''; return; }
+      if (!ativa) { el.innerHTML = ''; el.classList.add('escondido'); return; }
+      el.classList.remove('escondido');
       el.innerHTML = `
         <div class="rot">Atendimento em andamento</div>
         <div class="senha-g">${ativa.senha}</div>
@@ -151,11 +151,6 @@
       const areaLogado = document.getElementById('area-logado');
 
       document.getElementById('btn-entrar').onclick = () => location.href = 'login.html';
-      document.getElementById('btn-demo-entrar').onclick = () => {
-        DB.seedDemo();
-        DB.setSessao('12345678909');
-        location.reload();
-      };
 
       if (!cpf) { areaVisitante.classList.remove('escondido'); return; }
 
@@ -171,28 +166,6 @@
         const fila = await DB.getMinhaFila(cpf);
         montarCartaoAtivo(fila.ativa);
         montarFaixa(fila.ativa);
-        document.getElementById('banner-demo-logado').classList.toggle('escondido', SUPABASE_CONFIGURADO);
-
-        document.getElementById('btn-demo-iniciar').onclick = async () => {
-          const btn = document.getElementById('btn-demo-iniciar');
-          btn.disabled = true;
-          try {
-            await DB.iniciarAtendimentoDemo(cpf);
-            UI.toast('Recepção iniciou seu atendimento ✓', 'sucesso');
-            montarCartaoAtivo(await DB.getMinhaFila(cpf).then(f => f.ativa));
-            montarFaixa(await DB.getMinhaFila(cpf).then(f => f.ativa));
-            Nav.atualizarBadge();
-            setTimeout(() => location.href = 'fila.html', 900);
-          } catch (e) { UI.toast('Erro: ' + e.message, 'erro'); btn.disabled = false; }
-        };
-
-        document.getElementById('btn-demo-agendar').onclick = async () => {
-          try {
-            await DB.agendarDemo(cpf);
-            UI.toast('Consulta agendada + lembrete criado ✓', 'sucesso');
-            Nav.atualizarBadge();
-          } catch (e) { UI.toast('Erro: ' + e.message, 'erro'); }
-        };
       } catch (e) { /* mantém padrão */ }
 
       document.getElementById('btn-sair-home').onclick = () => {
@@ -207,13 +180,30 @@
 
     initHome();
   </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a308d60d3a9ace20',t:'MTc4NzY0MjQ0Ng=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a31679533f4797d0',t:'MTc4Nzc4NTQ0OQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+
 <script>
 /* Vida+ PWA — registra o service worker (offline + push) */
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('service-worker.js')
-      .then((reg) => console.log('[PWA] Service worker ativo:', reg.scope))
+    /* updateViaCache: 'none' → o navegador NUNCA usa uma cópia em cache
+       HTTP do service-worker.js ao procurar atualização. Sem isso, um SW
+       antigo pode ficar preso por dias e o app continua quebrado offline. */
+    /* Quando um service worker novo assume o controle, recarrega a pagina
+       uma vez (no maximo 2 por sessao, para nao entrar em laco). Sem isso
+       o app no iPhone continuava exibindo a versao antiga em cache. */
+    const tinhaControlador = !!navigator.serviceWorker.controller;
+    const recargas = Number(sessionStorage.getItem('vidamais_recargas_sw') || 0);
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!tinhaControlador || recargas >= 2) return;
+      sessionStorage.setItem('vidamais_recargas_sw', String(recargas + 1));
+      location.reload();
+    });
+
+    navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' })
+      .then((reg) => {
+        console.log('[PWA] Service worker ativo:', reg.scope);
+        reg.update().catch(() => {});
+      })
       .catch((err) => console.warn('[PWA] Falha ao registrar SW:', err));
   });
 }

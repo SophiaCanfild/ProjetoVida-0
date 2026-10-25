@@ -94,6 +94,41 @@ const Nav = {
 
     Nav.atualizarBadge();
     setInterval(Nav.atualizarBadge, 20000);
+    Nav.indicadorOffline();
+  },
+
+  /* Faixa "offline" no topo: deixa visível que o app está rodando
+     com os dados salvos no aparelho (e não parece "quebrado"). */
+  indicadorOffline() {
+    if (typeof document === 'undefined' || !document.body) return;
+
+    let faixa = document.getElementById('faixa-offline');
+    if (!faixa) {
+      faixa = document.createElement('div');
+      faixa.id = 'faixa-offline';
+      faixa.setAttribute('role', 'status');
+      faixa.style.cssText = [
+        'position:fixed', 'left:0', 'right:0', 'bottom:0',
+        'z-index:9999', 'display:none',
+        'padding:10px 16px', 'font-size:13px', 'font-weight:600',
+        'text-align:center', 'line-height:1.3',
+        'color:#7c2d12', 'background:#fef3c7',
+        'border-top:1px solid #fcd34d'
+      ].join(';');
+      document.body.appendChild(faixa);
+    }
+
+    function atualizar() {
+      const offline = navigator.onLine === false;
+      faixa.textContent = offline
+        ? '📴 Você está offline — mostrando os dados salvos neste aparelho. As novidades chegam quando a internet voltar.'
+        : '';
+      faixa.style.display = offline ? 'block' : 'none';
+    }
+
+    window.addEventListener('online', atualizar);
+    window.addEventListener('offline', atualizar);
+    atualizar();
   }
 };
 

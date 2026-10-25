@@ -39,6 +39,105 @@
             border-radius: var(--radius-md);
             margin-bottom: 12px;
         }
+
+        /* ===== Receita Médica e Solicitar Exame ===== */
+        body.modal-aberto { overflow: hidden; }
+        .sem-margem { margin-bottom: 0 !important; }
+        .fw-bold { font-weight: 700; }
+        .nowrap { white-space: nowrap; }
+        .table th.text-right { text-align: right; }
+        .sub { font-size: 0.75rem; color: var(--cinza-500); margin-top: 2px; }
+        .secao-prescricao { border: 1px solid var(--cinza-200); border-radius: var(--radius-lg); padding: 18px; margin-top: 20px; background: var(--branco); }
+        .secao-titulo { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+        .secao-titulo h5 { margin: 0; font-size: 1rem; display: flex; align-items: center; gap: 8px; }
+        .secao-ajuda { font-size: 0.78rem; color: var(--cinza-500); margin: 0 0 14px; line-height: 1.5; }
+        .resumo-chip { font-size: 0.75rem; font-weight: 700; padding: 5px 12px; border-radius: var(--radius-full); background: var(--cinza-100); color: var(--cinza-600); }
+        .resumo-chip.ativo { background: var(--azul-50); color: var(--azul-600); }
+        .resumo-chip.perigo { background: var(--erro-bg); color: var(--erro); }
+        .mini-label { display: block; font-size: 0.72rem; font-weight: 700; color: var(--cinza-600); margin-bottom: 4px; }
+        .receita-item { border: 1px solid var(--cinza-200); transition: border-color .2s, background .2s; }
+        .receita-item .form-group { margin-bottom: 10px; }
+        .receita-item .form-input { padding: 8px 10px; }
+        .receita-item select.form-input { padding-right: 30px; }
+        .receita-item.tem-alergia { border-color: #F5C6C6; background: #FFF7F7; }
+        .receita-item.com-erro { border-color: var(--erro); box-shadow: 0 0 0 3px rgba(214, 69, 69, 0.12); }
+        .receita-topo { display: flex; gap: 12px; align-items: flex-end; }
+        .receita-topo .campo-med { flex: 1; min-width: 0; }
+        .receita-topo .campo-classe { width: 210px; flex-shrink: 0; }
+        .receita-num { width: 28px; height: 28px; border-radius: 50%; background: var(--azul-100); color: var(--azul-600); display: grid; place-items: center; font-weight: 800; font-size: 0.8rem; flex-shrink: 0; margin-bottom: 16px; }
+        .btn-remover { color: var(--cinza-400); margin-bottom: 10px; }
+        .btn-remover:hover { color: var(--erro); }
+        .receita-campos { display: grid; grid-template-columns: 1.1fr 1fr 1.4fr 1fr 1.1fr; gap: 10px; padding-left: 40px; }
+        .receita-item > .form-group.sem-margem, .receita-item > .item-alertas { padding-left: 40px; }
+        .item-alerta { font-size: 0.78rem; padding: 8px 12px; border-radius: var(--radius-md); margin-top: 8px; display: flex; gap: 8px; align-items: flex-start; line-height: 1.45; }
+        .item-alerta i { margin-top: 2px; }
+        .item-alerta.perigo { background: var(--erro-bg); color: var(--erro); border: 1px solid #F5C6C6; }
+        .item-alerta.aviso { background: var(--alerta-bg); color: var(--alerta); border: 1px solid #F5E3C3; }
+        .item-alerta.info { background: var(--info-bg); color: var(--azul-600); border: 1px solid var(--azul-200); }
+        .lista-vazia { padding: 16px; text-align: center; color: var(--cinza-400); font-size: 0.85rem; border: 1px dashed var(--cinza-200); border-radius: var(--radius-md); margin-bottom: 12px; }
+        .exame-linha { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border: 1px solid var(--cinza-200); border-radius: var(--radius-md); margin-bottom: 10px; background: var(--cinza-50); }
+        .exame-linha.urgente { border-left: 4px solid var(--erro); }
+        .exame-linha .btn-remover { margin-bottom: 0; }
+        .exame-icone { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: var(--alerta-bg); color: var(--alerta); flex-shrink: 0; }
+        .exame-info { flex: 1; min-width: 0; }
+        .exame-nome { font-weight: 700; font-size: 0.9rem; }
+        .exame-det { font-size: 0.78rem; color: var(--cinza-500); margin-top: 2px; }
+        .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+        .chip { border: 1px solid var(--azul-200); background: var(--azul-50); color: var(--azul-600); padding: 6px 12px; border-radius: var(--radius-full); font-size: 0.78rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-family: inherit; }
+        .chip:hover { background: var(--azul-100); }
+        .chip.adicionado { background: var(--sucesso-bg); border-color: #BBF7D0; color: var(--verde-700); }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(15, 42, 67, 0.45); display: none; align-items: flex-start; justify-content: center; padding: 40px 16px; z-index: 1000; overflow-y: auto; }
+        .modal-overlay.aberto { display: flex; }
+        #modalPrevia { z-index: 1100; }
+        .modal-box { background: var(--branco); border-radius: var(--radius-lg); box-shadow: var(--sombra-xl); width: 100%; max-width: 760px; animation: modalEntrar .18s ease-out; }
+        .modal-box.largo { max-width: 1000px; }
+        @keyframes modalEntrar { from { transform: translateY(12px); opacity: 0; } to { transform: none; opacity: 1; } }
+        .modal-cab { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 18px 22px; border-bottom: 1px solid var(--cinza-100); }
+        .modal-cab h3 { font-size: 1.05rem; display: flex; align-items: center; gap: 8px; margin: 0; }
+        .modal-corpo { padding: 20px 22px; }
+        .modal-rodape { padding: 14px 22px; border-top: 1px solid var(--cinza-100); display: flex; justify-content: flex-end; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--cinza-50); border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
+        .previa-frame { width: 100%; height: 72vh; border: 1px solid var(--cinza-200); border-radius: var(--radius-md); background: #e5e7eb; }
+        .doc-linha { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--cinza-200); border-radius: var(--radius-md); margin-bottom: 10px; }
+        .doc-icone { width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; background: var(--info-bg); color: var(--azul-600); flex-shrink: 0; }
+        .doc-icone.exame { background: var(--alerta-bg); color: var(--alerta); }
+        .doc-titulo { font-weight: 700; font-size: 0.9rem; }
+        .doc-det { font-size: 0.78rem; color: var(--cinza-500); }
+        .exame-resumo { background: var(--cinza-50); border: 1px solid var(--cinza-200); border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 16px; }
+        .exame-resumo .exame-det { margin-top: 6px; }
+        .pagina-cabecalho { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+        .pagina-cabecalho h2 { margin: 0; }
+        .resumo-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 16px; }
+        .resumo-card { background: var(--branco); border: 1px solid var(--cinza-200); border-radius: var(--radius-lg); padding: 16px; box-shadow: var(--sombra-sm); display: flex; align-items: center; gap: 14px; }
+        .resumo-icone { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; font-size: 1.1rem; flex-shrink: 0; }
+        .resumo-card .valor { font-size: 1.5rem; font-weight: 800; line-height: 1.1; }
+        .resumo-card .rotulo { font-size: 0.78rem; color: var(--cinza-500); }
+        .filtros { display: flex; gap: 12px; flex-wrap: wrap; }
+        .filtros input { flex: 1; min-width: 240px; }
+        .filtros select { width: auto; min-width: 210px; }
+        .tipo-receita { display: inline-block; font-size: 0.7rem; font-weight: 700; padding: 4px 10px; border-radius: var(--radius-full); white-space: nowrap; }
+        .tr-simples { background: var(--cinza-100); color: var(--cinza-600); }
+        .tr-antimicrobiano { background: var(--alerta-bg); color: var(--alerta); }
+        .tr-controle_especial { background: var(--erro-bg); color: var(--erro); }
+        .status-exame { display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; font-weight: 700; padding: 4px 10px; border-radius: var(--radius-full); white-space: nowrap; }
+        .st-solicitado { background: var(--alerta-bg); color: var(--alerta); }
+        .st-realizado { background: var(--info-bg); color: var(--azul-600); }
+        .st-resultado { background: var(--sucesso-bg); color: var(--verde-700); }
+        .st-cancelado { background: var(--cinza-100); color: var(--cinza-500); }
+        .linha-urgente td:first-child { box-shadow: inset 4px 0 0 var(--erro); }
+        .resultado-previa { font-size: 0.75rem; color: var(--verde-700); background: var(--sucesso-bg); border-radius: 8px; padding: 4px 8px; margin-top: 4px; max-width: 240px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .tabela-compacta th, .tabela-compacta td { padding: 12px 10px; }
+        .tabela-compacta th:first-child, .tabela-compacta td:first-child { padding-left: 16px; }
+        .tabela-compacta th:last-child, .tabela-compacta td:last-child { padding-right: 16px; }
+        .acoes { display: inline-flex; gap: 6px; }
+        @media (max-width: 1100px) {
+            .resumo-cards { grid-template-columns: repeat(2, 1fr); }
+            .receita-campos { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 768px) {
+            .receita-topo { flex-wrap: wrap; }
+            .receita-topo .campo-classe { width: 100%; }
+            .receita-campos, .receita-item > .form-group.sem-margem, .receita-item > .item-alertas { padding-left: 0; }
+        }
     </style>
 </head>
 <body>
@@ -124,9 +223,6 @@
                             <div style="font-weight: 600;" id="dataAtual">24/08/2024</div>
                         </div>
                     </div>
-                    <button class="topbar-btn">
-                        <i class="fas fa-bell"></i>
-                    </button>
                 </div>
             </header>
             
@@ -239,26 +335,53 @@
                                             <textarea class="form-input" id="conduta" rows="2" placeholder="Orientações e condutas..."></textarea>
                                         </div>
                                         
-                                        <!-- Receita -->
-                                        <h5 class="mb-3 mt-4"><i class="fas fa-prescription me-1" style="color: var(--info);"></i> Receita Médica</h5>
-                                        <div id="listaReceita">
-                                            <div class="receita-item">
-                                                <div class="form-row">
-                                                    <div class="form-group" style="margin-bottom: 0;">
-                                                        <input type="text" class="form-input" placeholder="Medicamento" name="med_nome[]">
-                                                    </div>
-                                                    <div class="form-group" style="margin-bottom: 0;">
-                                                        <input type="text" class="form-input" placeholder="Dosagem" name="med_dosagem[]">
-                                                    </div>
-                                                    <div class="form-group" style="margin-bottom: 0;">
-                                                        <input type="text" class="form-input" placeholder="Frequência" name="med_freq[]">
-                                                    </div>
+                                        <!-- Receita Médica -->
+                                        <div class="secao-prescricao" id="secaoReceita">
+                                            <div class="secao-titulo">
+                                                <h5><i class="fas fa-prescription" style="color: var(--info);"></i> Receita Médica</h5>
+                                                <span class="resumo-chip" id="receitaResumo">Nenhum medicamento</span>
+                                            </div>
+                                            <p class="secao-ajuda">Os medicamentos são separados automaticamente por tipo de receita:
+                                                <b>simples</b> (1 via), <b>antimicrobiano</b> (2 vias, válida por 10 dias — RDC Anvisa 471/2021) e
+                                                <b>controle especial C1</b> (2 vias, válida por 30 dias, até 3 por receita — Portaria SVS/MS 344/98).
+                                                O sistema avisa se o medicamento constar nas alergias do paciente.</p>
+                                            <div id="listaReceita"></div>
+                                            <div class="form-row mt-2">
+                                                <div class="form-group">
+                                                    <label class="form-label" for="receitaValidade">Validade da receita simples (dias)</label>
+                                                    <input type="number" class="form-input" id="receitaValidade" min="1" max="365" value="30">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="form-label" for="receitaOrientacoes">Orientações gerais ao paciente</label>
+                                                    <input type="text" class="form-input" id="receitaOrientacoes" placeholder="Ex.: retornar em 7 dias se não houver melhora">
                                                 </div>
                                             </div>
+                                            <div class="flex gap-2 flex-wrap">
+                                                <button type="button" class="btn btn-outline btn-sm" onclick="adicionarReceita()">
+                                                    <i class="fas fa-plus"></i> Adicionar medicamento
+                                                </button>
+                                                <button type="button" class="btn btn-ghost btn-sm" onclick="previsualizarReceita()">
+                                                    <i class="fas fa-eye"></i> Pré-visualizar receita
+                                                </button>
+                                            </div>
                                         </div>
-                                        <button type="button" class="btn btn-outline btn-sm mt-2" onclick="adicionarReceita()">
-                                            <i class="fas fa-plus"></i> Adicionar medicamento
-                                        </button>
+
+                                        <!-- Exames Solicitados -->
+                                        <div class="secao-prescricao" id="secaoExames">
+                                            <div class="secao-titulo">
+                                                <h5><i class="fas fa-vial" style="color: var(--alerta);"></i> Exames Solicitados</h5>
+                                                <span class="resumo-chip" id="examesResumo">Nenhum exame</span>
+                                            </div>
+                                            <div id="listaExamesAtendimento"></div>
+                                            <div class="flex gap-2 flex-wrap">
+                                                <button type="button" class="btn btn-outline btn-sm" onclick="abrirModalExame()">
+                                                    <i class="fas fa-plus"></i> Solicitar exame
+                                                </button>
+                                                <button type="button" class="btn btn-ghost btn-sm" onclick="previsualizarPedidoExames()">
+                                                    <i class="fas fa-eye"></i> Pré-visualizar solicitação
+                                                </button>
+                                            </div>
+                                        </div>
                                         
                                         <div class="flex gap-3 mt-4">
                                             <button type="submit" class="btn btn-success">
@@ -267,7 +390,7 @@
                                             <button type="button" class="btn btn-outline">
                                                 <i class="fas fa-file-medical"></i> Atestado
                                             </button>
-                                            <button type="button" class="btn btn-outline">
+                                            <button type="button" class="btn btn-outline" onclick="abrirModalExame()">
                                                 <i class="fas fa-vial"></i> Solicitar Exame
                                             </button>
                                         </div>
@@ -367,12 +490,41 @@
             <!-- Página: Receitas -->
             <div class="content-area" id="pageReceitas">
                 <div class="p-6">
-                    <h2 class="mb-4"><i class="fas fa-prescription me-2" style="color: var(--info);"></i> Receitas</h2>
+                    <div class="pagina-cabecalho">
+                        <h2><i class="fas fa-prescription me-2" style="color: var(--info);"></i> Receitas</h2>
+                        <button type="button" class="btn btn-primary" onclick="irParaAtendimento('receita')">
+                            <i class="fas fa-plus"></i> Nova receita
+                        </button>
+                    </div>
+                    <div class="resumo-cards" id="resumoReceitas"></div>
+                    <div class="card mb-4">
+                        <div class="card-body filtros">
+                            <input type="search" class="form-input" id="filtroReceitas" placeholder="Buscar por paciente, CPF, medicamento ou nº da receita..." oninput="carregarReceitas()">
+                            <select class="form-input" id="filtroTipoReceita" onchange="carregarReceitas()">
+                                <option value="">Todos os tipos</option>
+                                <option value="simples">Simples</option>
+                                <option value="antimicrobiano">Antimicrobiano</option>
+                                <option value="controle_especial">Controle especial</option>
+                            </select>
+                        </div>
+                    </div>
                     <div class="card">
-                        <div class="card-body">
-                            <div class="alert alert-info">
-                                <i class="fas fa-info-circle"></i>
-                                <span>As receitas são emitidas durante o atendimento médico.</span>
+                        <div class="card-body p-0">
+                            <div class="table-container">
+                                <table class="table tabela-compacta">
+                                    <thead>
+                                        <tr>
+                                            <th>Nº / Emissão</th>
+                                            <th>Paciente</th>
+                                            <th>Medicamentos</th>
+                                            <th>Tipo</th>
+                                            <th>Validade</th>
+                                            <th>Prescritor</th>
+                                            <th class="text-right">Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tabelaReceitas"></tbody>
+                                </table>
                             </div>
                         </div>
                     </div>
@@ -382,12 +534,48 @@
             <!-- Página: Exames -->
             <div class="content-area" id="pageExames">
                 <div class="p-6">
-                    <h2 class="mb-4"><i class="fas fa-vial me-2" style="color: var(--alerta);"></i> Solicitar Exames</h2>
+                    <div class="pagina-cabecalho">
+                        <h2><i class="fas fa-vial me-2" style="color: var(--alerta);"></i> Solicitar Exames</h2>
+                        <button type="button" class="btn btn-primary" onclick="irParaAtendimento('exame')">
+                            <i class="fas fa-plus"></i> Solicitar exame
+                        </button>
+                    </div>
+                    <div class="resumo-cards" id="resumoExames"></div>
+                    <div class="card mb-4">
+                        <div class="card-body filtros">
+                            <input type="search" class="form-input" id="filtroExames" placeholder="Buscar por paciente, CPF, exame ou nº do pedido..." oninput="carregarExamesPagina()">
+                            <select class="form-input" id="filtroStatusExame" onchange="carregarExamesPagina()">
+                                <option value="pendentes">Pendentes (solicitado / realizado)</option>
+                                <option value="">Todos os status</option>
+                                <option value="solicitado">Solicitado</option>
+                                <option value="realizado">Realizado / em análise</option>
+                                <option value="resultado_disponivel">Resultado disponível</option>
+                                <option value="cancelado">Cancelado</option>
+                            </select>
+                            <select class="form-input" id="filtroPrioridadeExame" onchange="carregarExamesPagina()">
+                                <option value="">Todas as prioridades</option>
+                                <option value="urgente">Urgente</option>
+                                <option value="rotina">Rotina</option>
+                            </select>
+                        </div>
+                    </div>
                     <div class="card">
-                        <div class="card-body">
-                            <div class="alert alert-info">
-                                <i class="fas fa-info-circle"></i>
-                                <span>Os exames são solicitados durante o atendimento médico.</span>
+                        <div class="card-body p-0">
+                            <div class="table-container">
+                                <table class="table tabela-compacta">
+                                    <thead>
+                                        <tr>
+                                            <th>Pedido / Data</th>
+                                            <th>Paciente</th>
+                                            <th>Exame</th>
+                                            <th>Prioridade</th>
+                                            <th>Local</th>
+                                            <th>Status</th>
+                                            <th class="text-right">Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tabelaExames"></tbody>
+                                </table>
                             </div>
                         </div>
                     </div>
@@ -395,11 +583,143 @@
             </div>
         </main>
     </div>
+
+    <!-- Modal: Solicitar Exame -->
+    <div class="modal-overlay" id="modalExame" role="dialog" aria-modal="true" aria-labelledby="modalExameTitulo">
+        <div class="modal-box">
+            <div class="modal-cab">
+                <div>
+                    <h3 id="modalExameTitulo"><i class="fas fa-vial" style="color: var(--alerta);"></i> Solicitar Exame</h3>
+                    <div class="sub" id="modalExamePaciente">—</div>
+                </div>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="fecharModal('modalExame')" aria-label="Fechar"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-corpo">
+                <span class="mini-label">Exames frequentes — clique para adicionar ou remover</span>
+                <div class="chips mb-4" id="chipsExames"></div>
+                <form id="formExame" autocomplete="off">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="exameNome">Exame <span class="required">*</span></label>
+                            <input type="text" class="form-input" id="exameNome" list="dlExames" placeholder="Digite ou escolha na lista">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="exameCategoria">Tipo / categoria</label>
+                            <select class="form-input" id="exameCategoria"></select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="examePrioridade">Prioridade</label>
+                            <select class="form-input" id="examePrioridade">
+                                <option value="rotina">Rotina</option>
+                                <option value="urgente">Urgente</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="exameLocal">Local de realização / encaminhamento</label>
+                            <input type="text" class="form-input" id="exameLocal" list="dlLocaisExame" placeholder="Laboratório, setor ou serviço de referência">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="exameOrientacao">Orientação de preparo</label>
+                        <input type="text" class="form-input" id="exameOrientacao" placeholder="Ex.: jejum de 8 horas">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="exameIndicacao">Indicação clínica / justificativa</label>
+                        <textarea class="form-input" id="exameIndicacao" rows="2" style="min-height: 64px;" placeholder="Hipótese diagnóstica, sinais e sintomas..."></textarea>
+                    </div>
+                    <div class="flex justify-end">
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i> Adicionar à solicitação</button>
+                    </div>
+                </form>
+                <span class="mini-label mt-4">Nesta solicitação</span>
+                <div id="listaExamesModal"></div>
+            </div>
+            <div class="modal-rodape">
+                <button type="button" class="btn btn-outline" onclick="previsualizarPedidoExames()"><i class="fas fa-eye"></i> Pré-visualizar</button>
+                <button type="button" class="btn btn-success" onclick="fecharModal('modalExame')"><i class="fas fa-check"></i> Concluir</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Atualizar status do exame -->
+    <div class="modal-overlay" id="modalStatusExame" role="dialog" aria-modal="true" aria-labelledby="modalStatusTitulo">
+        <div class="modal-box" style="max-width: 600px;">
+            <form id="formStatusExame">
+                <div class="modal-cab">
+                    <h3 id="modalStatusTitulo"><i class="fas fa-clipboard-check" style="color: var(--info);"></i> Atualizar exame</h3>
+                    <button type="button" class="btn btn-ghost btn-sm" onclick="fecharModal('modalStatusExame')" aria-label="Fechar"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-corpo">
+                    <div class="exame-resumo" id="statusExameResumo"></div>
+                    <div class="form-group">
+                        <label class="form-label" for="statusExameSelect">Novo status</label>
+                        <select class="form-input" id="statusExameSelect"></select>
+                    </div>
+                    <div class="form-group" id="grupoResultado">
+                        <label class="form-label" for="statusExameResultado">Resultado / laudo <span class="required">*</span></label>
+                        <textarea class="form-input" id="statusExameResultado" rows="4" placeholder="Descreva o resultado do exame..."></textarea>
+                        <div class="sub"><i class="fas fa-bell"></i> O paciente é notificado no app quando o resultado fica disponível.</div>
+                    </div>
+                    <div class="form-group" id="grupoMotivo">
+                        <label class="form-label" for="statusExameMotivo">Motivo do cancelamento <span class="required">*</span></label>
+                        <input type="text" class="form-input" id="statusExameMotivo" placeholder="Ex.: solicitado em duplicidade">
+                    </div>
+                </div>
+                <div class="modal-rodape">
+                    <button type="button" class="btn btn-outline" onclick="fecharModal('modalStatusExame')">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Documentos gerados ao finalizar a consulta -->
+    <div class="modal-overlay" id="modalDocumentos" role="dialog" aria-modal="true" aria-labelledby="modalDocumentosTitulo">
+        <div class="modal-box" style="max-width: 640px;">
+            <div class="modal-cab">
+                <div>
+                    <h3 id="modalDocumentosTitulo"><i class="fas fa-circle-check" style="color: var(--sucesso);"></i> Consulta finalizada</h3>
+                    <div class="sub" id="documentosPaciente"></div>
+                </div>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="fecharModal('modalDocumentos')" aria-label="Fechar"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-corpo">
+                <p class="secao-ajuda">Os documentos abaixo foram registrados e já aparecem no app do paciente. Imprima, assine e entregue ao paciente.</p>
+                <div id="listaDocumentos"></div>
+            </div>
+            <div class="modal-rodape">
+                <button type="button" class="btn btn-outline" onclick="imprimirTodosDocumentos()"><i class="fas fa-print"></i> Imprimir tudo</button>
+                <button type="button" class="btn btn-success" onclick="fecharModal('modalDocumentos')"><i class="fas fa-check"></i> Concluir</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Pré-visualização / impressão de documento -->
+    <div class="modal-overlay" id="modalPrevia" role="dialog" aria-modal="true" aria-labelledby="previaTitulo">
+        <div class="modal-box largo">
+            <div class="modal-cab">
+                <h3 id="previaTitulo"><i class="fas fa-file-lines"></i> Documento</h3>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="fecharModal('modalPrevia')" aria-label="Fechar"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-corpo" style="padding: 12px;">
+                <iframe id="previaFrame" class="previa-frame" title="Pré-visualização do documento"></iframe>
+            </div>
+            <div class="modal-rodape">
+                <span class="sub" id="previaAviso" style="margin-right: auto;"></span>
+                <button type="button" class="btn btn-outline" onclick="fecharModal('modalPrevia')">Fechar</button>
+                <button type="button" class="btn btn-primary" onclick="imprimirPrevia()"><i class="fas fa-print"></i> Imprimir</button>
+            </div>
+        </div>
+    </div>
     
         <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../../shared/js/config.js"></script>
     <script src="../../shared/js/db.js"></script>
     <script src="../js/config.js"></script>
+    <script src="../js/prescricoes.js"></script>
+    <script src="../js/medico-prescricoes.js"></script>
     <script>
         let consultaSelecionada = null;
         let pacienteSelecionado = null;
@@ -412,6 +732,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             carregarFilaEspera();
             carregarHistorico();
+            iniciarPrescricoes();
         });
         
         DB.on('triagem_realizada', () => carregarFilaEspera());
@@ -426,6 +747,8 @@
             document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
             document.querySelector(`.menu-item[data-page="${pagina}"]`)?.classList.add('active');
             if (pagina === 'historico') carregarHistorico();
+            if (pagina === 'receitas') carregarReceitas();
+            if (pagina === 'exames') carregarExamesPagina();
         }
         
         function carregarFilaEspera() {
@@ -458,6 +781,8 @@
         function selecionarPaciente(consultaId) {
             const c = DB.getConsultaPorId(consultaId);
             if (!c) return;
+            if (!podeTrocarPaciente(consultaId)) return;   // receita/exames pendentes do paciente atual
+            const trocouPaciente = !consultaSelecionada || consultaSelecionada.id !== consultaId;
             consultaSelecionada = c;
             pacienteSelecionado = DB.getPacientePorId(c.paciente_id);
             if (!pacienteSelecionado) return;
@@ -487,35 +812,43 @@
             const al=pacienteSelecionado.alergias;
             if(al&&al.length&&al[0]!=='Nenhuma'){document.getElementById('alergiaAlert').classList.remove('hidden');document.getElementById('pacienteAlergias').textContent=al.join(', ');}
             else{document.getElementById('alergiaAlert').classList.add('hidden');}
+            if (trocouPaciente) limparPrescricao(); else revalidarAlertasReceita();
         }
         
-        function adicionarReceita() {
-            const l=document.getElementById('listaReceita'),n=document.createElement('div');
-            n.className='receita-item';n.innerHTML='<div class="form-row"><div class="form-group" style="margin-bottom:0"><input type="text" class="form-input" placeholder="Medicamento" name="med_nome[]"></div><div class="form-group" style="margin-bottom:0"><input type="text" class="form-input" placeholder="Dosagem" name="med_dosagem[]"></div><div class="form-group" style="margin-bottom:0"><input type="text" class="form-input" placeholder="Frequência" name="med_freq[]"></div></div>';
-            l.appendChild(n);
-        }
+        // adicionarReceita(), receita e exames: ver ../js/medico-prescricoes.js
         
         document.getElementById('formProntuario')?.addEventListener('submit', function(e) {
             e.preventDefault();
             if(!consultaSelecionada){mostrarToast('Selecione um paciente','error');return;}
+            // Receita e exames: valida (dose, frequência, alergias...) antes de finalizar
+            const prescricao = prepararPrescricaoParaFinalizar();
+            if (!prescricao) return;
             const u=getUsuarioLogado();
-            const mn=document.querySelectorAll('[name="med_nome[]"]'),md=document.querySelectorAll('[name="med_dosagem[]"]'),mf=document.querySelectorAll('[name="med_freq[]"]');
-            const receita=[];mn.forEach((el,i)=>{if(el.value.trim())receita.push({nome:el.value.trim(),dosagem:md[i]?md[i].value:'',frequencia:mf[i]?mf[i].value:''});});
-            DB.finalizarConsulta(consultaSelecionada.id,{
-                diagnostico:document.getElementById('diagnostico').value,
-                cid10:document.getElementById('cid10').value,
-                conduta:document.getElementById('conduta').value,
-                orientacoes:'',receita:receita,exames:[],
-                medico_nome:u?u.nome:'Médico(a)',medico_crm:u?(u.crm||''):''
-            });
-            mostrarToast('✅ Consulta finalizada! Relatório disponível no app do paciente.','success');
+            let docs;
+            try {
+                docs = registrarPrescricao(consultaSelecionada, prescricao);
+                DB.finalizarConsulta(consultaSelecionada.id,{
+                    diagnostico:document.getElementById('diagnostico').value,
+                    cid10:document.getElementById('cid10').value,
+                    conduta:document.getElementById('conduta').value,
+                    orientacoes:prescricao.orientacoes,receita:docs.itensFoto,exames:docs.examesFoto,
+                    medico_nome:u?u.nome:'Médico(a)',medico_crm:u?(u.crm||''):''
+                });
+            } catch (err) {
+                mostrarToast('Erro ao finalizar: ' + err.message, 'error');
+                return;
+            }
+            mostrarToast('✅ Consulta finalizada! Relatório, receitas e exames disponíveis no app do paciente.','success');
+            const pacienteAtendido = pacienteSelecionado;
             document.getElementById('semPaciente').classList.remove('hidden');
             document.getElementById('comPaciente').classList.add('hidden');
             document.getElementById('pacienteStatus').className='badge badge-secondary';
             document.getElementById('pacienteStatus').textContent='Selecione um paciente';
             ['diagnostico','cid10','hda','exameFisico','conduta'].forEach(id=>document.getElementById(id).value='');
-            document.getElementById('listaReceita').innerHTML='<div class="receita-item"><div class="form-row"><div class="form-group" style="margin-bottom:0"><input type="text" class="form-input" placeholder="Medicamento" name="med_nome[]"></div><div class="form-group" style="margin-bottom:0"><input type="text" class="form-input" placeholder="Dosagem" name="med_dosagem[]"></div><div class="form-group" style="margin-bottom:0"><input type="text" class="form-input" placeholder="Frequência" name="med_freq[]"></div></div></div>';
-            consultaSelecionada=null;pacienteSelecionado=null;carregarFilaEspera();
+            consultaSelecionada=null;pacienteSelecionado=null;
+            limparPrescricao();
+            carregarFilaEspera();
+            abrirModalDocumentos({ paciente: pacienteAtendido, receitas: docs.receitas, exames: docs.exames });
         });
         
         function carregarHistorico() {

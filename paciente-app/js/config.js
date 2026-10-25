@@ -36,7 +36,20 @@ const APP_CONFIG = {
 /* ---- CONFIGURAÇÃO DO TELÃO ---- */
 const TV_CONFIG = {
   UNIDADE: APP_CONFIG.UNIDADES[0],
-  TEMPO_POR_POSICAO: APP_CONFIG.TEMPO_POR_POSICAO
+  TEMPO_POR_POSICAO: APP_CONFIG.TEMPO_POR_POSICAO,
+
+  /* ---- VOZ DAS CHAMADAS (telão) ----
+     Usa a voz pt-BR do próprio navegador (Web Speech API).
+     Detalhes e comportamento em telao/js/voz-chamada.js */
+  VOZ_ATIVA: true,            /* false = telão só com o bip */
+  VOZ_IDIOMA: 'pt-BR',
+  VOZ_REPETICOES: 2,          /* quantas vezes repete cada chamada */
+  VOZ_INTERVALO_MS: 1500,     /* pausa entre as repetições */
+  VOZ_APOS_SOM_MS: 1000,      /* espera o bip terminar antes de falar */
+  VOZ_VOLUME: 1,              /* 0 a 1 */
+  VOZ_VELOCIDADE: 0.95,       /* 1 = normal; <1 fala mais devagar */
+  VOZ_DIGITO_A_DIGITO: false  /* false: "A cento e vinte e três"
+                                 true : "A um dois três" */
 };
 
 /* Supabase configurado? */

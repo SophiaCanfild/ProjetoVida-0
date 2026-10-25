@@ -80,7 +80,7 @@
           <div class="linha"><span class="rotulo">Sintomas</span><span class="valor" id="t-sintomas">—</span></div>
           <div class="linha"><span class="rotulo">Há quanto tempo</span><span class="valor" id="t-tempo">—</span></div>
           <div class="linha"><span class="rotulo">Intensidade da dor</span><span class="valor" id="t-dor">—</span></div>
-          <div class="linha"><span class="rotulo">Classificação de risco</span><span class="valor" id="t-risco">—</span></div>
+          <div class="linha linha-risco"><span class="rotulo">Classificação de risco</span><span class="valor" id="t-risco">—</span></div>
           <div class="grade-sinais" id="t-sinais"></div>
           <div class="linha mt-12"><span class="rotulo">Observações</span><span class="valor" id="t-obs">—</span></div>
           <div class="linha"><span class="rotulo">Enfermeiro(a)</span><span class="valor" id="t-enf">—</span></div>
@@ -97,17 +97,6 @@
           <li>Em atendimento</li>
           <li>Consulta finalizada</li>
         </ul>
-      </div>
-
-      <!-- Área demo: simular equipe -->
-        <div id="banner-demo" class="banner-demo escondido">
-        <b>🎬 MODO DEMONSTRAÇÃO</b>
-        <p style="margin-bottom:10px;">Simule a equipe da unidade (como o sistema médico faria):</p>
-        <div class="botoes">
-          <button class="btn" id="btn-demo-triagem">🌡️ Enfermeira faz a triagem</button>
-          <button class="btn" id="btn-demo-chamada">📺 Telão chama o nome</button>
-          <button class="btn" id="btn-demo-finalizar">📋 Médico finaliza consulta</button>
-        </div>
       </div>
 
       <button class="btn btn-perigo btn-bloco" id="btn-cancelar">
@@ -258,8 +247,6 @@
         if (i === 0) li.className = 'feito';
       });
 
-      /* Banner demo */
-      document.getElementById('banner-demo').classList.toggle('escondido', SUPABASE_CONFIGURADO);
     }
 
     async function atualizar() {
@@ -289,47 +276,46 @@
       });
     };
 
-    /* ===== SIMULAÇÕES (o que o sistema médico faria) ===== */
-    document.getElementById('btn-demo-triagem').onclick = async () => {
-      try {
-        await DB.simularTriagem(cpf);
-        UI.toast('Enfermeira concluiu a triagem ✓', 'sucesso');
-        Nav.atualizarBadge();
-        atualizar();
-      } catch (e) { UI.toast('Erro: ' + e.message, 'erro'); }
-    };
-
-    document.getElementById('btn-demo-chamada').onclick = async () => {
-      try {
-        await DB.simularChamada(cpf);
-        UI.toast('Telão chamou seu nome! 🔔', 'sucesso');
-        atualizar();
-      } catch (e) { UI.toast('Erro: ' + e.message, 'erro'); }
-    };
-
-    document.getElementById('btn-demo-finalizar').onclick = async () => {
-      try {
-        await DB.simularFinalizar(cpf);
-        UI.toast('Consulta finalizada — relatório disponível ✓', 'sucesso');
-        Nav.atualizarBadge();
-        setTimeout(() => location.href = 'consulta.html?id=' + consultaAtiva.id, 1000);
-      } catch (e) { UI.toast('Erro: ' + e.message, 'erro'); }
-    };
-
-    /* Guarda o nome (usado na notificação) */
-    DB.getPaciente(cpf).then(p => { if (p) localStorage.setItem('vidamais_ultimo_nome', p.nome); });
+    /* Guarda o nome (usado na notificação).
+       ATENÇÃO: DB.getPaciente() é SÍNCRONA e devolve objeto ou null —
+       chamar .then() nela lançava "Cannot read properties of null
+       (reading 'then')" e abortava o resto deste script (o push e a
+       escuta do telão nunca eram configurados). */
+    try {
+      const pacienteNome = DB.getPaciente(cpf);
+      if (pacienteNome && pacienteNome.nome) {
+        localStorage.setItem('vidamais_ultimo_nome', pacienteNome.nome);
+      }
+    } catch (e) { /* sem paciente local: segue o app */ }
 
     /* Push real + escuta do telão */
     Notificacao.configurarOneSignal();
     Notificacao.iniciarEscuta();
   </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3090ed58ebf93a8',t:'MTc4NzY0NDc3Mg=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a316785bd8b397d0',t:'MTc4Nzc4NTQwOQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+
 <script>
 /* Vida+ PWA — registra o service worker (offline + push) */
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('service-worker.js')
-      .then((reg) => console.log('[PWA] Service worker ativo:', reg.scope))
+    /* updateViaCache: 'none' → o navegador NUNCA usa uma cópia em cache
+       HTTP do service-worker.js ao procurar atualização. Sem isso, um SW
+       antigo pode ficar preso por dias e o app continua quebrado offline. */
+    /* Quando um service worker novo assume o controle, recarrega a pagina
+       uma vez (no maximo 2 por sessao, para nao entrar em laco). Sem isso
+       o app no iPhone continuava exibindo a versao antiga em cache. */
+    const tinhaControlador = !!navigator.serviceWorker.controller;
+    const recargas = Number(sessionStorage.getItem('vidamais_recargas_sw') || 0);
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!tinhaControlador || recargas >= 2) return;
+      sessionStorage.setItem('vidamais_recargas_sw', String(recargas + 1));
+      location.reload();
+    });
+
+    navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' })
+      .then((reg) => {
+        console.log('[PWA] Service worker ativo:', reg.scope);
+        reg.update().catch(() => {});
+      })
       .catch((err) => console.warn('[PWA] Falha ao registrar SW:', err));
   });
 }

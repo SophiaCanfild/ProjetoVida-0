@@ -78,7 +78,7 @@ Arquivos envolvidos:
 - `shared/js/mapa-store.js`: rascunho, cache e publicação;
 - `telao/config/mapa-hospital.js`: modelo demonstrativo e fallback;
 - `telao/js/tv-mapa.js`: validação, Dijkstra, acessibilidade, voz e SVG;
-- `telao/js/tv-voz.js`: acrescenta a orientação validada ao anúncio;
+- `telao/js/voz-chamada.js`: anúncio, controles de áudio e orientação validada;
 - `telao/index.html` e `telao/css/tv.css`: apresentação no telão.
 
 ### Supabase indisponível / demonstração

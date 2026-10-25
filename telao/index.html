@@ -158,8 +158,11 @@
   <script src="config/mapa-hospital.js?v=20261025"></script>
   <script src="../shared/js/mapa-store.js?v=20261025"></script>
   <script src="js/tv-mapa.js?v=20261025"></script>
-  <script src="js/tv-voz.js?v=20261025"></script>
+  <script src="js/som-chamada.js"></script>
+  <script src="js/voz-chamada.js"></script>
   <script>
+    /* O bip da chamada vive em js/som-chamada.js (NotificarTV),
+       que reaproveita um único AudioContext. */
     /* ===== Avisos institucionais (rotativos) =====
        Somente mensagens gerais — nada de dados de pacientes. */
     const AVISOS = [
@@ -326,11 +329,18 @@
           destaque.classList.remove('animando');
           void destaque.offsetWidth; // reinicia a animação
           destaque.classList.add('animando');
-          if (chamadaInedita && typeof VozChamadaTV !== 'undefined') {
-            const chamadaParaVoz = typeof OrientacaoHospitalTV !== 'undefined'
-              ? OrientacaoHospitalTV.prepararChamadaParaVoz(ultima)
-              : ultima;
-            VozChamadaTV.anunciar(chamadaParaVoz);
+          if (chamadaInedita) {
+            const silenciado = typeof VozChamada !== 'undefined' && VozChamada.estaSilenciado();
+            if (!silenciado && typeof NotificarTV !== 'undefined') NotificarTV.somChamada();
+
+            /* Uma chamada nova interrompe a fala da anterior. A orientação
+               do mapa só é anexada quando a versão publicada está validada. */
+            if (typeof VozChamada !== 'undefined') {
+              const chamadaParaVoz = typeof OrientacaoHospitalTV !== 'undefined'
+                ? OrientacaoHospitalTV.prepararChamadaParaVoz(ultima)
+                : ultima;
+              VozChamada.falarChamada(chamadaParaVoz);
+            }
           }
         } else {
           renderizarDestaque(ultima);

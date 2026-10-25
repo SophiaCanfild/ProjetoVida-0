@@ -114,11 +114,15 @@ const Notificacao = (function () {
 
   function iniciarEscuta() {
     if (!SUPABASE_CONFIGURADO || !DB.getSessao() || canalChamada) return;
-    if (typeof supabaseClient === 'undefined' || !supabaseClient ||
-        typeof supabaseClient.channel !== 'function') return;
+
+    // Offline o CDN pode não carregar. Nunca acesse um global ausente.
+    const cliente = (typeof supabaseClient !== 'undefined' && supabaseClient)
+      ? supabaseClient
+      : (typeof supabase !== 'undefined' && supabase && supabase.channel ? supabase : null);
+    if (!cliente || typeof cliente.channel !== 'function') return;
 
     const cpf = DB.getSessao();
-    canalChamada = supabaseClient.channel('consultas-app-' + cpf);
+    canalChamada = cliente.channel('consultas-app-' + cpf);
     canalChamada
       .on('postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'consultas', filter: 'cpf=eq.' + cpf },

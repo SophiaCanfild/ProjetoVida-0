@@ -27,7 +27,7 @@
    Ao publicar nova versão do app, incremente CACHE_VERSION.
    ============================================================ */
 
-const CACHE_VERSION = 'vidaplus-paciente-v4';
+const CACHE_VERSION = 'vidaplus-paciente-v12';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const RUNTIME_CACHE = CACHE_VERSION + '-runtime';
 
@@ -53,6 +53,7 @@ const APP_SHELL = [
   './js/nav.js',
   './js/ui.js',
   './js/notificacao.js',
+  './status-offline.html',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -151,8 +152,11 @@ async function networkFirst(req, fallbackUrl) {
     const hit = await matchAny(req, opcoes);
     if (hit) return hit;
 
-    /* Ainda offline: entrega o app shell (index) cacheado */
-    if (fallbackUrl) {
+    /* Ainda offline: entrega o app shell (index) cacheado.
+       Só para páginas do próprio app — não devolve o shell para
+       navegações de fora do escopo (ex.: /cdn-cgi/...). */
+    const foraDoEscopo = !new URL(req.url).pathname.startsWith(new URL(self.registration.scope).pathname);
+    if (fallbackUrl && !foraDoEscopo) {
       const shellUrl = new URL(fallbackUrl, self.registration.scope).href;
       const shell = await matchAny(new Request(shellUrl), { ignoreSearch: true });
       if (shell) return shell;
@@ -208,9 +212,13 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  /* 3. Arquivos do app (mesma origem, dentro do escopo): cache + atualização */
+  /* 3. Arquivos do app (mesma origem, dentro do escopo): rede primeiro.
+     Antes era cache-primeiro (stale-while-revalidate), e isso criava um
+     descompasso: o HTML vinha novo da rede e o CSS velho do cache, então
+     uma correção de CSS simplesmente não aparecia na tela. Online sempre
+     pega a versão atual; offline cai no cache. */
   if (url.origin === self.location.origin && url.pathname.startsWith(escopo)) {
-    event.respondWith(staleWhileRevalidate(req));
+    event.respondWith(networkFirst(req, null));
     return;
   }
 

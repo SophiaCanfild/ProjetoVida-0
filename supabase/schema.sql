@@ -17,7 +17,8 @@
 --
 -- O QUE ELE FAZ (todas as fases são idempotentes)
 --   FASE 0  Preserva tabelas do modelo antigo (*_legado)
---   FASE 1  Cria as 8 tabelas do sistema
+--   FASE 1  Cria as 10 tabelas do sistema (inclui receitas e
+--           exames_solicitados — receita médica e pedido de exames)
 --   FASE 2  Garante TODAS as colunas usadas pelo app
 --   FASE 3  Garante PK, defaults e NOT NULL
 --   FASE 4  Garante as chaves estrangeiras
@@ -26,7 +27,8 @@
 --   FASE 7  Garante GRANTs para anon/authenticated
 --   FASE 8  Publica as tabelas no Realtime
 --   FASE 9  Recria a view fila_espera e a função posicao_fila
---   FASE 10 Dados de exemplo (logins e pacientes da demo)
+--   FASE 10 Dados de exemplo (logins e pacientes da demo) e
+--           recuperação de receitas/exames gravados nas consultas
 --   FASE 11 Verificação final (mostra o que falta, se algo faltar)
 --
 -- ⚠️ SEGURANÇA: o login é feito no navegador (CPF + senha) e a
@@ -264,6 +266,93 @@ CREATE TABLE IF NOT EXISTS public.configuracoes (
     atualizado_em  TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- ------------------------------------------------------------
+-- 1.9 RECEITAS — documento emitido pelo médico (área do médico)
+-- MAPA_TABELAS.receitas em db.js
+-- tipo: simples (1 via) | antimicrobiano (2 vias, 10 dias — RDC 471/2021)
+--       | controle_especial (2 vias, 30 dias, até 3 itens — Portaria 344/98)
+-- As chaves estrangeiras são criadas na FASE 4.
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.receitas (
+    id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    consulta_id    UUID         NOT NULL,                  -- FK → consultas (passo 3)
+    paciente_id    UUID,                                   -- FK → pacientes (passo 3)
+    cpf            VARCHAR(11)  NOT NULL,
+    numero         VARCHAR(30)  NOT NULL,                  -- ex.: RX-20261025-7KQ2M
+    tipo           VARCHAR(20)  NOT NULL DEFAULT 'simples',
+    vias           SMALLINT     NOT NULL DEFAULT 1,
+    itens          JSONB        NOT NULL DEFAULT '[]'::jsonb,
+                   -- [{ nome, classe, dosagem, via, frequencia, duracao, quantidade, obs }]
+    orientacoes    TEXT,
+    validade_dias  SMALLINT,
+    valida_ate     DATE,
+    alertas        JSONB        NOT NULL DEFAULT '[]'::jsonb,
+                   -- alertas de alergia confirmados pelo médico:
+                   -- [{ tipo, medicamento, alergia, motivo, confirmado_por, confirmado_em }]
+    medico_nome    VARCHAR(160),
+    medico_crm     VARCHAR(30),
+    unidade        VARCHAR(80),
+    emitida_em     TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    criado_em      TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT receitas_numero_unico   UNIQUE (numero),
+    CONSTRAINT receitas_tipo_valido    CHECK (tipo IN ('simples', 'antimicrobiano', 'controle_especial')),
+    -- simples = 1 via; antimicrobiano e controle especial = 2 vias (uma fica retida na farmácia)
+    CONSTRAINT receitas_vias_por_tipo  CHECK ((tipo = 'simples' AND vias = 1) OR (tipo <> 'simples' AND vias = 2)),
+    -- validade: antimicrobiano 10 dias (RDC Anvisa 471/2021); controle especial 30 dias (Portaria SVS/MS 344/98)
+    CONSTRAINT receitas_validade       CHECK (
+           (tipo = 'simples'           AND (validade_dias IS NULL OR validade_dias BETWEEN 1 AND 365))
+        OR (tipo = 'antimicrobiano'    AND validade_dias = 10)
+        OR (tipo = 'controle_especial' AND validade_dias = 30)),
+    CONSTRAINT receitas_itens_lista    CHECK (CASE WHEN jsonb_typeof(itens) = 'array'
+                                                   THEN jsonb_array_length(itens) >= 1 ELSE FALSE END),
+    -- Portaria 344/98: no máximo 3 substâncias da lista C1 por receita
+    CONSTRAINT receitas_controle_max_3 CHECK (tipo <> 'controle_especial'
+                                              OR CASE WHEN jsonb_typeof(itens) = 'array'
+                                                      THEN jsonb_array_length(itens) <= 3 ELSE FALSE END),
+    CONSTRAINT receitas_alertas_lista  CHECK (jsonb_typeof(alertas) = 'array')
+);
+
+-- ------------------------------------------------------------
+-- 1.10 EXAMES SOLICITADOS — pedido de exame com ciclo de status
+-- solicitado → realizado → resultado_disponivel  (ou cancelado)
+-- MAPA_TABELAS.exames_solicitados em db.js
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.exames_solicitados (
+    id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    consulta_id          UUID          NOT NULL,           -- FK → consultas (passo 3)
+    paciente_id          UUID,                             -- FK → pacientes (passo 3)
+    cpf                  VARCHAR(11)   NOT NULL,
+    pedido               VARCHAR(30)   NOT NULL,           -- agrupa os exames da mesma guia: EX-20261025-AB3CD
+    nome                 VARCHAR(160)  NOT NULL,
+    categoria            VARCHAR(20)   NOT NULL DEFAULT 'laboratorial',
+    prioridade           VARCHAR(10)   NOT NULL DEFAULT 'rotina',
+    indicacao            TEXT,                             -- justificativa / hipótese diagnóstica
+    cid10                VARCHAR(10),
+    orientacao           TEXT,                             -- preparo (ex.: jejum de 8 horas)
+    local_realizacao     VARCHAR(160),                     -- laboratório, setor ou serviço de referência
+    status               VARCHAR(25)   NOT NULL DEFAULT 'solicitado',
+    resultado            TEXT,
+    realizado_em         TIMESTAMPTZ,
+    resultado_em         TIMESTAMPTZ,
+    cancelado_em         TIMESTAMPTZ,
+    motivo_cancelamento  TEXT,
+    atualizado_por       VARCHAR(160),
+    medico_nome          VARCHAR(160),
+    medico_crm           VARCHAR(30),
+    unidade              VARCHAR(80),
+    solicitado_em        TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+    atualizado_em        TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT exames_sol_nome_preenchido   CHECK (btrim(nome) <> ''),
+    CONSTRAINT exames_sol_categoria_valida  CHECK (categoria IN ('laboratorial', 'imagem', 'cardiologico', 'teste_rapido', 'outros')),
+    CONSTRAINT exames_sol_prioridade_valida CHECK (prioridade IN ('rotina', 'urgente')),
+    CONSTRAINT exames_sol_status_valido     CHECK (status IN ('solicitado', 'realizado', 'resultado_disponivel', 'cancelado')),
+    -- resultado disponível exige o resultado; cancelamento exige o motivo
+    CONSTRAINT exames_sol_resultado_exigido CHECK (status <> 'resultado_disponivel' OR NULLIF(btrim(resultado), '') IS NOT NULL),
+    CONSTRAINT exames_sol_motivo_exigido    CHECK (status <> 'cancelado' OR NULLIF(btrim(motivo_cancelamento), '') IS NOT NULL)
+);
+
 
 -- ============================================================
 -- FASE 2 — REPARO DE COLUNAS
@@ -384,6 +473,34 @@ ALTER TABLE public.configuracoes ADD COLUMN IF NOT EXISTS valor          TEXT;
 ALTER TABLE public.configuracoes ADD COLUMN IF NOT EXISTS descricao      VARCHAR(300);
 ALTER TABLE public.configuracoes ADD COLUMN IF NOT EXISTS atualizado_em  TIMESTAMPTZ DEFAULT NOW();
 
+-- RECEITAS
+ALTER TABLE public.receitas ADD COLUMN IF NOT EXISTS orientacoes    TEXT;
+ALTER TABLE public.receitas ADD COLUMN IF NOT EXISTS validade_dias  SMALLINT;
+ALTER TABLE public.receitas ADD COLUMN IF NOT EXISTS valida_ate     DATE;
+ALTER TABLE public.receitas ADD COLUMN IF NOT EXISTS alertas        JSONB NOT NULL DEFAULT '[]'::jsonb;
+ALTER TABLE public.receitas ADD COLUMN IF NOT EXISTS medico_nome    VARCHAR(160);
+ALTER TABLE public.receitas ADD COLUMN IF NOT EXISTS medico_crm     VARCHAR(30);
+ALTER TABLE public.receitas ADD COLUMN IF NOT EXISTS unidade        VARCHAR(80);
+ALTER TABLE public.receitas ADD COLUMN IF NOT EXISTS emitida_em     TIMESTAMPTZ NOT NULL DEFAULT NOW();
+ALTER TABLE public.receitas ADD COLUMN IF NOT EXISTS criado_em      TIMESTAMPTZ NOT NULL DEFAULT NOW();
+
+-- EXAMES SOLICITADOS
+ALTER TABLE public.exames_solicitados ADD COLUMN IF NOT EXISTS indicacao            TEXT;
+ALTER TABLE public.exames_solicitados ADD COLUMN IF NOT EXISTS cid10                VARCHAR(10);
+ALTER TABLE public.exames_solicitados ADD COLUMN IF NOT EXISTS orientacao           TEXT;
+ALTER TABLE public.exames_solicitados ADD COLUMN IF NOT EXISTS local_realizacao     VARCHAR(160);
+ALTER TABLE public.exames_solicitados ADD COLUMN IF NOT EXISTS resultado            TEXT;
+ALTER TABLE public.exames_solicitados ADD COLUMN IF NOT EXISTS realizado_em         TIMESTAMPTZ;
+ALTER TABLE public.exames_solicitados ADD COLUMN IF NOT EXISTS resultado_em         TIMESTAMPTZ;
+ALTER TABLE public.exames_solicitados ADD COLUMN IF NOT EXISTS cancelado_em         TIMESTAMPTZ;
+ALTER TABLE public.exames_solicitados ADD COLUMN IF NOT EXISTS motivo_cancelamento  TEXT;
+ALTER TABLE public.exames_solicitados ADD COLUMN IF NOT EXISTS atualizado_por       VARCHAR(160);
+ALTER TABLE public.exames_solicitados ADD COLUMN IF NOT EXISTS medico_nome          VARCHAR(160);
+ALTER TABLE public.exames_solicitados ADD COLUMN IF NOT EXISTS medico_crm           VARCHAR(30);
+ALTER TABLE public.exames_solicitados ADD COLUMN IF NOT EXISTS unidade              VARCHAR(80);
+ALTER TABLE public.exames_solicitados ADD COLUMN IF NOT EXISTS solicitado_em        TIMESTAMPTZ NOT NULL DEFAULT NOW();
+ALTER TABLE public.exames_solicitados ADD COLUMN IF NOT EXISTS atualizado_em        TIMESTAMPTZ NOT NULL DEFAULT NOW();
+
 
 -- ============================================================
 -- FASE 3 — CHAVES PRIMÁRIAS, DEFAULTS E NOT NULL
@@ -393,7 +510,8 @@ DECLARE
     t text;
 BEGIN
     FOREACH t IN ARRAY ARRAY['pacientes', 'usuarios', 'unidades', 'consultas',
-                             'agendamentos', 'notificacoes', 'medicamentos', 'configuracoes'] LOOP
+                             'agendamentos', 'notificacoes', 'medicamentos', 'configuracoes',
+                             'receitas', 'exames_solicitados'] LOOP
         -- 1) preenche UUIDs nulos e garante o default
         EXECUTE format('UPDATE public.%I SET id = gen_random_uuid() WHERE id IS NULL', t);
         EXECUTE format('ALTER TABLE public.%I ALTER COLUMN id SET DEFAULT gen_random_uuid()', t);
@@ -470,6 +588,46 @@ BEGIN
     RAISE NOTICE '[FASE 4] Chaves estrangeiras verificadas.';
 END $$;
 
+-- receitas / exames_solicitados → consultas e pacientes
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_receitas_consulta') THEN
+        BEGIN
+            ALTER TABLE public.receitas ADD CONSTRAINT fk_receitas_consulta
+                FOREIGN KEY (consulta_id) REFERENCES public.consultas(id) ON DELETE CASCADE;
+        EXCEPTION WHEN others THEN
+            RAISE NOTICE '[receitas] FK receitas→consultas não criada: %', SQLERRM;
+        END;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_receitas_paciente') THEN
+        BEGIN
+            ALTER TABLE public.receitas ADD CONSTRAINT fk_receitas_paciente
+                FOREIGN KEY (paciente_id) REFERENCES public.pacientes(id) ON DELETE CASCADE;
+        EXCEPTION WHEN others THEN
+            RAISE NOTICE '[receitas] FK receitas→pacientes não criada: %', SQLERRM;
+        END;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_exames_sol_consulta') THEN
+        BEGIN
+            ALTER TABLE public.exames_solicitados ADD CONSTRAINT fk_exames_sol_consulta
+                FOREIGN KEY (consulta_id) REFERENCES public.consultas(id) ON DELETE CASCADE;
+        EXCEPTION WHEN others THEN
+            RAISE NOTICE '[exames] FK exames_solicitados→consultas não criada: %', SQLERRM;
+        END;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_exames_sol_paciente') THEN
+        BEGIN
+            ALTER TABLE public.exames_solicitados ADD CONSTRAINT fk_exames_sol_paciente
+                FOREIGN KEY (paciente_id) REFERENCES public.pacientes(id) ON DELETE CASCADE;
+        EXCEPTION WHEN others THEN
+            RAISE NOTICE '[exames] FK exames_solicitados→pacientes não criada: %', SQLERRM;
+        END;
+    END IF;
+END $$;
+
 -- Índices únicos usados pelo app (CPF é a chave natural do paciente).
 -- Se houver duplicatas antigas, o script avisa e continua.
 DO $$
@@ -518,6 +676,35 @@ CREATE INDEX IF NOT EXISTS idx_agendamentos_cpf      ON public.agendamentos (pac
 CREATE INDEX IF NOT EXISTS idx_agendamentos_data     ON public.agendamentos (data_hora);
 CREATE INDEX IF NOT EXISTS idx_notificacoes_cpf      ON public.notificacoes (cpf);
 CREATE INDEX IF NOT EXISTS idx_notificacoes_lida     ON public.notificacoes (cpf, lida);
+CREATE INDEX IF NOT EXISTS idx_receitas_cpf            ON public.receitas (cpf);
+CREATE INDEX IF NOT EXISTS idx_receitas_consulta       ON public.receitas (consulta_id);
+CREATE INDEX IF NOT EXISTS idx_receitas_paciente       ON public.receitas (paciente_id);
+CREATE INDEX IF NOT EXISTS idx_receitas_emitida        ON public.receitas (emitida_em DESC);
+CREATE INDEX IF NOT EXISTS idx_exames_sol_cpf          ON public.exames_solicitados (cpf);
+CREATE INDEX IF NOT EXISTS idx_exames_sol_consulta     ON public.exames_solicitados (consulta_id);
+CREATE INDEX IF NOT EXISTS idx_exames_sol_paciente     ON public.exames_solicitados (paciente_id);
+CREATE INDEX IF NOT EXISTS idx_exames_sol_pedido       ON public.exames_solicitados (pedido);
+-- lista de trabalho da página "Solicitar Exames" (pendentes, urgentes primeiro)
+CREATE INDEX IF NOT EXISTS idx_exames_sol_pendentes    ON public.exames_solicitados (prioridade, solicitado_em)
+    WHERE status IN ('solicitado', 'realizado');
+
+-- Gatilho: exames_solicitados.atualizado_em sempre correto, inclusive
+-- quando o resultado é lançado direto no painel do Supabase
+CREATE OR REPLACE FUNCTION public.vida_tocar_atualizado_em()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SET search_path = ''
+AS $$
+BEGIN
+    NEW.atualizado_em := NOW();
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_exames_sol_atualizado_em ON public.exames_solicitados;
+CREATE TRIGGER trg_exames_sol_atualizado_em
+    BEFORE UPDATE ON public.exames_solicitados
+    FOR EACH ROW EXECUTE FUNCTION public.vida_tocar_atualizado_em();
 
 
 -- ============================================================
@@ -572,6 +759,32 @@ CREATE POLICY "demo notificacoes"  ON public.notificacoes  FOR ALL TO anon, auth
 CREATE POLICY "demo medicamentos"  ON public.medicamentos  FOR ALL TO anon, authenticated USING (TRUE) WITH CHECK (TRUE);
 CREATE POLICY "demo configuracoes" ON public.configuracoes FOR ALL TO anon, authenticated USING (TRUE) WITH CHECK (TRUE);
 
+-- Receitas e exames: políticas por comando (sem a política = bloqueado).
+-- Receita emitida é documento: o app só lê e inclui (não altera/apaga).
+-- Exame não é apagado: erro de pedido vira status "cancelado" com motivo.
+ALTER TABLE public.receitas           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.exames_solicitados ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "receitas leitura"               ON public.receitas;
+DROP POLICY IF EXISTS "receitas inclusao"              ON public.receitas;
+DROP POLICY IF EXISTS "exames solicitados leitura"     ON public.exames_solicitados;
+DROP POLICY IF EXISTS "exames solicitados inclusao"    ON public.exames_solicitados;
+DROP POLICY IF EXISTS "exames solicitados atualizacao" ON public.exames_solicitados;
+
+-- Receitas: ler + incluir (sem política de UPDATE/DELETE = bloqueado)
+CREATE POLICY "receitas leitura"  ON public.receitas
+    FOR SELECT TO anon, authenticated USING (TRUE);
+CREATE POLICY "receitas inclusao" ON public.receitas
+    FOR INSERT TO anon, authenticated WITH CHECK (TRUE);
+
+-- Exames: ler + incluir + atualizar status/resultado (sem DELETE)
+CREATE POLICY "exames solicitados leitura"     ON public.exames_solicitados
+    FOR SELECT TO anon, authenticated USING (TRUE);
+CREATE POLICY "exames solicitados inclusao"    ON public.exames_solicitados
+    FOR INSERT TO anon, authenticated WITH CHECK (TRUE);
+CREATE POLICY "exames solicitados atualizacao" ON public.exames_solicitados
+    FOR UPDATE TO anon, authenticated USING (TRUE) WITH CHECK (TRUE);
+
 
 -- ============================================================
 -- FASE 7 — PERMISSÕES (GRANTs)
@@ -598,6 +811,22 @@ BEGIN
     RAISE NOTICE '[FASE 7] GRANTs aplicados em anon/authenticated.';
 END $$;
 
+-- receitas: ler + incluir | exames_solicitados: ler + incluir + atualizar
+DO $$
+DECLARE
+    papel text;
+BEGIN
+    FOREACH papel IN ARRAY ARRAY['anon', 'authenticated'] LOOP
+        IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = papel) THEN
+            EXECUTE format('GRANT USAGE ON SCHEMA public TO %I', papel);
+            EXECUTE format('GRANT SELECT, INSERT ON public.receitas TO %I', papel);
+            EXECUTE format('REVOKE UPDATE, DELETE, TRUNCATE ON public.receitas FROM %I', papel);
+            EXECUTE format('GRANT SELECT, INSERT, UPDATE ON public.exames_solicitados TO %I', papel);
+            EXECUTE format('REVOKE DELETE, TRUNCATE ON public.exames_solicitados FROM %I', papel);
+        END IF;
+    END LOOP;
+END $$;
+
 
 -- ============================================================
 -- FASE 8 — REALTIME
@@ -612,7 +841,8 @@ BEGIN
         CREATE PUBLICATION supabase_realtime;
     END IF;
 
-    FOREACH t IN ARRAY ARRAY['usuarios', 'pacientes', 'consultas', 'agendamentos', 'notificacoes'] LOOP
+    FOREACH t IN ARRAY ARRAY['usuarios', 'pacientes', 'consultas', 'agendamentos', 'notificacoes',
+                             'receitas', 'exames_solicitados'] LOOP
         IF NOT EXISTS (
             SELECT 1 FROM pg_publication_tables
             WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = t
@@ -765,6 +995,108 @@ ON CONFLICT (chave) DO NOTHING;
 
 
 -- ============================================================
+-- FASE 10.1 — RECUPERAÇÃO DE RECEITAS E EXAMES
+-- ------------------------------------------------------------
+-- Se o sistema médico foi usado antes de as tabelas receitas e
+-- exames_solicitados existirem, os itens ficaram só na "foto" da
+-- consulta (consultas.receita / consultas.exames). Aqui eles são
+-- copiados para as tabelas. Idempotente; em caso de erro só avisa.
+-- ============================================================
+DO $$
+DECLARE
+    n_receitas integer := 0;
+    n_exames   integer := 0;
+BEGIN
+    BEGIN
+        INSERT INTO public.receitas (id, consulta_id, paciente_id, cpf, numero, tipo, vias, itens,
+                                     orientacoes, validade_dias, valida_ate, medico_nome, medico_crm,
+                                     unidade, emitida_em)
+        SELECT g.receita_id, c.id, c.paciente_id, c.cpf, g.numero, g.tipo,
+               CASE WHEN g.tipo = 'simples' THEN 1 ELSE 2 END,
+               g.itens, c.orientacoes,
+               CASE g.tipo WHEN 'antimicrobiano' THEN 10 WHEN 'controle_especial' THEN 30 END,
+               g.valida_ate, c.medico_nome, c.medico_crm, c.unidade,
+               COALESCE(c.finalizado_em, c.criado_em, NOW())
+        FROM public.consultas c
+        CROSS JOIN LATERAL (
+            SELECT (x.item->>'receita_id')::uuid AS receita_id,
+                   MIN(x.item->>'receita_numero') AS numero,
+                   MIN(x.item->>'receita_tipo')   AS tipo,
+                   MIN(CASE WHEN x.item->>'valida_ate' ~ '^\d{4}-\d{2}-\d{2}$'
+                            THEN (x.item->>'valida_ate')::date END) AS valida_ate,
+                   jsonb_agg(x.item - 'receita_id' - 'receita_numero' - 'receita_tipo' - 'valida_ate'
+                             ORDER BY x.ordem) AS itens
+            FROM jsonb_array_elements(CASE WHEN jsonb_typeof(c.receita) = 'array'
+                                           THEN c.receita ELSE '[]'::jsonb END)
+                 WITH ORDINALITY AS x(item, ordem)
+            WHERE x.item->>'receita_id' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+            GROUP BY x.item->>'receita_id'
+        ) g
+        WHERE c.status = 'finalizado'
+          AND g.numero IS NOT NULL
+          AND g.tipo IN ('simples', 'antimicrobiano', 'controle_especial')
+          AND (g.tipo <> 'controle_especial' OR jsonb_array_length(g.itens) <= 3)
+          AND NOT EXISTS (SELECT 1 FROM public.receitas r WHERE r.id = g.receita_id OR r.numero = g.numero);
+        GET DIAGNOSTICS n_receitas = ROW_COUNT;
+    EXCEPTION WHEN others THEN
+        RAISE NOTICE '[recuperação] receitas não copiadas: %', SQLERRM;
+    END;
+
+    BEGIN
+        INSERT INTO public.exames_solicitados (id, consulta_id, paciente_id, cpf, pedido, nome, categoria,
+                                               prioridade, indicacao, cid10, orientacao, local_realizacao,
+                                               status, resultado, realizado_em, resultado_em, cancelado_em,
+                                               motivo_cancelamento, atualizado_por, medico_nome, medico_crm,
+                                               unidade, solicitado_em)
+        SELECT (e.item->>'id')::uuid, c.id, c.paciente_id, c.cpf,
+               COALESCE(NULLIF(left(e.item->>'pedido', 30), ''),
+                        'EX-' || to_char(COALESCE(c.finalizado_em, c.criado_em, NOW()), 'YYYYMMDD')
+                              || '-' || upper(substr(md5(c.id::text), 1, 5))),
+               left(btrim(e.item->>'nome'), 160),
+               CASE WHEN e.item->>'categoria' IN ('laboratorial', 'imagem', 'cardiologico', 'teste_rapido', 'outros')
+                    THEN e.item->>'categoria' ELSE 'outros' END,
+               CASE WHEN e.item->>'prioridade' = 'urgente' THEN 'urgente' ELSE 'rotina' END,
+               e.item->>'indicacao',
+               left(COALESCE(NULLIF(e.item->>'cid10', ''), c.cid10), 10),
+               e.item->>'orientacao',
+               left(e.item->>'local_realizacao', 160),
+               CASE
+                   WHEN e.item->>'status' = 'resultado_disponivel'
+                        AND NULLIF(btrim(e.item->>'resultado'), '') IS NOT NULL THEN 'resultado_disponivel'
+                   WHEN e.item->>'status' = 'cancelado'
+                        AND NULLIF(btrim(e.item->>'motivo_cancelamento'), '') IS NOT NULL THEN 'cancelado'
+                   WHEN e.item->>'status' IN ('realizado', 'resultado_disponivel') THEN 'realizado'
+                   ELSE 'solicitado'
+               END,
+               e.item->>'resultado',
+               CASE WHEN e.item->>'realizado_em' ~ '^\d{4}-\d{2}-\d{2}' THEN (e.item->>'realizado_em')::timestamptz END,
+               CASE WHEN e.item->>'resultado_em' ~ '^\d{4}-\d{2}-\d{2}' THEN (e.item->>'resultado_em')::timestamptz END,
+               CASE WHEN e.item->>'cancelado_em' ~ '^\d{4}-\d{2}-\d{2}' THEN (e.item->>'cancelado_em')::timestamptz END,
+               e.item->>'motivo_cancelamento',
+               left(e.item->>'atualizado_por', 160),
+               COALESCE(left(e.item->>'medico_nome', 160), c.medico_nome),
+               COALESCE(left(e.item->>'medico_crm', 30), c.medico_crm),
+               COALESCE(left(e.item->>'unidade', 80), c.unidade),
+               COALESCE(CASE WHEN e.item->>'solicitado_em' ~ '^\d{4}-\d{2}-\d{2}'
+                             THEN (e.item->>'solicitado_em')::timestamptz END,
+                        c.finalizado_em, c.criado_em, NOW())
+        FROM public.consultas c
+        CROSS JOIN LATERAL jsonb_array_elements(CASE WHEN jsonb_typeof(c.exames) = 'array'
+                                                     THEN c.exames ELSE '[]'::jsonb END) AS e(item)
+        WHERE c.status = 'finalizado'
+          AND e.item->>'id' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+          AND NULLIF(btrim(e.item->>'nome'), '') IS NOT NULL
+          AND NOT EXISTS (SELECT 1 FROM public.exames_solicitados s WHERE s.id = (e.item->>'id')::uuid);
+        GET DIAGNOSTICS n_exames = ROW_COUNT;
+    EXCEPTION WHEN others THEN
+        RAISE NOTICE '[recuperação] exames não copiados: %', SQLERRM;
+    END;
+
+    RAISE NOTICE '[recuperação] % receita(s) e % exame(s) copiados das consultas.', n_receitas, n_exames;
+END $$;
+
+
+-- ============================================================
 -- FASE 11 — VERIFICAÇÃO FINAL
 -- ------------------------------------------------------------
 -- 11.1 mostra SOMENTE o que estiver faltando (deve vir vazio)
@@ -800,7 +1132,27 @@ WITH esperado (tabela, coluna) AS (
 
         ('notificacoes', 'id'), ('notificacoes', 'cpf'), ('notificacoes', 'tipo'),
         ('notificacoes', 'titulo'), ('notificacoes', 'texto'), ('notificacoes', 'link'),
-        ('notificacoes', 'lida'), ('notificacoes', 'criado_em')
+        ('notificacoes', 'lida'), ('notificacoes', 'criado_em'),
+
+        ('receitas', 'id'), ('receitas', 'consulta_id'), ('receitas', 'paciente_id'),
+        ('receitas', 'cpf'), ('receitas', 'numero'), ('receitas', 'tipo'), ('receitas', 'vias'),
+        ('receitas', 'itens'), ('receitas', 'orientacoes'), ('receitas', 'validade_dias'),
+        ('receitas', 'valida_ate'), ('receitas', 'alertas'), ('receitas', 'medico_nome'),
+        ('receitas', 'medico_crm'), ('receitas', 'unidade'), ('receitas', 'emitida_em'),
+        ('receitas', 'criado_em'),
+
+        ('exames_solicitados', 'id'), ('exames_solicitados', 'consulta_id'),
+        ('exames_solicitados', 'paciente_id'), ('exames_solicitados', 'cpf'),
+        ('exames_solicitados', 'pedido'), ('exames_solicitados', 'nome'),
+        ('exames_solicitados', 'categoria'), ('exames_solicitados', 'prioridade'),
+        ('exames_solicitados', 'indicacao'), ('exames_solicitados', 'cid10'),
+        ('exames_solicitados', 'orientacao'), ('exames_solicitados', 'local_realizacao'),
+        ('exames_solicitados', 'status'), ('exames_solicitados', 'resultado'),
+        ('exames_solicitados', 'realizado_em'), ('exames_solicitados', 'resultado_em'),
+        ('exames_solicitados', 'cancelado_em'), ('exames_solicitados', 'motivo_cancelamento'),
+        ('exames_solicitados', 'atualizado_por'), ('exames_solicitados', 'medico_nome'),
+        ('exames_solicitados', 'medico_crm'), ('exames_solicitados', 'unidade'),
+        ('exames_solicitados', 'solicitado_em'), ('exames_solicitados', 'atualizado_em')
 )
 SELECT e.tabela, e.coluna, '❌ FALTA' AS status
 FROM esperado e
@@ -843,6 +1195,16 @@ FROM (
              WHERE n.nspname = 'public' AND c.relname = 'notificacoes'),
            (SELECT count(*) FROM public.notificacoes),
            (SELECT count(*) FROM pg_policies WHERE schemaname = 'public' AND tablename = 'notificacoes')
+    UNION ALL
+    SELECT 'receitas', (SELECT relrowsecurity FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+             WHERE n.nspname = 'public' AND c.relname = 'receitas'),
+           (SELECT count(*) FROM public.receitas),
+           (SELECT count(*) FROM pg_policies WHERE schemaname = 'public' AND tablename = 'receitas')
+    UNION ALL
+    SELECT 'exames_solicitados', (SELECT relrowsecurity FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+             WHERE n.nspname = 'public' AND c.relname = 'exames_solicitados'),
+           (SELECT count(*) FROM public.exames_solicitados),
+           (SELECT count(*) FROM pg_policies WHERE schemaname = 'public' AND tablename = 'exames_solicitados')
 ) t
 ORDER BY t.tabela;
 

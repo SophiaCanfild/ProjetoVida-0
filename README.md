@@ -30,7 +30,7 @@ O **Vida+** é um sistema de saúde digital desenvolvido como **Trabalho de Conc
 | 🏥 **Sistema Médico** | Painéis para admin, médico, enfermeiro e recepcionista |
 | 📱 **App do Paciente** | PWA para o paciente acompanhar atendimento pelo celular |
 | 📺 **Telão** | Display na sala de espera mostrando chamadas |
-| 🗄️ **Banco de Dados** | Supabase (PostgreSQL) com 8 tabelas e RLS |
+| 🗄️ **Banco de Dados** | Supabase (PostgreSQL) com 10 tabelas e RLS |
 
 ---
 
@@ -83,13 +83,21 @@ vida-mais/
 │   ├── agendamentos.html         ← Agendamentos
 │   ├── js/config.js              ← cópia de shared/js/config.js (escopo do SW)
 │   ├── js/db.js                  ← cópia de shared/js/db.js (escopo do SW)
-│   ├── service-worker.js         ← cache offline (CACHE_VERSION v4)
+│   ├── service-worker.js         ← cache offline (CACHE_VERSION v12)
+│   ├── status-offline.html       ← 🩺 Diagnóstico do modo offline
 │   └── manifest.json             ← PWA manifest
 │
 ├── telao/                        ← 📺 Display da sala de espera
+│   ├── index.html                ← Tela do telão
+│   ├── js/voz-chamada.js         ← 🔊 Voz das chamadas (Web Speech API)
+│   ├── js/som-chamada.js         ← 🔔 Bip da chamada (um AudioContext só)
+│   ├── js/tv-dados.js            ← Chamadas do Supabase/localStorage
+│   └── teste-voz.html            ← 🩺 Diagnóstico de som e voz
 │
 └── supabase/                     ← 🗄️ Banco de dados
-    └── schema.sql                ← Schema completo (8 tabelas)
+    ├── schema.sql                ← Schema completo (10 tabelas)
+    └── migrations/
+        └── 20261025_receitas_exames.sql ← Receita médica e exames (banco já instalado)
 ```
 
 ---
@@ -107,6 +115,9 @@ cd vida-mais
 
 1. Crie uma conta em [supabase.com](https://supabase.com) e crie um projeto
 2. Vá em **SQL Editor** → cole o conteúdo de `supabase/schema.sql` → **Run**
+   - **Já tinha o banco instalado antes da receita médica / exames?** Rode também
+     `supabase/migrations/20261025_receitas_exames.sql` (cria `receitas` e `exames_solicitados`).
+     Detalhes em [RECEITA-E-EXAMES.md](RECEITA-E-EXAMES.md).
 3. Vá em **Settings > API** → copie a **URL** e a **anon key**
 4. Edite `shared/js/config.js` **e a cópia `paciente-app/js/config.js`** (o app do paciente usa a
    cópia para poder funcionar offline — os dois arquivos precisam ter as mesmas credenciais):
@@ -126,7 +137,11 @@ python3 -m http.server 8000
 
 Abra `http://localhost:8000` no navegador — é o portal com todos os acessos. Mantenha o terminal aberto enquanto usar o sistema.
 
-> 💡 **Modo Demo:** Enquanto o Supabase não estiver configurado, o sistema funciona com dados locais no navegador (localStorage). Perfeito para testar!
+> 💡 **Modo Demo:** Enquanto o Supabase não estiver configurado, o sistema médico funciona com dados
+> locais no navegador (localStorage). Perfeito para testar!
+>
+> 📱 **App do Paciente:** não tem mais modo de demonstração. O paciente entra com o CPF
+> cadastrado pela recepção (ou, no sistema médico, por um atendimento iniciado).
 
 ---
 
@@ -144,7 +159,7 @@ Abra `http://localhost:8000` no navegador — é o portal com todos os acessos. 
 
 ## 🗄️ Banco de Dados
 
-**8 tabelas** no Supabase (PostgreSQL) com Row Level Security:
+**10 tabelas** no Supabase (PostgreSQL) com Row Level Security:
 
 | Tabela | Descrição |
 |:---|:---|
@@ -156,6 +171,8 @@ Abra `http://localhost:8000` no navegador — é o portal com todos os acessos. 
 | `notificações` | Avisos para o paciente |
 | `medicamentos` | Estoque de medicamentos |
 | `configurações` | Parâmetros do sistema |
+| `receitas` | Receitas emitidas pelo médico (simples, antimicrobiano, controle especial) |
+| `exames_solicitados` | Pedidos de exame com status e resultado |
 
 ---
 
@@ -177,7 +194,10 @@ Abra `http://localhost:8000` no navegador — é o portal com todos os acessos. 
 
 ### 🏥 Sistema Médico
 - **Admin:** Dashboard, gerenciamento de usuários e pacientes
-- **Médico:** Fila de espera, prontuário, receitas digitais
+- **Médico:** Fila de espera, prontuário, **receita médica** (separação automática em receita
+  simples / antimicrobiano / controle especial, alerta de alergia, impressão e reimpressão) e
+  **solicitação de exames** (catálogo, preparo, prioridade, acompanhamento do resultado com aviso
+  ao paciente) — ver [RECEITA-E-EXAMES.md](RECEITA-E-EXAMES.md)
 - **Enfermeiro:** Triagem com protocolo de Manchester
 - **Recepcionista:** Cadastro, fila, chamada de pacientes
 
@@ -187,6 +207,23 @@ Abra `http://localhost:8000` no navegador — é o portal com todos os acessos. 
 - Histórico de consultas e exames
 - Notificações automáticas
 - Instalável como app (PWA)
+- Login pelo CPF cadastrado pela recepção (sem atalho de "paciente demo")
+- **Funciona offline**: as telas, o CSS e os scripts ficam guardados no aparelho
+  (service worker `vidaplus-paciente-v10`); os dados vêm da última sincronização local
+
+#### 📴 Não abre sem internet? Use `paciente-app/status-offline.html`
+
+Abra essa página **no aparelho onde a PWA está instalada**. Ela mostra:
+
+- se o service worker está **registrado, ativo e controlando** a página;
+- se há uma versão nova **em espera** (aguardando ativação);
+- **quais arquivos estão no cache** e quantos dos 23 itens do precache já chegaram;
+- botões **Forçar atualização** e **Reinstalar do zero** (para sair de uma versão presa).
+
+> ℹ️ O registro do service worker usa `updateViaCache: 'none'`: o navegador nunca
+> aproveita uma cópia em cache do `service-worker.js`, então uma versão antiga do SW não
+> fica presa por dias. Depois de publicar mudanças, **recarregue o app uma vez com internet**
+> para o precache novo rodar.
 
 ### 📺 Telão
 - Display para sala de espera
@@ -197,6 +234,57 @@ Abra `http://localhost:8000` no navegador — é o portal com todos os acessos. 
 - Publicação do mapa em `configuracoes` no Supabase e fallback local para demonstração — [guia do mapa](telao/MAPA-HOSPITAL.md)
 - Atualização automática via Supabase Realtime
 - Chamadas gravadas em `consultas` e avisos do paciente em `notificacoes`
+- **Voz:** toda chamada nova é falada em voz alta (Web Speech API do navegador —
+  sem arquivos de áudio e sem serviço externo, funciona offline)
+
+#### 🔊 Voz das chamadas
+
+Exemplos do que é falado:
+
+| Tipo | Frase |
+|:---|:---|
+| Recepção → triagem | *“Senha A cento e vinte e três. Dirija-se à triagem, guichê 2.”* |
+| Triagem → consultório | *“Paciente Maria da Silva. Dirija-se ao consultório 3. Com Dr. Carlos Pereira. Senha C 457.”* |
+
+Ajustes em `TV_CONFIG`, no `shared/js/config.js` (e na cópia `paciente-app/js/config.js`):
+
+| Flag | Padrão | O que faz |
+|:---|:---|:---|
+| `VOZ_ATIVA` | `true` | `false` deixa o telão só com o bip |
+| `VOZ_REPETICOES` | `2` | quantas vezes repete cada chamada |
+| `VOZ_INTERVALO_MS` | `1500` | pausa entre as repetições |
+| `VOZ_APOS_SOM_MS` | `1000` | espera o bip terminar antes de falar |
+| `VOZ_VELOCIDADE` | `0.95` | `<1` fala mais devagar |
+| `VOZ_VOLUME` | `1` | volume (0 a 1) |
+| `VOZ_IDIOMA` | `'pt-BR'` | idioma das vozes |
+| `VOZ_DIGITO_A_DIGITO` | `false` | `true` fala “A um dois três” em vez de “A cento e vinte e três” |
+
+> ⚠️ **Áudio na TV:** o navegador só libera som e voz depois de uma interação na página.
+> No computador do telão, abra o navegador com
+> `--autoplay-policy=no-user-gesture-required` (Chrome/Edge) ou dê um clique na tela
+> após abrir o telão. Sem isso, o bip e a voz ficam mudos — fala e tela continuam funcionando.
+>
+> A voz é a do próprio sistema operacional: em Linux sem vozes pt-BR instaladas
+> (ex.: `espeak-ng`), o timbre muda. A qualidade é melhor com as vozes do Chrome/Windows/Android.
+
+#### 🩺 Não está saindo som? Use `telao/teste-voz.html`
+
+Abra **`telao/teste-voz.html` no próprio computador do telão**. A página mostra, em tempo real:
+
+- se o navegador suporta `AudioContext` e `speechSynthesis`;
+- o **estado do áudio** (`running` = liberado, `suspended` = falta um clique);
+- **quais vozes pt-BR existem** na máquina e se são locais (funcionam sem internet);
+- botões para tocar o bip, falar uma chamada e simular a chamada completa;
+- um registro do que aconteceu em cada tentativa.
+
+O caminho mais rápido para o diagnóstico: se o **bip toca e a voz não**, o problema é a síntese de
+voz (vozes do sistema). Se **nada** toca, é a política de áudio do navegador (autoplay).
+
+> 🐞 **Correção importante (som do bip):** o código antigo criava um `new AudioContext()` a cada
+> chamada e nunca o fechava, com o erro escondido em `catch (e) {}`. O Chrome limita a quantidade
+> de AudioContexts por página, então **depois de algumas chamadas o telão ficava mudo para sempre**.
+> Agora existe um único contexto reaproveitado (`telao/js/som-chamada.js`), ele é retomado no
+> primeiro clique e as falhas aparecem no console em vez de serem engolidas.
 
 ---
 
