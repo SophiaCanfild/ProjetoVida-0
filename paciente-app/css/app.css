@@ -50,7 +50,7 @@ body {
     radial-gradient(700px 320px at 92% 2%, rgba(74, 222, 128, 0.15), transparent 60%),
     linear-gradient(180deg, #F4FAFF 0%, #FFFFFF 55%, #F1FBF4 100%);
   background-color: var(--fundo);
-  /* Centraliza como um "celular" em telas grandes (demo na banca) */
+  /* Centraliza como um "celular" em telas grandes */
   max-width: 480px;
   margin: 0 auto;
   min-height: 100vh;
@@ -369,16 +369,6 @@ textarea { min-height: 90px; resize: vertical; }
 .vazio svg { width: 64px; height: 64px; color: var(--borda); margin-bottom: 12px; }
 .vazio h3 { color: var(--texto); margin-bottom: 4px; }
 
-/* ---------- Banner demo ---------- */
-.banner-demo {
-  background: linear-gradient(135deg, var(--azul), var(--azul-escuro));
-  color: #fff; border-radius: 12px; padding: 14px; margin-bottom: 14px; font-size: 0.85rem;
-}
-.banner-demo b { display: block; margin-bottom: 8px; }
-.banner-demo .botoes { display: flex; flex-wrap: wrap; gap: 8px; }
-.banner-demo .btn { width: auto; padding: 9px 14px; font-size: 0.8rem; background: rgba(255,255,255,0.18); color: #fff; }
-.banner-demo .btn:hover { background: rgba(255,255,255,0.3); }
-
 /* ---------- Login / splash (claro, como a tela de controle do telão) ---------- */
 .tela-login {
   min-height: 100vh; display: flex; flex-direction: column;
@@ -474,7 +464,7 @@ textarea { min-height: 90px; resize: vertical; }
 /* ---------- Impressão do relatório ---------- */
 @media print {
   body { max-width: none; box-shadow: none; background: #fff; }
-  .topbar, .bottomnav, .btn, .banner-demo, .toast, .modal-fundo, .overlay-chamada { display: none !important; }
+  .topbar, .bottomnav, .btn, .toast, .modal-fundo, .overlay-chamada { display: none !important; }
   .pagina { padding: 0; }
   .card { box-shadow: none; border: 1px solid #ccc; break-inside: avoid; }
 }

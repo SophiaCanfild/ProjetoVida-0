@@ -132,7 +132,11 @@ python3 -m http.server 8000
 
 Abra `http://localhost:8000` no navegador — é o portal com todos os acessos. Mantenha o terminal aberto enquanto usar o sistema.
 
-> 💡 **Modo Demo:** Enquanto o Supabase não estiver configurado, o sistema funciona com dados locais no navegador (localStorage). Perfeito para testar!
+> 💡 **Modo Demo:** Enquanto o Supabase não estiver configurado, o sistema médico funciona com dados
+> locais no navegador (localStorage). Perfeito para testar!
+>
+> 📱 **App do Paciente:** não tem mais modo de demonstração. O paciente entra com o CPF
+> cadastrado pela recepção (ou, no sistema médico, por um atendimento iniciado).
 
 ---
 
@@ -192,6 +196,7 @@ Abra `http://localhost:8000` no navegador — é o portal com todos os acessos. 
 - Histórico de consultas e exames
 - Notificações automáticas
 - Instalável como app (PWA)
+- Login pelo CPF cadastrado pela recepção (sem atalho de "paciente demo")
 - **Funciona offline**: as telas, o CSS e os scripts ficam guardados no aparelho
   (service worker `vidaplus-paciente-v4`); os dados vêm da última sincronização local
 
