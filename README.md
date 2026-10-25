@@ -87,6 +87,9 @@ vida-mais/
 │   └── manifest.json             ← PWA manifest
 │
 ├── telao/                        ← 📺 Display da sala de espera
+│   ├── index.html                ← Tela do telão
+│   ├── js/voz-chamada.js         ← 🔊 Voz das chamadas (Web Speech API)
+│   └── js/tv-dados.js            ← Chamadas do Supabase/localStorage
 │
 └── supabase/                     ← 🗄️ Banco de dados
     └── schema.sql                ← Schema completo (8 tabelas)
@@ -191,6 +194,38 @@ Abra `http://localhost:8000` no navegador — é o portal com todos os acessos. 
 - Display para sala de espera
 - Mostra senha, nome e destino do paciente
 - Atualização automática via Supabase Realtime
+- **Voz:** toda chamada nova é falada em voz alta (Web Speech API do navegador —
+  sem arquivos de áudio e sem serviço externo, funciona offline)
+
+#### 🔊 Voz das chamadas
+
+Exemplos do que é falado:
+
+| Tipo | Frase |
+|:---|:---|
+| Recepção → triagem | *“Senha A cento e vinte e três. Dirija-se à triagem, guichê 2.”* |
+| Triagem → consultório | *“Paciente Maria da Silva. Dirija-se ao consultório 3. Com Dr. Carlos Pereira. Senha C 457.”* |
+
+Ajustes em `TV_CONFIG`, no `shared/js/config.js` (e na cópia `paciente-app/js/config.js`):
+
+| Flag | Padrão | O que faz |
+|:---|:---|:---|
+| `VOZ_ATIVA` | `true` | `false` deixa o telão só com o bip |
+| `VOZ_REPETICOES` | `2` | quantas vezes repete cada chamada |
+| `VOZ_INTERVALO_MS` | `1500` | pausa entre as repetições |
+| `VOZ_APOS_SOM_MS` | `1000` | espera o bip terminar antes de falar |
+| `VOZ_VELOCIDADE` | `0.95` | `<1` fala mais devagar |
+| `VOZ_VOLUME` | `1` | volume (0 a 1) |
+| `VOZ_IDIOMA` | `'pt-BR'` | idioma das vozes |
+| `VOZ_DIGITO_A_DIGITO` | `false` | `true` fala “A um dois três” em vez de “A cento e vinte e três” |
+
+> ⚠️ **Áudio na TV:** o navegador só libera som e voz depois de uma interação na página.
+> No computador do telão, abra o navegador com
+> `--autoplay-policy=no-user-gesture-required` (Chrome/Edge) ou dê um clique na tela
+> após abrir o telão. Sem isso, o bip e a voz ficam mudos — fala e tela continuam funcionando.
+>
+> A voz é a do próprio sistema operacional: em Linux sem vozes pt-BR instaladas
+> (ex.: `espeak-ng`), o timbre muda. A qualidade é melhor com as vozes do Chrome/Windows/Android.
 
 ---
 

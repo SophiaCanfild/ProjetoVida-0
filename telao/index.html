@@ -106,6 +106,7 @@
   <script src="../shared/js/db.js"></script>
   <script src="js/relogio.js"></script>
   <script src="js/tv-dados.js"></script>
+  <script src="js/voz-chamada.js"></script>
   <script>
     /* Som de chamada (WebAudio, sem arquivo externo) */
     const NotificarTV = {
@@ -260,6 +261,12 @@
           void destaque.offsetWidth; // reinicia a animação
           destaque.classList.add('animando');
           NotificarTV.somChamada();
+          /* Voz: fala a senha chamada (espera o bip terminar).
+             Uma chamada nova interrompe a fala da anterior.
+             Liga/desliga em TV_CONFIG.VOZ_ATIVA (shared/js/config.js). */
+          if (typeof VozChamada !== 'undefined') {
+            VozChamada.falarChamada(ultima);
+          }
         } else {
           renderizarDestaque(ultima);
         }
