@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vida+ — Teste de som e voz do telão</title>
+<style>
+  :root { --azul: #0369a1; --ok: #15803d; --erro: #b91c1c; --alerta: #b45309; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    margin: 0; padding: 24px; background: #f1f5f9; color: #0f172a; line-height: 1.5;
+  }
+  .wrap { max-width: 820px; margin: 0 auto; }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; }
+  .sub { color: #475569; margin: 0 0 20px; font-size: .95rem; }
+  .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin-bottom: 16px; }
+  .card h2 { font-size: 1rem; margin: 0 0 12px; color: var(--azul); }
+  button {
+    font: inherit; font-weight: 600; cursor: pointer; border: 0; border-radius: 9px;
+    padding: 11px 18px; background: var(--azul); color: #fff; margin: 0 8px 8px 0;
+  }
+  button.secundario { background: #e2e8f0; color: #0f172a; }
+  button:active { transform: translateY(1px); }
+  .linha { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px dashed #e2e8f0; font-size: .92rem; }
+  .linha:last-child { border: 0; }
+  .pill { font-size: .72rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; text-transform: uppercase; letter-spacing: .03em; }
+  .pill.ok { background: #dcfce7; color: var(--ok); }
+  .pill.erro { background: #fee2e2; color: var(--erro); }
+  .pill.alerta { background: #fef3c7; color: var(--alerta); }
+  #log {
+    background: #0f172a; color: #e2e8f0; border-radius: 10px; padding: 14px;
+    font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .82rem;
+    height: 190px; overflow-y: auto; white-space: pre-wrap;
+  }
+  .dica { font-size: .88rem; color: #475569; background: #f8fafc; border-left: 3px solid var(--azul); padding: 10px 12px; border-radius: 0 8px 8px 0; }
+  .grande { font-size: 1.6rem; font-weight: 800; letter-spacing: .06em; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🔊 Teste de som e voz do telão</h1>
+  <p class="sub">
+    Abra esta página <strong>no computador/TV onde o telão roda</strong> e siga as três etapas.
+    O resultado abaixo aponta exatamente o que está impedindo o som.
+  </p>
+
+  <div class="card">
+    <h2>1. O que este navegador suporta</h2>
+    <div id="suporte"></div>
+    <div id="estado-audio" style="margin-top:10px"></div>
+  </div>
+
+  <div class="card">
+    <h2>2. Testes (clique em cada um)</h2>
+    <button id="btn-bip">Tocar o bip</button>
+    <button id="btn-voz">Falar uma chamada (2×)</button>
+    <button id="btn-chamada" class="secundario">Simular chamada completa</button>
+    <div style="margin-top:12px" class="dica">
+      Se o bip tocar mas a voz não, o problema é a síntese de voz.
+      Se <strong>nada</strong> tocar, é a política de áudio do navegador (passo 3).
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>3. Vozes instaladas neste sistema</h2>
+    <div id="vozes"><div class="linha">carregando…</div></div>
+  </div>
+
+  <div class="card">
+    <h2>Registro</h2>
+    <div id="log"></div>
+  </div>
+
+  <div class="card">
+    <h2>Se nada tocar</h2>
+    <p class="dica" style="margin:0">
+      1. Clique em qualquer botão desta página antes de tudo — o navegador só libera áudio após uma interação.<br>
+      2. No Chrome/Edge, abra o telão com <code>--autoplay-policy=no-user-gesture-required</code>.<br>
+      3. Confira o volume do sistema e se a TV não está no mudo.<br>
+      4. Linux sem vozes pt-BR: instale <code>espeak-ng</code> ou use o Chrome/Windows, que trazem vozes melhores.
+    </p>
+  </div>
+</div>
+
+<script src="../shared/js/config.js"></script>
+<script src="js/som-chamada.js"></script>
+<script src="js/voz-chamada.js"></script>
+<script>
+  (function () {
+    'use strict';
+
+    var logEl = document.getElementById('log');
+
+    function log(msg, tipo) {
+      var hora = new Date().toLocaleTimeString('pt-BR');
+      var marca = tipo === 'erro' ? '✗' : tipo === 'ok' ? '✓' : '•';
+      logEl.textContent += '[' + hora + '] ' + marca + ' ' + msg + '\n';
+      logEl.scrollTop = logEl.scrollHeight;
+      if (tipo === 'erro') console.error('[Teste]', msg);
+      else console.log('[Teste]', msg);
+    }
+
+    function linha(rotulo, valor, estado) {
+      return '<div class="linha"><span>' + rotulo + '</span>' +
+        '<span class="pill ' + estado + '" style="margin-left:auto">' + valor + '</span></div>';
+    }
+
+    /* ---------- 1. Suporte ---------- */
+    var temSynth = ('speechSynthesis' in window) &&
+      (typeof window.SpeechSynthesisUtterance === 'function');
+    var temAudio = !!(window.AudioContext || window.webkitAudioContext);
+    var ctx = NotificarTV._contexto();
+
+    document.getElementById('suporte').innerHTML =
+      linha('AudioContext (bip)', temAudio ? 'suportado' : 'sem suporte', temAudio ? 'ok' : 'erro') +
+      linha('speechSynthesis (voz)', temSynth ? 'suportado' : 'sem suporte', temSynth ? 'ok' : 'erro') +
+      linha('Voz anunciando chamadas (VOZ_ATIVA)',
+        (typeof TV_CONFIG !== 'undefined' && TV_CONFIG.VOZ_ATIVA !== false) ? 'ligada' : 'desligada',
+        (typeof TV_CONFIG !== 'undefined' && TV_CONFIG.VOZ_ATIVA !== false) ? 'ok' : 'alerta') +
+      linha('Repetições por chamada',
+        (typeof TV_CONFIG !== 'undefined' ? TV_CONFIG.VOZ_REPETICOES : '?'),
+        'ok');
+
+    function atualizarEstadoAudio() {
+      var e = NotificarTV.estado();
+      var el = document.getElementById('estado-audio');
+      var classe = e.estado === 'running' ? 'ok' : (e.disponivel ? 'alerta' : 'erro');
+      var texto = e.estado === 'running'
+        ? 'liberado'
+        : e.estado === 'suspended' ? 'suspenso (falta um clique)' : e.estado;
+      el.innerHTML = linha('Estado do áudio agora', texto, classe);
+    }
+    atualizarEstadoAudio();
+    setInterval(atualizarEstadoAudio, 1000);
+
+    /* ---------- 3. Vozes ---------- */
+    function listarVozes() {
+      var el = document.getElementById('vozes');
+      if (!temSynth) {
+        el.innerHTML = '<div class="linha">Este navegador não tem síntese de voz.</div>';
+        return;
+      }
+      var vozes = window.speechSynthesis.getVoices() || [];
+      if (!vozes.length) {
+        el.innerHTML = '<div class="linha">A lista ainda está vazia… ' +
+          '<span class="pill alerta" style="margin-left:auto">carregando</span></div>';
+        return;
+      }
+      var pt = vozes.filter(function (v) {
+        return String(v.lang || '').toLowerCase().indexOf('pt') === 0;
+      });
+      el.innerHTML = (pt.length
+        ? pt.map(function (v) {
+            return linha(v.name + ' <small>(' + v.lang + ')</small>',
+              v.localService ? 'local' : 'rede',
+              v.localService ? 'ok' : 'alerta');
+          }).join('')
+        : '<div class="linha">Nenhuma voz pt-BR instalada — ' +
+          '<span class="pill erro" style="margin-left:auto">problema</span></div>'
+      ) + '<div class="linha" style="color:#64748b;font-size:.85rem">' +
+        vozes.length + ' vozes no total</div>';
+    }
+    listarVozes();
+    if (temSynth && typeof window.speechSynthesis.addEventListener === 'function') {
+      window.speechSynthesis.addEventListener('voiceschanged', listarVozes);
+    }
+
+    /* ---------- 2. Botões ---------- */
+    document.getElementById('btn-bip').addEventListener('click', function () {
+      var ok = NotificarTV.somChamada();
+      log(ok ? 'Bip disparado (ouça!)' : 'Bip NÃO disparou', ok ? 'ok' : 'erro');
+      setTimeout(atualizarEstadoAudio, 300);
+    });
+
+    var exemplo = {
+      senha: 'A123',
+      tipo_chamada: 'consulta',
+      consultorio: '3',
+      medico_nome: 'Dr. Carlos Pereira',
+      nome_chamado: 'Maria da Silva'
+    };
+
+    document.getElementById('btn-voz').addEventListener('click', function () {
+      var ok = VozChamada.falarChamada(exemplo);
+      log('Voz: ' + (ok ? 'pedida' : 'NÃO executada'), ok ? 'ok' : 'erro');
+      if (ok) {
+        log('Frase: ' + VozChamada.textoDaChamada(exemplo));
+      }
+    });
+
+    document.getElementById('btn-chamada').addEventListener('click', function () {
+      log('--- simulando uma chamada nova ---');
+      NotificarTV.somChamada();
+      var ok = VozChamada.falarChamada(exemplo);
+      log('Voz: ' + (ok ? 'acionada após o bip' : 'NÃO executada'), ok ? 'ok' : 'erro');
+    });
+
+    /* ---------- registro do ambiente ---------- */
+    log('Página aberta: ' + location.href);
+    log('Áudio: ' + (temAudio ? 'audioContext ok' : 'SEM SUPORTE') +
+        ' · Voz: ' + (temSynth ? 'speechSynthesis ok' : 'SEM SUPORTE'));
+    if (typeof TV_CONFIG === 'undefined') {
+      log('TV_CONFIG não carregou (shared/js/config.js) — a voz usará os padrões.', 'erro');
+    }
+    if (ctx && ctx.state === 'suspended') {
+      log('Áudio suspenso: clique em qualquer botão para liberar.', 'erro');
+    }
+  })();
+</script>
+</body>
+</html>
