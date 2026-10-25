@@ -257,8 +257,11 @@
                 // Salvar sessão
                 salvarSessao(usuario);
                 
-                // Redirecionar para admin
-                window.location.href = '../admin/index.html';
+                // Retorna ao editor quando o acesso veio pelo atalho do mapa.
+                const retorno = new URLSearchParams(window.location.search).get('retorno');
+                window.location.href = retorno === 'mapa.html'
+                    ? '../admin/mapa.html'
+                    : '../admin/index.html';
                 
             } else {
                 alertError.classList.add('show');
