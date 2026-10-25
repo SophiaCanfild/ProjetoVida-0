@@ -476,15 +476,16 @@ textarea { min-height: 90px; resize: vertical; }
 /* ---------- Mini cards da home ---------- */
 .mini-card {
   display: flex; align-items: center; gap: 12px;
-  background: var(--branco); border-radius: 14px;
-  box-shadow: var(--sombra); padding: 14px 16px;
-  margin-bottom: 12px; cursor: pointer; text-decoration: none; color: inherit;
-  border: 1.5px solid transparent; transition: border 0.15s;
+  background: var(--branco); border-radius: 16px;
+  box-shadow: var(--sombra-suave); padding: 13px 15px;
+  margin-bottom: 10px; cursor: pointer; text-decoration: none; color: inherit;
+  border: 1px solid var(--borda); transition: border-color 0.15s, box-shadow 0.15s;
 }
-.mini-card:active { border-color: var(--verde); }
+.mini-card:active { border-color: var(--verde); box-shadow: var(--sombra); }
 .mini-card .icone-mini {
-  width: 46px; height: 46px; border-radius: 13px; flex-shrink: 0;
+  width: 44px; height: 44px; border-radius: 13px; flex-shrink: 0;
   display: grid; place-items: center;
+  background: var(--azul-claro); color: var(--azul);
 }
 .mini-card .icone-mini svg { width: 24px; height: 24px; }
 .mini-card .txt-mini { flex: 1; min-width: 0; }
@@ -492,6 +493,28 @@ textarea { min-height: 90px; resize: vertical; }
 .mini-card .txt-mini .s { font-size: 0.8rem; color: var(--texto-suave); }
 .mini-card .seta-mini { color: var(--cinza); }
 .mini-card .seta-mini svg { width: 20px; height: 20px; }
+
+/* ---------- Boas-vindas (visitante) ---------- */
+.inicio { text-align: center; }
+.inicio-icone {
+  width: 54px; height: 54px; margin: 2px auto 14px; border-radius: 17px;
+  display: grid; place-items: center;
+  background: var(--verde-claro); color: var(--verde-escuro);
+}
+.inicio-icone svg { width: 26px; height: 26px; }
+.inicio h2 { margin-bottom: 6px; }
+.inicio p {
+  font-size: 0.88rem; line-height: 1.55;
+  max-width: 30ch; margin: 0 auto 20px;
+}
+
+.vantagens { list-style: none; display: grid; gap: 9px; margin: 22px 0 4px; }
+.vantagens li {
+  display: flex; align-items: center; gap: 9px;
+  font-size: 0.83rem; color: var(--texto-suave);
+}
+.vantagens .vantagem-ic { color: var(--verde); display: grid; flex-shrink: 0; }
+.vantagens .vantagem-ic svg { width: 15px; height: 15px; }
 
 /* ---------- Status ativo (home) ---------- */
 .cartao-ativo {

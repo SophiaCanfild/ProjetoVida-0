@@ -26,12 +26,22 @@
 
     <!-- Visitante (não logado) -->
     <div id="area-visitante" class="escondido">
-      <h2>👋 Bem-vindo(a)!</h2>
-      <p class="suave" style="margin-bottom:18px;">
-        Seu cadastro é feito pela recepção da unidade. É só entrar com seu CPF para acompanhar tudo.
-      </p>
 
-      <button class="btn btn-primario" id="btn-entrar">🔐 Entrar com meu CPF</button>
+      <div class="inicio">
+        <div class="inicio-icone" id="inicio-icone"></div>
+        <h2>Bem-vindo(a)</h2>
+        <p class="suave">
+          A recepção faz seu cadastro. Aqui você acompanha seu atendimento
+          sem precisar de senha — é só o CPF.
+        </p>
+        <button class="btn btn-primario" id="btn-entrar">Entrar com meu CPF</button>
+      </div>
+
+      <ul class="vantagens">
+        <li><span class="vantagem-ic"></span> Senha e posição na fila</li>
+        <li><span class="vantagem-ic"></span> Informações da triagem</li>
+        <li><span class="vantagem-ic"></span> Histórico de consultas</li>
+      </ul>
 
       <a class="btn btn-contorno btn-bloco" href="../index.html" style="text-align:center;">← Voltar ao Portal Vida+</a>
 
@@ -76,7 +86,7 @@
         <div class="seta-mini" id="seta-5"></div>
       </a>
 
-      <button class="btn btn-perigo btn-bloco" id="btn-sair-home">🚪 Sair da conta</button>
+      <button class="btn btn-perigo btn-bloco" id="btn-sair-home">Sair da conta</button>
       <a class="btn btn-contorno btn-bloco" href="../index.html" style="text-align:center;">← Voltar ao Portal Vida+</a>
     </div>
 
@@ -107,6 +117,12 @@
     });
     ['seta-1','seta-2','seta-3','seta-4','seta-5'].forEach(id => {
       document.getElementById(id).innerHTML = UI.icone('seta');
+    });
+
+    /* Ícones do bloco de boas-vindas (visitante) */
+    document.getElementById('inicio-icone').innerHTML = UI.icone('coracao');
+    document.querySelectorAll('.vantagem-ic').forEach(el => {
+      el.innerHTML = UI.icone('check');
     });
 
     function montarCartaoAtivo(ativa) {
