@@ -59,7 +59,9 @@
     if (!cpf) { location.href = 'index.html'; }
 
     async function carregar() {
-      const consultas = await DB.getConsultas(cpf);
+      if (DB.aguardarSincronizacao) { await DB.aguardarSincronizacao(); }
+      // Só as consultas deste paciente
+      const consultas = DB.getConsultasPorCpf(cpf);
       const container = document.getElementById('lista-historico');
 
       if (!consultas.length) {
@@ -80,14 +82,17 @@
                 ? '<span class="status-chip status-andamento">Chamado</span>'
                 : '<span class="status-chip status-preenchido">Em atendimento</span>';
 
-        const link = (c.status === 'finalizado' && c.relatorio)
+        const link = c.status === 'finalizado'
           ? ` href="consulta.html?id=${c.id}"`
           : '';
 
         // Detalhe: queixa (triagem) + medicamentos prescritos
+        // (receita/exames ficam na própria consulta; "relatorio" é formato antigo)
         const queixa = (c.triagem && c.triagem.queixa_principal) || 'Atendimento';
-        const nMed = c.relatorio && c.relatorio.medicamentos ? c.relatorio.medicamentos.length : 0;
-        const nExam = c.relatorio && c.relatorio.exames ? c.relatorio.exames.length : 0;
+        const meds = c.relatorio ? c.relatorio.medicamentos : c.receita;
+        const exs = c.relatorio ? c.relatorio.exames : c.exames;
+        const nMed = Array.isArray(meds) ? meds.length : 0;
+        const nExam = Array.isArray(exs) ? exs.length : 0;
 
         return `
           <a class="item-historico"${link}>

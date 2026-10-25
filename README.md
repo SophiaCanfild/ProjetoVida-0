@@ -30,7 +30,7 @@ O **Vida+** é um sistema de saúde digital desenvolvido como **Trabalho de Conc
 | 🏥 **Sistema Médico** | Painéis para admin, médico, enfermeiro e recepcionista |
 | 📱 **App do Paciente** | PWA para o paciente acompanhar atendimento pelo celular |
 | 📺 **Telão** | Display na sala de espera mostrando chamadas |
-| 🗄️ **Banco de Dados** | Supabase (PostgreSQL) com 8 tabelas e RLS |
+| 🗄️ **Banco de Dados** | Supabase (PostgreSQL) com 10 tabelas e RLS |
 
 ---
 
@@ -95,7 +95,9 @@ vida-mais/
 │   └── teste-voz.html            ← 🩺 Diagnóstico de som e voz
 │
 └── supabase/                     ← 🗄️ Banco de dados
-    └── schema.sql                ← Schema completo (8 tabelas)
+    ├── schema.sql                ← Schema completo (10 tabelas)
+    └── migrations/
+        └── 20261025_receitas_exames.sql ← Receita médica e exames (banco já instalado)
 ```
 
 ---
@@ -113,6 +115,9 @@ cd vida-mais
 
 1. Crie uma conta em [supabase.com](https://supabase.com) e crie um projeto
 2. Vá em **SQL Editor** → cole o conteúdo de `supabase/schema.sql` → **Run**
+   - **Já tinha o banco instalado antes da receita médica / exames?** Rode também
+     `supabase/migrations/20261025_receitas_exames.sql` (cria `receitas` e `exames_solicitados`).
+     Detalhes em [RECEITA-E-EXAMES.md](RECEITA-E-EXAMES.md).
 3. Vá em **Settings > API** → copie a **URL** e a **anon key**
 4. Edite `shared/js/config.js` **e a cópia `paciente-app/js/config.js`** (o app do paciente usa a
    cópia para poder funcionar offline — os dois arquivos precisam ter as mesmas credenciais):
@@ -154,7 +159,7 @@ Abra `http://localhost:8000` no navegador — é o portal com todos os acessos. 
 
 ## 🗄️ Banco de Dados
 
-**8 tabelas** no Supabase (PostgreSQL) com Row Level Security:
+**10 tabelas** no Supabase (PostgreSQL) com Row Level Security:
 
 | Tabela | Descrição |
 |:---|:---|
@@ -166,6 +171,8 @@ Abra `http://localhost:8000` no navegador — é o portal com todos os acessos. 
 | `notificações` | Avisos para o paciente |
 | `medicamentos` | Estoque de medicamentos |
 | `configurações` | Parâmetros do sistema |
+| `receitas` | Receitas emitidas pelo médico (simples, antimicrobiano, controle especial) |
+| `exames_solicitados` | Pedidos de exame com status e resultado |
 
 ---
 
@@ -186,7 +193,10 @@ Abra `http://localhost:8000` no navegador — é o portal com todos os acessos. 
 
 ### 🏥 Sistema Médico
 - **Admin:** Dashboard, gerenciamento de usuários e pacientes
-- **Médico:** Fila de espera, prontuário, receitas digitais
+- **Médico:** Fila de espera, prontuário, **receita médica** (separação automática em receita
+  simples / antimicrobiano / controle especial, alerta de alergia, impressão e reimpressão) e
+  **solicitação de exames** (catálogo, preparo, prioridade, acompanhamento do resultado com aviso
+  ao paciente) — ver [RECEITA-E-EXAMES.md](RECEITA-E-EXAMES.md)
 - **Enfermeiro:** Triagem com protocolo de Manchester
 - **Recepcionista:** Cadastro, fila, chamada de pacientes
 
@@ -198,7 +208,7 @@ Abra `http://localhost:8000` no navegador — é o portal com todos os acessos. 
 - Instalável como app (PWA)
 - Login pelo CPF cadastrado pela recepção (sem atalho de "paciente demo")
 - **Funciona offline**: as telas, o CSS e os scripts ficam guardados no aparelho
-  (service worker `vidaplus-paciente-v4`); os dados vêm da última sincronização local
+  (service worker `vidaplus-paciente-v7`); os dados vêm da última sincronização local
 
 #### 📴 Não abre sem internet? Use `paciente-app/status-offline.html`
 

@@ -10,7 +10,9 @@
 -- ============================================================
 -- 1) QUAIS TABELAS EXISTEM HOJE?
 -- O app espera: pacientes, usuarios, unidades, consultas,
--- agendamentos, notificacoes, medicamentos, configuracoes.
+-- agendamentos, notificacoes, medicamentos, configuracoes,
+-- receitas, exames_solicitados (receita médica / pedido de exames —
+-- ver a seção 10 e supabase/migrations/20261025_receitas_exames.sql).
 -- ============================================================
 SELECT table_name
 FROM information_schema.tables
@@ -86,7 +88,8 @@ ORDER BY tc.constraint_type, kcu.column_name;
 SELECT table_name, string_agg(column_name, ', ' ORDER BY ordinal_position) AS colunas
 FROM information_schema.columns
 WHERE table_schema = 'public'
-  AND table_name IN ('usuarios', 'consultas', 'agendamentos', 'notificacoes')
+  AND table_name IN ('usuarios', 'consultas', 'agendamentos', 'notificacoes',
+                     'receitas', 'exames_solicitados')
 GROUP BY table_name
 ORDER BY table_name;
 
@@ -115,7 +118,8 @@ SELECT table_name, grantee, string_agg(privilege_type, ', ' ORDER BY privilege_t
 FROM information_schema.role_table_grants
 WHERE table_schema = 'public'
   AND grantee IN ('anon', 'authenticated')
-  AND table_name IN ('pacientes', 'usuarios', 'consultas', 'agendamentos', 'notificacoes')
+  AND table_name IN ('pacientes', 'usuarios', 'consultas', 'agendamentos', 'notificacoes',
+                     'receitas', 'exames_solicitados')
 GROUP BY table_name, grantee
 ORDER BY table_name, grantee;
 
@@ -139,3 +143,20 @@ UNION ALL SELECT 'consultas', count(*) FROM public.consultas
 UNION ALL SELECT 'agendamentos', count(*) FROM public.agendamentos
 UNION ALL SELECT 'notificacoes', count(*) FROM public.notificacoes
 ORDER BY tabela;
+
+
+-- ============================================================
+-- 10) RECEITA MÉDICA E SOLICITAR EXAME (migração 2026-10-25)
+-- "FALTA" = rode supabase/migrations/20261025_receitas_exames.sql
+-- (ou o schema.sql atualizado). Sem as tabelas o médico continua
+-- emitindo, mas os registros ficam só na foto da consulta.
+-- ============================================================
+SELECT t.tabela,
+       CASE WHEN to_regclass('public.' || t.tabela) IS NULL
+            THEN 'FALTA — rode supabase/migrations/20261025_receitas_exames.sql'
+            ELSE 'OK' END AS situacao,
+       (SELECT count(*) FROM information_schema.columns c
+         WHERE c.table_schema = 'public' AND c.table_name = t.tabela) AS colunas,
+       t.colunas_esperadas
+FROM (VALUES ('receitas', 17), ('exames_solicitados', 24)) AS t(tabela, colunas_esperadas)
+ORDER BY t.tabela;

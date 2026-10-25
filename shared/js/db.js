@@ -15,6 +15,14 @@
      2. Leituras: sempre do localStorage (rápido, síncrono)
      3. Gravações: localStorage imediato + Supabase em background
      4. Realtime: Supabase notifica outras abas/módulos em tempo real
+
+   RECEITAS E EXAMES (área do médico):
+     - public.receitas            → 1 linha por receita emitida
+     - public.exames_solicitados  → 1 linha por exame pedido (com status)
+     - consultas.receita / consultas.exames continuam recebendo a
+       "foto" dos itens (é o que o app do paciente lê). As leituras
+       unem as duas fontes, então nada quebra antes da migração
+       supabase/migrations/20261025_receitas_exames.sql ser aplicada.
    ============================================================ */
 
 (function () {
@@ -110,8 +118,22 @@
     notificacoes: {
       renomear: {},
       colunas: ['id', 'cpf', 'tipo', 'titulo', 'texto', 'link', 'lida', 'criado_em']
+    },
+    receitas: {
+      renomear: {},
+      colunas: ['id', 'consulta_id', 'paciente_id', 'cpf', 'numero', 'tipo', 'vias', 'itens', 'orientacoes', 'validade_dias', 'valida_ate', 'alertas', 'medico_nome', 'medico_crm', 'unidade', 'emitida_em', 'criado_em']
+    },
+    exames_solicitados: {
+      renomear: {},
+      colunas: ['id', 'consulta_id', 'paciente_id', 'cpf', 'pedido', 'nome', 'categoria', 'prioridade', 'indicacao', 'cid10', 'orientacao', 'local_realizacao', 'status', 'resultado', 'realizado_em', 'resultado_em', 'cancelado_em', 'motivo_cancelamento', 'atualizado_por', 'medico_nome', 'medico_crm', 'unidade', 'solicitado_em', 'atualizado_em']
     }
   };
+
+  // Tabelas criadas pela migração 20261025_receitas_exames.sql.
+  // Se ainda não existirem no banco, o app avisa e segue funcionando
+  // com a "foto" gravada em consultas.receita / consultas.exames.
+  const TABELAS_PRESCRICAO = ['receitas', 'exames_solicitados'];
+  const MIGRACAO_PRESCRICAO = 'supabase/migrations/20261025_receitas_exames.sql';
 
   // tipo interno (app) <-> perfil do banco (CHECK do schema só aceita estes valores)
   const TIPO_PARA_PERFIL = { admin: 'administrador', administrador: 'administrador', medico: 'medico', enfermeiro: 'enfermeiro', recepcionista: 'recepcionista' };
@@ -247,7 +269,7 @@
       return;
     }
 
-    const tabelas = ['usuarios', 'pacientes', 'consultas', 'agendamentos', 'notificacoes'];
+    const tabelas = ['usuarios', 'pacientes', 'consultas', 'agendamentos', 'notificacoes'].concat(TABELAS_PRESCRICAO);
     const versoesAntes = {};
     tabelas.forEach(t => { versoesAntes[t] = versaoDe(t); });
 
@@ -258,7 +280,8 @@
       tabelas.forEach((tabela, i) => {
         const { data, error } = resultados[i];
         if (error) {
-          console.warn('[Vida+] Falha ao ler tabela', tabela, '→', error.message);
+          console.warn('[Vida+] Falha ao ler tabela', tabela, '→', error.message +
+            (TABELAS_PRESCRICAO.indexOf(tabela) !== -1 ? ' (rode ' + MIGRACAO_PRESCRICAO + ' no Supabase)' : ''));
           return;
         }
         if (Array.isArray(data)) {
@@ -289,6 +312,57 @@
   // ============================================================
   // REALTIME — Atualização automática entre abas/módulos
   // ============================================================
+  const EVENTO_REALTIME = {
+    consultas: 'consulta_atualizada',
+    pacientes: 'paciente_atualizado',
+    usuarios: 'usuario_atualizado',
+    notificacoes: 'notificacao_criada',
+    agendamentos: 'agendamento_atualizado',
+    receitas: 'receita_atualizada',
+    exames_solicitados: 'exame_solicitado_atualizado'
+  };
+
+  function aplicarMudancaRealtime(tabela, payload) {
+    // Converte a linha do formato do banco para o formato interno
+    const novo = payload.new ? doSupabase(tabela, payload.new) : null;
+
+    // Atualiza cache local
+    const lista = ler(tabela) || [];
+    if (payload.eventType === 'INSERT' && novo) {
+      if (!lista.find(x => x.id === novo.id)) lista.push(novo);
+    } else if (payload.eventType === 'UPDATE' && novo) {
+      const idx = lista.findIndex(x => x.id === novo.id);
+      if (idx !== -1) lista[idx] = novo;
+      else lista.push(novo);
+    } else if (payload.eventType === 'DELETE') {
+      const idx = lista.findIndex(x => x.id === payload.old.id);
+      if (idx !== -1) lista.splice(idx, 1);
+    }
+    gravar(tabela, lista);
+
+    // Dispara listeners locais
+    const evt = EVENTO_REALTIME[tabela];
+    if (evt && listeners[evt]) {
+      listeners[evt].forEach(fn => fn(novo || payload.old));
+    }
+  }
+
+  function assinarCanal(nomeCanal, tabelas, dicaErro) {
+    const channel = supabaseClient.channel(nomeCanal);
+    tabelas.forEach(tabela => {
+      channel.on('postgres_changes',
+        { event: '*', schema: 'public', table: tabela },
+        function (payload) { aplicarMudancaRealtime(tabela, payload); }
+      );
+    });
+    channel.subscribe(function (status) {
+      if (status === 'SUBSCRIBED') console.log('[Vida+] Realtime conectado (' + nomeCanal + ')');
+      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        console.warn('[Vida+] Realtime falhou em ' + nomeCanal + ' (' + status + '). ' + dicaErro);
+      }
+    });
+  }
+
   function setupRealtime() {
     // "channel" é método do CLIENTE (supabaseClient), não da lib global (window.supabase).
     // A verificação antiga (!supabase.channel) era sempre falsa positiva e o realtime
@@ -296,53 +370,20 @@
     if (!temClienteSupabase() || typeof supabaseClient.channel !== 'function') return;
 
     try {
-      const channel = supabaseClient.channel('vida-mais-sync');
-
-      ['consultas', 'pacientes', 'usuarios', 'notificacoes', 'agendamentos'].forEach(tabela => {
-        channel.on('postgres_changes',
-          { event: '*', schema: 'public', table: tabela },
-          function (payload) {
-            // Converte a linha do formato do banco para o formato interno
-            const novo = payload.new ? doSupabase(tabela, payload.new) : null;
-
-            // Atualiza cache local
-            const lista = ler(tabela) || [];
-            if (payload.eventType === 'INSERT' && novo) {
-              if (!lista.find(x => x.id === novo.id)) lista.push(novo);
-            } else if (payload.eventType === 'UPDATE' && novo) {
-              const idx = lista.findIndex(x => x.id === novo.id);
-              if (idx !== -1) lista[idx] = novo;
-              else lista.push(novo);
-            } else if (payload.eventType === 'DELETE') {
-              const idx = lista.findIndex(x => x.id === payload.old.id);
-              if (idx !== -1) lista.splice(idx, 1);
-            }
-            gravar(tabela, lista);
-
-            // Dispara listeners locais
-            const mapa = {
-              consultas: 'consulta_atualizada',
-              pacientes: 'paciente_atualizado',
-              usuarios: 'usuario_atualizado',
-              notificacoes: 'notificacao_criada',
-              agendamentos: 'agendamento_atualizado'
-            };
-            const evt = mapa[tabela];
-            if (evt && listeners[evt]) {
-              listeners[evt].forEach(fn => fn(novo || payload.old));
-            }
-          }
-        );
-      });
-
-      channel.subscribe(function (status) {
-        if (status === 'SUBSCRIBED') console.log('[Vida+] Realtime conectado');
-        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          console.warn('[Vida+] Realtime falhou (' + status + '). Habilite a publicação das tabelas no Supabase (ver supabase/schema.sql).');
-        }
-      });
+      assinarCanal('vida-mais-sync',
+        ['consultas', 'pacientes', 'usuarios', 'notificacoes', 'agendamentos'],
+        'Habilite a publicação das tabelas no Supabase (ver supabase/schema.sql).');
     } catch (e) {
       console.warn('[Vida+] Realtime indisponível:', e.message);
+    }
+
+    // Canal próprio para receitas/exames: se a migração ainda não foi
+    // aplicada, a falha fica isolada e não derruba o realtime principal.
+    try {
+      assinarCanal('vida-mais-prescricoes', TABELAS_PRESCRICAO,
+        'Rode ' + MIGRACAO_PRESCRICAO + ' para ativar o tempo real de receitas e exames.');
+    } catch (e) {
+      console.warn('[Vida+] Realtime de receitas/exames indisponível:', e.message);
     }
   }
 
@@ -874,13 +915,19 @@
   // ============================================================
   DB.getExames = function (cpf) {
     const cpfLimpo = limparCpf(cpf);
+    // Registro formal (public.exames_solicitados): traz o status mais
+    // recente quando o resultado é lançado depois da consulta.
+    const registros = new Map((ler('exames_solicitados') || [])
+      .filter(e => e.cpf === cpfLimpo)
+      .map(e => [e.id, e]));
     const consultas = DB.getConsultas()
       .filter(c => c.cpf === cpfLimpo && c.status === 'finalizado');
     const exames = [];
     consultas.forEach(c => {
       (c.exames || []).forEach(e => {
+        const atual = e && e.id ? maisRecente(e, registros.get(e.id)) : e;
         exames.push({
-          ...e,
+          ...atual,
           consulta_id: c.id,
           data: c.finalizado_em || c.criado_em,
           unidade: c.unidade
@@ -892,6 +939,363 @@
 
   // Alias
   DB.getExamesPorCpf = DB.getExames;
+
+  // Junta duas versões do mesmo registro (foto da consulta x tabela)
+  // e fica com os campos da que foi atualizada por último.
+  function maisRecente(a, b) {
+    if (!a) return b ? Object.assign({}, b) : null;
+    if (!b) return Object.assign({}, a);
+    const ta = new Date(a.atualizado_em || a.solicitado_em || 0).getTime() || 0;
+    const tb = new Date(b.atualizado_em || b.solicitado_em || 0).getTime() || 0;
+    return tb >= ta ? Object.assign({}, a, b) : Object.assign({}, b, a);
+  }
+
+  function dataLocalIso(d) {
+    const p = n => String(n).padStart(2, '0');
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+  }
+
+  // Número legível de documento: RX-20261025-7KQ2M / EX-20261025-AB3CD
+  DB.gerarNumeroDocumento = function (prefixo) {
+    const d = new Date();
+    const alfabeto = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let sufixo = '';
+    for (let i = 0; i < 5; i++) sufixo += alfabeto[Math.floor(Math.random() * alfabeto.length)];
+    return (prefixo || 'DOC') + '-' + dataLocalIso(d).replace(/-/g, '') + '-' + sufixo;
+  };
+
+  // ============================================================
+  // RECEITAS — documentos emitidos pelo médico
+  // ------------------------------------------------------------
+  // tipo: simples (1 via) | antimicrobiano (2 vias, RDC 471/2021)
+  //       | controle_especial (2 vias, Portaria 344/98)
+  // Receita emitida é documento: o app só INSERE (não altera/apaga).
+  // ============================================================
+  const TIPOS_RECEITA = ['simples', 'antimicrobiano', 'controle_especial'];
+
+  DB.getReceitas = function () {
+    return (ler('receitas') || []).slice()
+      .sort((a, b) => new Date(b.emitida_em) - new Date(a.emitida_em));
+  };
+
+  DB.getReceitasPorConsulta = function (consultaId) {
+    return DB.getTodasReceitas().filter(r => r.consulta_id === consultaId);
+  };
+
+  DB.getReceitasPorCpf = function (cpf) {
+    const cpfLimpo = limparCpf(cpf);
+    return DB.getTodasReceitas().filter(r => r.cpf === cpfLimpo);
+  };
+
+  // MÉDICO: registra as receitas geradas no atendimento.
+  // Cada item de "receitas" = { tipo, itens[], validade_dias, valida_ate,
+  //   orientacoes, alertas[], medico_nome, medico_crm, id?, numero? }
+  DB.registrarReceitas = function (consultaId, receitas) {
+    const c = DB.getConsultaPorId(consultaId);
+    if (!c) throw new Error('Consulta não encontrada');
+
+    const lista = ler('receitas') || [];
+    const momento = agora();
+    const novas = (receitas || [])
+      .filter(r => r && Array.isArray(r.itens) && r.itens.length)
+      .map(r => {
+        const tipo = TIPOS_RECEITA.indexOf(r.tipo) !== -1 ? r.tipo : 'simples';
+        const validade = parseInt(r.validade_dias, 10) || null;
+        let validaAte = r.valida_ate || null;
+        if (!validaAte && validade) {
+          const d = new Date(r.emitida_em || momento);
+          d.setDate(d.getDate() + validade);
+          validaAte = dataLocalIso(d);
+        }
+        return {
+          id: r.id || gerarId(),
+          consulta_id: c.id,
+          paciente_id: c.paciente_id,
+          cpf: c.cpf,
+          numero: r.numero || DB.gerarNumeroDocumento('RX'),
+          tipo: tipo,
+          vias: tipo === 'simples' ? 1 : 2,
+          itens: r.itens,
+          orientacoes: r.orientacoes || null,
+          validade_dias: validade,
+          valida_ate: validaAte,
+          alertas: Array.isArray(r.alertas) ? r.alertas : [],
+          medico_nome: r.medico_nome || c.medico_nome || null,
+          medico_crm: r.medico_crm || c.medico_crm || null,
+          unidade: r.unidade || c.unidade || unidadePadrao(),
+          emitida_em: r.emitida_em || momento,
+          criado_em: momento
+        };
+      })
+      .filter(n => !lista.some(x => x.id === n.id));
+
+    if (!novas.length) return [];
+    lista.unshift.apply(lista, novas);   // mantém a ordem em que foram emitidas
+    gravar('receitas', lista);
+    sbInsert('receitas', novas);
+    DB.emit('receitas_emitidas', novas);
+    return novas;
+  };
+
+  // Receitas = registro formal + receitas reconstruídas da foto das
+  // consultas (consultas antigas ou banco ainda sem a tabela).
+  DB.getTodasReceitas = function () {
+    const registros = ler('receitas') || [];
+    const ids = new Set(registros.map(r => r.id));
+    const saida = registros.map(r => Object.assign({ legado: false }, r));
+
+    DB.getConsultas()
+      .filter(c => c.status === 'finalizado' && Array.isArray(c.receita) && c.receita.length)
+      .forEach(c => {
+        const grupos = new Map();
+        c.receita.forEach(item => {
+          if (!item || !item.nome) return;
+          const chave = item.receita_id || ('consulta-' + c.id);
+          if (!grupos.has(chave)) grupos.set(chave, []);
+          grupos.get(chave).push(item);
+        });
+        grupos.forEach((itens, chave) => {
+          if (ids.has(chave)) return;
+          const ref = itens[0];
+          const tipo = TIPOS_RECEITA.indexOf(ref.receita_tipo) !== -1 ? ref.receita_tipo : 'simples';
+          saida.push({
+            id: chave,
+            consulta_id: c.id,
+            paciente_id: c.paciente_id,
+            cpf: c.cpf,
+            numero: ref.receita_numero || null,
+            tipo: tipo,
+            vias: tipo === 'simples' ? 1 : 2,
+            itens: itens,
+            orientacoes: c.orientacoes || null,
+            validade_dias: null,
+            valida_ate: ref.valida_ate || null,
+            alertas: [],
+            medico_nome: c.medico_nome || null,
+            medico_crm: c.medico_crm || null,
+            unidade: c.unidade,
+            emitida_em: c.finalizado_em || c.criado_em,
+            legado: !ref.receita_id
+          });
+        });
+      });
+
+    return saida.sort((a, b) => new Date(b.emitida_em) - new Date(a.emitida_em));
+  };
+
+  // ============================================================
+  // EXAMES SOLICITADOS — pedidos com ciclo de status
+  // ------------------------------------------------------------
+  // solicitado → realizado → resultado_disponivel   (ou cancelado)
+  // Exame não é apagado: erro de pedido vira "cancelado" com motivo.
+  // ============================================================
+  const STATUS_EXAME = ['solicitado', 'realizado', 'resultado_disponivel', 'cancelado'];
+  const CATEGORIAS_EXAME = ['laboratorial', 'imagem', 'cardiologico', 'teste_rapido', 'outros'];
+  const TRANSICOES_EXAME = {
+    solicitado: ['realizado', 'resultado_disponivel', 'cancelado'],
+    realizado: ['resultado_disponivel', 'cancelado'],
+    resultado_disponivel: ['resultado_disponivel'],   // só correção do resultado
+    cancelado: []
+  };
+  DB.STATUS_EXAME = STATUS_EXAME;
+  DB.TRANSICOES_EXAME = TRANSICOES_EXAME;
+
+  DB.getExamesSolicitados = function () {
+    return (ler('exames_solicitados') || []).slice()
+      .sort((a, b) => new Date(b.solicitado_em) - new Date(a.solicitado_em));
+  };
+
+  // MÉDICO: registra os exames pedidos no atendimento (mesmo nº de pedido)
+  DB.registrarExames = function (consultaId, exames) {
+    const c = DB.getConsultaPorId(consultaId);
+    if (!c) throw new Error('Consulta não encontrada');
+
+    const lista = ler('exames_solicitados') || [];
+    const momento = agora();
+    const pedidoPadrao = DB.gerarNumeroDocumento('EX');
+    const novos = (exames || [])
+      .filter(e => e && String(e.nome || '').trim())
+      .map(e => ({
+        id: e.id || gerarId(),
+        consulta_id: c.id,
+        paciente_id: c.paciente_id,
+        cpf: c.cpf,
+        pedido: e.pedido || pedidoPadrao,
+        nome: String(e.nome).trim(),
+        categoria: CATEGORIAS_EXAME.indexOf(e.categoria) !== -1 ? e.categoria : 'outros',
+        prioridade: e.prioridade === 'urgente' ? 'urgente' : 'rotina',
+        indicacao: e.indicacao || null,
+        cid10: e.cid10 || c.cid10 || null,
+        orientacao: e.orientacao || null,
+        local_realizacao: e.local_realizacao || null,
+        status: 'solicitado',
+        resultado: null,
+        realizado_em: null,
+        resultado_em: null,
+        cancelado_em: null,
+        motivo_cancelamento: null,
+        atualizado_por: null,
+        medico_nome: e.medico_nome || c.medico_nome || null,
+        medico_crm: e.medico_crm || c.medico_crm || null,
+        unidade: e.unidade || c.unidade || unidadePadrao(),
+        solicitado_em: e.solicitado_em || momento,
+        atualizado_em: momento
+      }))
+      .filter(n => !lista.some(x => x.id === n.id));
+
+    if (!novos.length) return [];
+    lista.unshift.apply(lista, novos);   // mantém a ordem do pedido
+    gravar('exames_solicitados', lista);
+    sbInsert('exames_solicitados', novos);
+    DB.emit('exames_registrados', novos);
+    return novos;
+  };
+
+  // Todos os exames (registro formal + foto das consultas), já com o
+  // status mais recente. "indice" identifica exames antigos sem id.
+  DB.getTodosExames = function () {
+    const registros = ler('exames_solicitados') || [];
+    const porId = new Map(registros.map(e => [e.id, e]));
+    const vistos = new Set();
+    const saida = [];
+
+    DB.getConsultas()
+      .filter(c => c.status === 'finalizado' && Array.isArray(c.exames))
+      .forEach(c => {
+        c.exames.forEach((e, indice) => {
+          if (!e || !(e.nome || e.exame)) return;
+          const atual = maisRecente(e, e.id ? porId.get(e.id) : null);
+          if (e.id) vistos.add(e.id);
+          saida.push(Object.assign({}, atual, {
+            id: e.id || null,
+            indice: indice,
+            consulta_id: c.id,
+            paciente_id: atual.paciente_id || c.paciente_id,
+            cpf: atual.cpf || c.cpf,
+            nome: atual.nome || atual.exame,
+            status: atual.status || 'solicitado',
+            prioridade: atual.prioridade || 'rotina',
+            categoria: atual.categoria || 'outros',
+            pedido: atual.pedido || null,
+            unidade: atual.unidade || c.unidade,
+            cid10: atual.cid10 || c.cid10 || null,
+            medico_nome: atual.medico_nome || c.medico_nome || null,
+            medico_crm: atual.medico_crm || c.medico_crm || null,
+            solicitado_em: atual.solicitado_em || c.finalizado_em || c.criado_em,
+            legado: !e.id
+          }));
+        });
+      });
+
+    registros.forEach(r => {
+      if (!vistos.has(r.id)) saida.push(Object.assign({ indice: null, legado: false }, r));
+    });
+
+    return saida.sort((a, b) => new Date(b.solicitado_em) - new Date(a.solicitado_em));
+  };
+
+  // Atualiza o status/resultado de um exame.
+  // ref: id do exame  —  ou { id, consulta_id, indice } (exames antigos sem id)
+  // dados: { status, resultado, motivo_cancelamento, atualizado_por }
+  DB.atualizarExame = function (ref, dados) {
+    ref = typeof ref === 'string' ? { id: ref } : (ref || {});
+    dados = dados || {};
+
+    const listaReg = ler('exames_solicitados') || [];
+    const reg = ref.id ? listaReg.find(e => e.id === ref.id) : null;
+    const consultas = DB.getConsultas();
+    const consultaId = ref.consulta_id || (reg && reg.consulta_id);
+    const c = consultaId ? consultas.find(x => x.id === consultaId) : null;
+
+    let indice = -1;
+    if (c && Array.isArray(c.exames)) {
+      if (ref.id) indice = c.exames.findIndex(e => e && e.id === ref.id);
+      if (indice === -1 && !ref.id && Number.isInteger(ref.indice) && c.exames[ref.indice]) indice = ref.indice;
+    }
+    const foto = indice !== -1 ? c.exames[indice] : null;
+    const atual = maisRecente(foto, reg);
+    if (!atual) throw new Error('Exame não encontrado');
+
+    const statusAtual = atual.status || 'solicitado';
+    const novoStatus = dados.status || statusAtual;
+    if (STATUS_EXAME.indexOf(novoStatus) === -1) throw new Error('Status de exame inválido: ' + novoStatus);
+    if (novoStatus !== statusAtual && (TRANSICOES_EXAME[statusAtual] || []).indexOf(novoStatus) === -1) {
+      throw new Error('Não é possível mudar o exame de "' + statusAtual + '" para "' + novoStatus + '".');
+    }
+    if (statusAtual === 'cancelado') throw new Error('Exame cancelado não pode ser alterado.');
+
+    const resultado = String((dados.resultado !== undefined ? dados.resultado : atual.resultado) || '').trim();
+    const motivo = String((dados.motivo_cancelamento !== undefined ? dados.motivo_cancelamento : atual.motivo_cancelamento) || '').trim();
+    if (novoStatus === 'resultado_disponivel' && !resultado) throw new Error('Informe o resultado do exame.');
+    if (novoStatus === 'cancelado' && !motivo) throw new Error('Informe o motivo do cancelamento.');
+
+    const momento = agora();
+    const campos = {
+      status: novoStatus,
+      atualizado_em: momento,
+      atualizado_por: dados.atualizado_por || atual.atualizado_por || null
+    };
+    if (novoStatus === 'realizado') {
+      campos.realizado_em = dados.realizado_em || atual.realizado_em || momento;
+    }
+    if (novoStatus === 'resultado_disponivel') {
+      campos.resultado = resultado;
+      campos.resultado_em = (statusAtual === 'resultado_disponivel' && atual.resultado_em) ? atual.resultado_em : momento;
+      campos.realizado_em = atual.realizado_em || dados.realizado_em || momento;
+    }
+    if (novoStatus === 'cancelado') {
+      campos.cancelado_em = momento;
+      campos.motivo_cancelamento = motivo;
+    }
+
+    // 1) registro formal (public.exames_solicitados)
+    if (reg) {
+      Object.assign(reg, campos);
+      gravar('exames_solicitados', listaReg);
+      sbUpdate('exames_solicitados', campos, { id: reg.id });
+    }
+    // 2) foto na consulta (lida pelo app do paciente)
+    if (foto) {
+      c.exames[indice] = Object.assign({}, foto, campos);
+      gravar('consultas', consultas);
+      sbUpdate('consultas', { exames: c.exames }, { id: c.id });
+    }
+
+    const final = Object.assign({}, atual, campos, {
+      consulta_id: (c && c.id) || atual.consulta_id,
+      cpf: atual.cpf || (c && c.cpf) || null
+    });
+
+    // 3) avisa o paciente no app
+    const nome = final.nome || final.exame || 'Exame';
+    if (final.cpf) {
+      if (novoStatus === 'resultado_disponivel' && statusAtual !== 'resultado_disponivel') {
+        DB.criarNotificacao({
+          cpf: final.cpf, tipo: 'resultado',
+          titulo: '🧪 Resultado de exame disponível',
+          texto: 'O resultado de "' + nome + '" já está disponível no app.',
+          link: 'exames.html'
+        });
+      } else if (novoStatus === 'resultado_disponivel' && resultado !== String(atual.resultado || '').trim()) {
+        DB.criarNotificacao({
+          cpf: final.cpf, tipo: 'resultado',
+          titulo: '🧪 Resultado de exame atualizado',
+          texto: 'O resultado de "' + nome + '" foi corrigido pela equipe médica.',
+          link: 'exames.html'
+        });
+      } else if (novoStatus === 'cancelado') {
+        DB.criarNotificacao({
+          cpf: final.cpf, tipo: 'aviso',
+          titulo: '🧪 Exame cancelado',
+          texto: '"' + nome + '" foi cancelado. Motivo: ' + motivo,
+          link: 'exames.html'
+        });
+      }
+    }
+
+    DB.emit('exame_atualizado', final);
+    return final;
+  };
 
   // ============================================================
   // SESSÃO (login do paciente por CPF)
@@ -1132,6 +1536,11 @@
     sincronizarDoSupabase();
     // Ativa Realtime para atualizações automáticas
     setupRealtime();
+  } else if (liberarSincronizacao) {
+    // Modo demo: não há o que baixar. Libera na hora quem espera a 1ª
+    // carga (DB.aguardarSincronizacao) — antes as telas esperavam o
+    // teto de 8 s à toa.
+    liberarSincronizacao();
   }
 
   // ============================================================

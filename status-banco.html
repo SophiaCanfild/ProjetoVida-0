@@ -319,6 +319,39 @@
       }
     }
 
+    // 4.1b) Receita médica e Solicitar Exame (migração 2026-10-25)
+    const colunasPrescricao = {
+      receitas: ['id', 'consulta_id', 'paciente_id', 'cpf', 'numero', 'tipo', 'vias', 'itens',
+                 'orientacoes', 'validade_dias', 'valida_ate', 'alertas', 'medico_nome',
+                 'medico_crm', 'unidade', 'emitida_em', 'criado_em'],
+      exames_solicitados: ['id', 'consulta_id', 'paciente_id', 'cpf', 'pedido', 'nome', 'categoria',
+                 'prioridade', 'indicacao', 'cid10', 'orientacao', 'local_realizacao', 'status',
+                 'resultado', 'realizado_em', 'resultado_em', 'cancelado_em', 'motivo_cancelamento',
+                 'atualizado_por', 'medico_nome', 'medico_crm', 'unidade', 'solicitado_em', 'atualizado_em']
+    };
+    let prescricoesOk = true;
+    for (const tabela of Object.keys(colunasPrescricao)) {
+      addTeste('prescricao_' + tabela, 'Tabela "' + tabela + '" (receita / exames)');
+      setTeste('prescricao_' + tabela, 'rodando');
+      try {
+        const { count, error } = await supabaseClient
+          .from(tabela)
+          .select(colunasPrescricao[tabela].join(','), { count: 'exact' })
+          .limit(1);
+        if (error) {
+          setTeste('prescricao_' + tabela, 'falha', error.message);
+          log('RECEITAS/EXAMES: ' + tabela + ' → ' + error.message +
+              ' — rode supabase/migrations/20261025_receitas_exames.sql no SQL Editor.');
+          prescricoesOk = false;
+        } else {
+          setTeste('prescricao_' + tabela, 'sucesso', (count ?? 0) + ' registro(s), ' + colunasPrescricao[tabela].length + ' colunas OK');
+        }
+      } catch (e) {
+        setTeste('prescricao_' + tabela, 'falha', 'rede: ' + e.message);
+        prescricoesOk = false;
+      }
+    }
+
     // 4.2) INSERT real na tabela pacientes (reproduz o cadastro da recepção)
     addTeste('insert_paciente', 'Cadastro de paciente (INSERT real + limpeza)');
     setTeste('insert_paciente', 'rodando');
@@ -403,7 +436,11 @@
     });
 
     // Resumo final
-    if (leituraOk && escritaOk && realtimeOk && esquemaOk && insertOk) {
+    if (leituraOk && escritaOk && esquemaOk && insertOk && !prescricoesOk) {
+      setResumo(false, 'Falta a migração de receitas e exames',
+        'O banco funciona, mas as tabelas <code>receitas</code> e <code>exames_solicitados</code> não existem ou estão incompletas. ' +
+        'Rode <code>supabase/migrations/20261025_receitas_exames.sql</code> no SQL Editor do projeto <code>' + (modo.projeto || '?') + '</code>.');
+    } else if (leituraOk && escritaOk && realtimeOk && esquemaOk && insertOk) {
       setResumo(true, 'Tudo funcionando! 🎉',
         'O banco está conectado, aceitando leitura/escrita e o tempo real está ativo. <br><code>' + APP_CONFIG.SUPABASE_URL.replace('https://', '') + '</code>');
       log('RESULTADO: tudo OK.');
