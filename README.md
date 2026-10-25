@@ -83,7 +83,7 @@ vida-mais/
 │   ├── agendamentos.html         ← Agendamentos
 │   ├── js/config.js              ← cópia de shared/js/config.js (escopo do SW)
 │   ├── js/db.js                  ← cópia de shared/js/db.js (escopo do SW)
-│   ├── service-worker.js         ← cache offline (CACHE_VERSION v3)
+│   ├── service-worker.js         ← cache offline (CACHE_VERSION v4)
 │   └── manifest.json             ← PWA manifest
 │
 ├── telao/                        ← 📺 Display da sala de espera
@@ -168,6 +168,7 @@ Abra `http://localhost:8000` no navegador — é o portal com todos os acessos. 
 | **PostgreSQL** | Banco relacional com RLS |
 | **PWA** | App instalável no celular |
 | **WebAudio API** | Sons de notificação |
+| **Web Speech API** | Voz em português para chamar pacientes no telão |
 | **LocalStorage** | Cache offline e modo demo |
 
 ---
@@ -190,7 +191,12 @@ Abra `http://localhost:8000` no navegador — é o portal com todos os acessos. 
 ### 📺 Telão
 - Display para sala de espera
 - Mostra senha, nome e destino do paciente
+- Anuncia a chamada por voz, com pausa, silêncio e teste fictício
+- Mapa hospitalar por unidade, com rota acessível, bloco, andar e passo a passo no momento da chamada
+- Editor visual em **Administrativo → Unidades → Mapa e rotas**, com rascunho, prévia, validação e publicação separada
+- Publicação do mapa em `configuracoes` no Supabase e fallback local para demonstração — [guia do mapa](telao/MAPA-HOSPITAL.md)
 - Atualização automática via Supabase Realtime
+- Chamadas gravadas em `consultas` e avisos do paciente em `notificacoes`
 
 ---
 

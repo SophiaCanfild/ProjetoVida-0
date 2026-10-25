@@ -66,6 +66,10 @@
                         <i class="fas fa-hospital"></i>
                         <span>Unidades</span>
                     </div>
+                    <a class="menu-item" data-page="mapa" href="mapa.html">
+                        <i class="fas fa-route"></i>
+                        <span>Mapa e rotas</span>
+                    </a>
                     <div class="menu-item" data-page="config" onclick="mostrarPagina('config')">
                         <i class="fas fa-cog"></i>
                         <span>Configurações</span>
@@ -113,7 +117,7 @@
                 </div>
             </header>
             
-            <div class="content-area" id="pageDashboard">
+            <div class="content-area active" id="pageDashboard">
                 <!-- Dashboard -->
                 <div class="p-6">
                     <!-- Stats Cards -->
@@ -164,6 +168,21 @@
                                     <i class="fas fa-clock"></i>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+
+                    <div class="card" style="margin-bottom: 24px; border-color: var(--azul-200); background: linear-gradient(120deg, #F0F9FF, #F0FDF6);">
+                        <div class="card-body" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+                            <div style="display: flex; align-items: center; gap: 14px;">
+                                <div style="width: 48px; height: 48px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 14px; background: var(--azul-100); color: var(--azul-600); font-size: 1.35rem;">
+                                    <i class="fas fa-route"></i>
+                                </div>
+                                <div>
+                                    <h3 style="margin-bottom: 4px;">Mapa e rotas do telão</h3>
+                                    <div class="text-muted">Configure pontos, caminhos, destinos e acessibilidade de cada unidade.</div>
+                                </div>
+                            </div>
+                            <a href="mapa.html" class="btn btn-primary">Abrir editor visual <i class="fas fa-arrow-right"></i></a>
                         </div>
                     </div>
                     
@@ -426,8 +445,10 @@
                         <div class="card-body">
                             <div class="alert alert-info">
                                 <i class="fas fa-info-circle"></i>
-                                <span>Funcionalidade em desenvolvimento. Em breve será possível gerenciar unidades de saúde.</span>
+                                <span>Selecione a unidade dentro do editor para configurar pontos, caminhos, destinos e acessibilidade. O telão utiliza somente a versão publicada.</span>
                             </div>
+                            <p style="margin: 16px 0; color: var(--cinza-600);">O rascunho pode ser editado e testado sem alterar as orientações que já estão no ar.</p>
+                            <a href="mapa.html" class="btn btn-primary"><i class="fas fa-route"></i> Abrir Mapa e rotas</a>
                         </div>
                     </div>
                 </div>

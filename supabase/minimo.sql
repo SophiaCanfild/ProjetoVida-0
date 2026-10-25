@@ -198,12 +198,19 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.medicamentos  TO anon, authentica
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.configuracoes TO anon, authenticated;
 
 -- ============================================================
--- 4) RECARREGA O CACHE DO POSTGREST
+-- 4) ÍNDICE DA CONSULTA FEITA PELO TELÃO
+-- ============================================================
+CREATE INDEX IF NOT EXISTS idx_consultas_telao
+    ON public.consultas (unidade, chamado_em DESC)
+    WHERE status = 'chamado';
+
+-- ============================================================
+-- 5) RECARREGA O CACHE DO POSTGREST
 -- ============================================================
 NOTIFY pgrst, 'reload schema';
 
 -- ============================================================
--- 5) CONFERÊNCIA (deve retornar 8 linhas, todas com rls = true)
+-- 6) CONFERÊNCIA (deve retornar 8 linhas, todas com rls = true)
 -- ============================================================
 SELECT c.relname AS tabela,
        c.relrowsecurity AS rls_ligado,

@@ -295,7 +295,9 @@
       pacientes: ['id', 'cpf', 'nome', 'nascimento', 'sexo', 'telefone', 'email', 'endereco',
                   'tipo_sanguineo', 'alergias', 'doencas_cronicas', 'medicamentos_uso',
                   'cartao_sus', 'criado_em', 'atualizado_em'],
-      consultas: ['id', 'paciente_id', 'cpf', 'unidade', 'senha', 'recepcao', 'triagem', 'status', 'criado_em'],
+      consultas: ['id', 'paciente_id', 'cpf', 'unidade', 'senha', 'recepcao', 'triagem',
+                  'status', 'guiche', 'nome_chamado', 'tipo_chamada', 'consultorio',
+                  'chamado_em', 'medico_nome', 'medico_crm', 'criado_em'],
       usuarios:  ['id', 'nome', 'cpf', 'email', 'senha_hash', 'perfil', 'ativo'],
       notificacoes: ['id', 'cpf', 'tipo', 'titulo', 'texto', 'link', 'lida', 'criado_em']
     };
@@ -319,11 +321,14 @@
       }
     }
 
-    // 4.2) INSERT real na tabela pacientes (reproduz o cadastro da recepção)
-    addTeste('insert_paciente', 'Cadastro de paciente (INSERT real + limpeza)');
+    // 4.2) Fluxo real: paciente → chamada → leitura do telão + aviso do app.
+    // Usa uma unidade exclusiva de teste para não aparecer no telão verdadeiro.
+    addTeste('insert_paciente', 'Fluxo paciente → chamada → telão/app (com limpeza)');
     setTeste('insert_paciente', 'rodando');
     let insertOk = true;
     const cpfTeste = '9' + String(Date.now()).slice(-10);
+    const unidadeTeste = '_SELFTEST_VIDAMAIS_';
+    const consultaIdTeste = crypto.randomUUID ? crypto.randomUUID() : gerarUuidTeste();
     try {
       const novo = {
         // O app envia um UUID gerado no navegador. Se a tabela usar
@@ -339,7 +344,7 @@
       const { error } = await supabaseClient.from('pacientes').insert(novo);
       if (error) throw error;
 
-      // Confere que a linha existe E pode ser lida de volta (RLS de SELECT)
+      // Confere que a linha existe E pode ser lida de volta (RLS de SELECT).
       const volta = await supabaseClient
         .from('pacientes')
         .select('id, cpf, nome')
@@ -349,12 +354,12 @@
         throw new Error('O INSERT foi aceito, mas a linha não voltou no SELECT (política de RLS?)');
       }
 
-      // Testa também o INSERT de consultas (FK + JSONB), que é o 2º passo da recepção
+      // INSERT da consulta (FK + JSONB), como faz a recepção.
       const { error: errConsulta } = await supabaseClient.from('consultas').insert({
-        id: (crypto.randomUUID ? crypto.randomUUID() : gerarUuidTeste()),
+        id: consultaIdTeste,
         paciente_id: novo.id,
         cpf: cpfTeste,
-        unidade: (APP_CONFIG.UNIDADES && APP_CONFIG.UNIDADES[0]) || 'UBS Teste',
+        unidade: unidadeTeste,
         senha: 'T999',
         recepcao: { criado_por: 'Teste automático' },
         triagem: null,
@@ -365,18 +370,72 @@
       });
       if (errConsulta) throw errConsulta;
 
-      const del = await supabaseClient.from('pacientes').delete().eq('cpf', cpfTeste);
-      if (del.error) log('AVISO: paciente de teste não pôde ser apagado — remova o CPF ' + cpfTeste);
+      // UPDATE feito pela equipe ao chamar o paciente.
+      const chamadoEm = new Date().toISOString();
+      const { error: errChamada } = await supabaseClient.from('consultas').update({
+        status: 'chamado',
+        chamado_em: chamadoEm,
+        tipo_chamada: 'consulta',
+        consultorio: '1',
+        guiche: null,
+        nome_chamado: novo.nome,
+        medico_nome: 'Dr. Teste Vida+'
+      }).eq('id', consultaIdTeste);
+      if (errChamada) throw errChamada;
 
-      setTeste('insert_paciente', 'sucesso', 'INSERT + SELECT + consulta OK');
-      log('INSERT pacientes: OK (criado, lido de volta, consulta vinculada e removido).');
+      // SELECT equivalente ao do telão, incluindo todos os campos da voz.
+      const telao = await supabaseClient.from('consultas')
+        .select('id, senha, status, chamado_em, tipo_chamada, nome_chamado, consultorio, medico_nome, guiche, unidade')
+        .eq('id', consultaIdTeste)
+        .eq('unidade', unidadeTeste)
+        .eq('status', 'chamado')
+        .order('chamado_em', { ascending: false })
+        .limit(1);
+      if (telao.error) throw telao.error;
+      if (!telao.data || telao.data.length !== 1 || telao.data[0].nome_chamado !== novo.nome) {
+        throw new Error('A chamada foi gravada, mas não voltou corretamente na leitura do telão.');
+      }
+
+      // INSERT + SELECT do aviso que o app do paciente utiliza.
+      const { error: errNotificacao } = await supabaseClient.from('notificacoes').insert({
+        cpf: cpfTeste,
+        tipo: 'chamada',
+        titulo: '🔔 Teste de chamada Vida+',
+        texto: 'Teste automático — dirija-se ao Consultório 1. Senha: T999',
+        link: 'fila.html',
+        lida: false
+      });
+      if (errNotificacao) throw errNotificacao;
+
+      const aviso = await supabaseClient.from('notificacoes')
+        .select('id, cpf, tipo, titulo, texto, link, lida, criado_em')
+        .eq('cpf', cpfTeste)
+        .eq('tipo', 'chamada')
+        .limit(1);
+      if (aviso.error) throw aviso.error;
+      if (!aviso.data || aviso.data.length !== 1) {
+        throw new Error('O aviso do paciente não pôde ser lido após a gravação.');
+      }
+
+      // Limpeza explícita: não depende de CASCADE e não deixa dados fictícios.
+      const limpezaNotificacoes = await supabaseClient.from('notificacoes').delete().eq('cpf', cpfTeste);
+      const limpezaConsulta = await supabaseClient.from('consultas').delete().eq('id', consultaIdTeste);
+      const limpezaPaciente = await supabaseClient.from('pacientes').delete().eq('cpf', cpfTeste);
+      if (limpezaNotificacoes.error || limpezaConsulta.error || limpezaPaciente.error) {
+        log('AVISO: a limpeza do teste falhou; remova o CPF ' + cpfTeste + ' e a consulta ' + consultaIdTeste + '.');
+      }
+
+      setTeste('insert_paciente', 'sucesso', 'chamada + telão + aviso OK');
+      log('Fluxo paciente → chamada → telão/app: OK; dados fictícios removidos.');
     } catch (e) {
       insertOk = false;
       const detalhe = (e.code ? '[' + e.code + '] ' : '') + e.message;
       setTeste('insert_paciente', 'falha', detalhe);
-      log('ERRO no INSERT de pacientes: ' + detalhe +
+      log('ERRO no fluxo de paciente/chamada: ' + detalhe +
           (e.details ? ' | details: ' + e.details : '') +
           (e.hint ? ' | hint: ' + e.hint : ''));
+      await supabaseClient.from('notificacoes').delete().eq('cpf', cpfTeste);
+      await supabaseClient.from('consultas').delete().eq('id', consultaIdTeste);
       await supabaseClient.from('pacientes').delete().eq('cpf', cpfTeste);
     }
 

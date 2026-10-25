@@ -107,27 +107,46 @@ const Notificacao = (function () {
   }
 
   /* ---------- Escuta do telão (modo Supabase) ----------
-     Se houver uma consulta ativa e o telão a chamar, o app
-     detecta a mudança de status e dispara a notificação. */
-  function iniciarEscuta() {
-    if (!SUPABASE_CONFIGURADO || !DB.getSessao()) return;
-    const cpf = DB.getSessao();
+     A equipe grava a chamada em consultas; o Realtime envia a
+     mesma linha ao app, sem depender do localStorage do telão. */
+  let canalChamada = null;
+  let ultimaChamadaNotificada = null;
 
-    supabase
-      .channel('consultas-app-' + cpf)
+  function iniciarEscuta() {
+    if (!SUPABASE_CONFIGURADO || !DB.getSessao() || canalChamada) return;
+    if (typeof supabaseClient === 'undefined' || !supabaseClient ||
+        typeof supabaseClient.channel !== 'function') return;
+
+    const cpf = DB.getSessao();
+    canalChamada = supabaseClient.channel('consultas-app-' + cpf);
+    canalChamada
       .on('postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'consultas', filter: 'cpf=eq.' + cpf },
-        async (payload) => {
+        (payload) => {
           const c = payload.new;
-          if (c.status === 'chamado' && c.chamado_em && c.nome_chamado) {
-            dispararChamada({
-              nome: c.nome_paciente, senha: c.senha,
-              onde: 'Guichê ' + (c.guiche || '—') + ' • ' + c.unidade,
-              perfil: 'paciente'
-            });
-          }
+          if (!c || c.status !== 'chamado' || !c.chamado_em || !c.nome_chamado) return;
+
+          // Outros UPDATEs na mesma consulta não repetem o aviso sonoro.
+          const identificacao = c.id + ':' + c.chamado_em;
+          if (identificacao === ultimaChamadaNotificada) return;
+          ultimaChamadaNotificada = identificacao;
+
+          const destino = c.tipo_chamada === 'consulta'
+            ? 'Consultório ' + (c.consultorio || '—')
+            : 'Triagem' + (c.guiche ? ' — Guichê ' + c.guiche : '');
+
+          dispararChamada({
+            nome: c.nome_chamado,
+            senha: c.senha,
+            onde: destino + (c.unidade ? ' • ' + c.unidade : ''),
+            perfil: 'paciente'
+          });
         })
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.warn('[Paciente] Realtime da chamada indisponível:', status);
+        }
+      });
   }
 
   /* ---------- API pública ---------- */

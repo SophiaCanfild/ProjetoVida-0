@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mapa e rotas | Administrativo VIDA+</title>
+  <link rel="stylesheet" href="../css/global.css">
+  <link rel="stylesheet" href="../css/mapa-admin.css">
+</head>
+<body class="mapa-admin-body">
+  <header class="mapa-topbar">
+    <div>
+      <a href="index.html" class="mapa-voltar">← Voltar ao Administrativo</a>
+      <h1>Mapa e rotas</h1>
+      <p>Configure os percursos exibidos no telão no momento de cada chamada.</p>
+    </div>
+    <div class="mapa-topbar-status">
+      <span id="mapa-modo-armazenamento" class="mapa-pill">Carregando…</span>
+      <button type="button" id="btn-exportar" class="btn btn-secondary">Exportar JSON</button>
+    </div>
+  </header>
+
+  <main class="mapa-admin-container">
+    <section class="card mapa-config-bar" aria-label="Selecionar unidade">
+      <div class="mapa-unidade-campo">
+        <label for="mapa-unidade">Unidade / hospital</label>
+        <select id="mapa-unidade"></select>
+        <small id="mapa-origem">O mapa publicado será usado apenas nesta unidade.</small>
+      </div>
+      <div class="mapa-acoes-topo">
+        <span id="mapa-status" class="badge badge-secondary">Carregando mapa…</span>
+        <button type="button" id="btn-descartar" class="btn btn-secondary">Descartar rascunho</button>
+        <button type="button" id="btn-salvar-rascunho" class="btn btn-secondary">Salvar rascunho</button>
+        <button type="button" id="btn-publicar-topo" class="btn btn-primary">Validar e publicar</button>
+      </div>
+    </section>
+
+    <div id="mapa-feedback" class="alert" role="status" hidden></div>
+
+    <div class="alert alert-warning mapa-aviso-demo">
+      <strong>Confirmação presencial obrigatória.</strong>
+      O exemplo inicial é ilustrativo. Antes de publicar, percorra as rotas na unidade, confira sentidos, andares,
+      tempos e acessibilidade, e marque a confirmação na aba <strong>Destinos e teste</strong>.
+      Rascunhos nunca alteram o telão.
+    </div>
+
+    <nav class="mapa-abas" aria-label="Etapas do editor">
+      <button type="button" class="mapa-aba ativa" data-aba="pontos" aria-selected="true">1. Pontos e planta</button>
+      <button type="button" class="mapa-aba" data-aba="caminhos" aria-selected="false">2. Caminhos <span id="total-caminhos" class="mapa-contador">0</span></button>
+      <button type="button" class="mapa-aba" data-aba="destinos" aria-selected="false">3. Destinos e teste</button>
+    </nav>
+
+    <!-- PONTOS -->
+    <section id="aba-pontos" class="mapa-aba-conteudo">
+      <div class="mapa-grade-editor">
+        <section class="card mapa-canvas-card">
+          <div class="card-header mapa-card-header">
+            <div>
+              <h2>Planta esquemática</h2>
+              <p>Clique em um ponto para editar ou arraste-o para reposicionar.</p>
+            </div>
+            <button type="button" id="btn-novo-ponto" class="btn btn-primary btn-sm">+ Novo ponto</button>
+          </div>
+          <div class="card-body">
+            <div id="editor-mapa" class="editor-mapa" aria-label="Editor visual da planta"></div>
+            <div class="mapa-legenda">
+              <span><i class="legenda-inicio"></i> Início na recepção</span>
+              <span><i class="legenda-acessivel"></i> Caminho acessível</span>
+              <span><i class="legenda-obstaculo"></i> Escada/obstáculo</span>
+            </div>
+            <div class="mapa-canvas-rodape">
+              <small>As coordenadas também podem ser informadas nos campos ao lado, sem usar o mouse.</small>
+              <button type="button" id="btn-gerar-areas" class="btn btn-secondary btn-sm">Reorganizar fundos das áreas</button>
+            </div>
+          </div>
+        </section>
+
+        <aside class="card mapa-inspector">
+          <div class="card-header">
+            <h2>Ponto selecionado</h2>
+            <p>Recepção, triagem, consultório, elevador ou passagem.</p>
+          </div>
+          <div class="card-body">
+            <form id="form-ponto">
+              <input type="hidden" id="ponto-id-original">
+              <div class="form-group">
+                <label for="ponto-id">Identificador único *</label>
+                <input id="ponto-id" type="text" required pattern="[A-Za-z0-9_-]+" placeholder="ex.: consultorio_3">
+                <small>Use letras, números, hífen ou sublinhado. Não pode se repetir.</small>
+              </div>
+              <div class="form-group">
+                <label for="ponto-nome">Nome exibido *</label>
+                <input id="ponto-nome" type="text" required placeholder="ex.: Consultório 3">
+              </div>
+              <div class="form-group">
+                <label for="ponto-tipo">Tipo de ponto</label>
+                <select id="ponto-tipo">
+                  <option value="local">Local / passagem</option>
+                  <option value="inicio">Recepção / início</option>
+                  <option value="corredor">Corredor</option>
+                  <option value="triagem">Triagem</option>
+                  <option value="consultorio">Consultório</option>
+                  <option value="guiche">Guichê</option>
+                  <option value="elevador">Elevador</option>
+                  <option value="escada">Escada</option>
+                </select>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="ponto-bloco">Bloco / ala</label>
+                  <input id="ponto-bloco" type="text" placeholder="Bloco A">
+                </div>
+                <div class="form-group">
+                  <label for="ponto-andar">Andar</label>
+                  <input id="ponto-andar" type="text" placeholder="Térreo">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="ponto-x">Posição X</label>
+                  <input id="ponto-x" type="number" min="15" max="625" step="1" required>
+                </div>
+                <div class="form-group">
+                  <label for="ponto-y">Posição Y</label>
+                  <input id="ponto-y" type="number" min="25" max="305" step="1" required>
+                </div>
+              </div>
+              <div class="mapa-form-acoes">
+                <button type="submit" class="btn btn-primary">Salvar ponto</button>
+                <button type="button" id="btn-ponto-inicial" class="btn btn-secondary">Definir como início</button>
+                <button type="button" id="btn-excluir-ponto" class="btn btn-danger">Excluir</button>
+              </div>
+            </form>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- CAMINHOS -->
+    <section id="aba-caminhos" class="mapa-aba-conteudo" hidden>
+      <div class="mapa-grade-caminhos">
+        <section class="card">
+          <div class="card-header mapa-card-header">
+            <div>
+              <h2>Ligações entre pontos</h2>
+              <p>Cadastre o sentido real do percurso. Para mão dupla, crie ida e volta.</p>
+            </div>
+            <button type="button" id="btn-nova-ligacao" class="btn btn-primary btn-sm">+ Nova ligação</button>
+          </div>
+          <div class="table-container mapa-tabela-container">
+            <table class="table mapa-tabela">
+              <thead><tr><th>De</th><th>Para</th><th>Peso</th><th>Tempo</th><th>Acessível</th><th>Ações</th></tr></thead>
+              <tbody id="lista-caminhos"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <aside class="card mapa-inspector">
+          <div class="card-header">
+            <h2 id="titulo-form-ligacao">Nova ligação</h2>
+            <p>O motor usa o menor peso e prioriza percursos totalmente acessíveis.</p>
+          </div>
+          <div class="card-body">
+            <form id="form-ligacao">
+              <input type="hidden" id="ligacao-indice" value="">
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="ligacao-de">Ponto de origem *</label>
+                  <select id="ligacao-de" required></select>
+                </div>
+                <div class="form-group">
+                  <label for="ligacao-para">Ponto de destino *</label>
+                  <select id="ligacao-para" required></select>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="ligacao-peso">Peso da rota *</label>
+                  <input id="ligacao-peso" type="number" min="0.1" step="0.1" value="1" required>
+                  <small>Menor peso = caminho preferido.</small>
+                </div>
+                <div class="form-group">
+                  <label for="ligacao-tempo">Tempo em segundos *</label>
+                  <input id="ligacao-tempo" type="number" min="0" step="1" value="30" required>
+                </div>
+              </div>
+              <div class="form-group mapa-check-linha">
+                <label><input id="ligacao-acessivel" type="checkbox" checked> Sem escadas ou obstáculos conhecidos</label>
+              </div>
+              <div class="form-group">
+                <label for="ligacao-instrucao">Instrução para o paciente *</label>
+                <textarea id="ligacao-instrucao" rows="5" required placeholder="Saia da recepção, vire à direita e siga as placas para a Triagem."></textarea>
+                <small>Descreva referências reais e o sentido do deslocamento.</small>
+              </div>
+              <div class="mapa-form-acoes">
+                <button type="submit" class="btn btn-primary">Salvar ligação</button>
+                <button type="button" id="btn-cancelar-ligacao" class="btn btn-secondary">Limpar</button>
+              </div>
+            </form>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- DESTINOS, TESTE E PUBLICAÇÃO -->
+    <section id="aba-destinos" class="mapa-aba-conteudo" hidden>
+      <div class="mapa-grade-destinos">
+        <section class="card">
+          <div class="card-header"><h2>Destinos das chamadas</h2><p>Ligue os dados do atendimento aos pontos da planta.</p></div>
+          <div class="card-body">
+            <div class="form-group">
+              <label for="mapa-nome">Nome do mapa</label>
+              <input id="mapa-nome" type="text" placeholder="Planta da unidade">
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="mapa-ponto-inicial">Ponto inicial das rotas *</label>
+                <select id="mapa-ponto-inicial"></select>
+              </div>
+              <div class="form-group">
+                <label for="destino-triagem">Destino da triagem *</label>
+                <select id="destino-triagem"></select>
+              </div>
+            </div>
+            <button type="button" id="btn-salvar-destinos-basicos" class="btn btn-primary">Salvar configuração</button>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-header mapa-card-header"><h2>Consultórios</h2><button type="button" id="btn-add-consultorio" class="btn btn-secondary btn-sm">+ Consultório</button></div>
+          <div class="card-body">
+            <div id="lista-destinos-consultorios" class="mapa-lista-destinos"></div>
+            <p class="mapa-texto-ajuda">O número deve ser o mesmo informado na chamada médica, por exemplo: 1, 2 ou 3.</p>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-header mapa-card-header"><h2>Guichês de triagem (opcional)</h2><button type="button" id="btn-add-guiche" class="btn btn-secondary btn-sm">+ Guichê</button></div>
+          <div class="card-body">
+            <div id="lista-destinos-guiches" class="mapa-lista-destinos"></div>
+            <p class="mapa-texto-ajuda">Quando houver um guichê mapeado, ele terá prioridade sobre o destino geral da triagem.</p>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-header"><h2>Testar uma rota</h2><p>O teste usa o rascunho atual e não interfere no telão.</p></div>
+          <div class="card-body">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="teste-tipo">Tipo de chamada</label>
+                <select id="teste-tipo"><option value="triagem">Triagem</option><option value="consulta">Consulta</option></select>
+              </div>
+              <div class="form-group" id="grupo-teste-consultorio" hidden>
+                <label for="teste-consultorio">Consultório</label>
+                <select id="teste-consultorio"></select>
+              </div>
+              <div class="form-group" id="grupo-teste-guiche">
+                <label for="teste-guiche">Guichê (opcional)</label>
+                <select id="teste-guiche"><option value="">Destino geral da triagem</option></select>
+              </div>
+            </div>
+            <button type="button" id="btn-testar-rota" class="btn btn-primary">Calcular rota do rascunho</button>
+          </div>
+        </section>
+      </div>
+
+      <section id="teste-resultado" class="card mapa-teste-resultado" hidden>
+        <div class="card-header"><h2 id="teste-titulo">Prévia da rota</h2><p id="teste-resumo"></p></div>
+        <div class="card-body mapa-teste-grade">
+          <div id="teste-mapa" class="editor-mapa mapa-preview"></div>
+          <div>
+            <h3>Passo a passo</h3>
+            <ol id="teste-passos" class="mapa-passos"></ol>
+          </div>
+        </div>
+      </section>
+
+      <section class="card mapa-publicacao">
+        <div class="card-header"><h2>Validação e publicação</h2><p>A publicação substitui no telão apenas o mapa desta unidade.</p></div>
+        <div class="card-body mapa-publicacao-grade">
+          <div>
+            <div id="lista-validacao" class="mapa-validacao">
+              <p>Execute a validação para conferir pontos, ligações e destinos.</p>
+            </div>
+            <button type="button" id="btn-validar" class="btn btn-secondary">Validar todos os percursos</button>
+          </div>
+          <div class="mapa-confirmacao">
+            <label class="mapa-check-destaque">
+              <input id="confirmacao-validacao" type="checkbox">
+              <span><strong>Confirmo a validação presencial.</strong> Conferi na unidade os percursos, sentidos, andares, acessibilidade e tempos desta versão.</span>
+            </label>
+            <button type="button" id="btn-publicar" class="btn btn-primary">Publicar no telão</button>
+            <small>A direção por voz só será incluída nos anúncios depois desta publicação.</small>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <noscript><div class="alert alert-danger">Ative o JavaScript para usar o editor de mapas.</div></noscript>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../../shared/js/config.js"></script>
+  <script src="../../shared/js/db.js"></script>
+  <script src="../js/config.js"></script>
+  <script src="../../telao/config/mapa-hospital.js"></script>
+  <script src="../../shared/js/mapa-store.js"></script>
+  <script src="../../telao/js/tv-mapa.js"></script>
+  <script src="../js/mapa-admin.js"></script>
+  <script>
+    if (typeof verificarAcesso === 'function' && verificarAcesso('admin')) {
+      EditorMapaAdmin.iniciar();
+    }
+  </script>
+</body>
+</html>

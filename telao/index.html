@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/tv.css?v=2026101">
+  <link rel="stylesheet" href="css/tv.css?v=20261025">
 </head>
 <body>
 
@@ -25,6 +25,30 @@
           <div class="nome-unidade" id="nome-unidade">Vida+</div>
         </div>
       </div>
+      <!-- Controles do anúncio por voz (não alteram a fila) -->
+      <div class="tv-audio" id="controles-voz" data-estado="ready" role="group" aria-label="Controles da chamada por voz">
+        <div class="tv-audio-status">
+          <span class="tv-audio-indicador" aria-hidden="true"></span>
+          <span id="voz-status" role="status" aria-live="polite">Voz ativa</span>
+        </div>
+        <div class="tv-audio-acoes">
+          <button class="tv-audio-btn" id="btn-pausar-voz" type="button" aria-label="Pausar chamada por voz" aria-pressed="false" title="Pausar chamada" disabled>
+            <svg id="icone-pausar-voz" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V5Zm6 0a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1V5Z"/></svg>
+            <svg id="icone-retomar-voz" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" hidden><path d="M8 5.14v13.72a1 1 0 0 0 1.52.85l10.5-6.86a1 1 0 0 0 0-1.7L9.52 4.3A1 1 0 0 0 8 5.14Z"/></svg>
+            <span id="texto-pausar-voz">Pausar</span>
+          </button>
+          <button class="tv-audio-btn" id="btn-silenciar-voz" type="button" aria-label="Silenciar som do telão" aria-pressed="false" title="Silenciar som e voz">
+            <svg id="icone-som-voz" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>
+            <svg id="icone-mudo-voz" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" hidden><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="m16 9 5 5m0-5-5 5"/></svg>
+            <span id="texto-silenciar-voz">Silenciar</span>
+          </button>
+          <button class="tv-audio-btn tv-audio-teste" id="btn-testar-voz" type="button" aria-label="Testar chamada por voz com uma senha fictícia" title="Testar com a senha fictícia A001">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z"/><path d="M5 11v1a7 7 0 0 0 14 0v-1M12 19v3M8 22h8"/></svg>
+            <span>Testar chamada</span>
+          </button>
+        </div>
+      </div>
+
       <div class="tv-relogio">
         <div class="hora" id="relogio-hora">--:--:--</div>
         <div class="data" id="relogio-data">—</div>
@@ -68,6 +92,7 @@
             </span>
             <span class="destino-rotulo" id="chamada-destino-rotulo">Destino</span>
             <span class="destino-valor" id="chamada-destino-valor">—</span>
+            <span class="destino-local" id="chamada-destino-local"></span>
             <span class="destino-medico" id="chamada-destino-medico"></span>
           </div>
         </div>
@@ -86,10 +111,34 @@
         </div>
       </div>
 
-      <div class="tv-painel">
-        <div class="painel-titulo"><span>💬 Avisos</span></div>
-        <div class="lista-tv">
+      <div class="tv-painel tv-painel-orientacao">
+        <div class="painel-titulo"><span id="painel-orientacao-titulo">💬 Avisos</span></div>
+        <div class="lista-tv orientacao-conteudo">
           <div class="aviso-grande" id="aviso-atual">—</div>
+
+          <div class="orientacao-rota" id="orientacao-rota" hidden>
+            <div class="rota-topo">
+              <div class="rota-destino-wrap">
+                <span class="rota-rotulo">Seu destino</span>
+                <strong id="rota-destino">—</strong>
+                <span id="rota-local">—</span>
+              </div>
+              <div class="rota-badges">
+                <span class="rota-badge" id="rota-tempo" hidden></span>
+                <span class="rota-badge acessivel" id="rota-acessibilidade" hidden></span>
+              </div>
+            </div>
+
+            <div class="mapa-e-passos">
+              <div class="mapa-hospital" id="mapa-hospital"></div>
+              <ol class="rota-passos" id="rota-passos"></ol>
+            </div>
+
+            <div class="mapa-aviso-config" id="mapa-aviso-config" hidden>
+              Mapa ilustrativo: a planta e as rotas desta unidade ainda precisam ser validadas.
+            </div>
+            <div class="rota-sem-mapa" id="rota-sem-mapa" hidden></div>
+          </div>
         </div>
       </div>
     </div>
@@ -106,29 +155,11 @@
   <script src="../shared/js/db.js"></script>
   <script src="js/relogio.js"></script>
   <script src="js/tv-dados.js"></script>
+  <script src="config/mapa-hospital.js?v=20261025"></script>
+  <script src="../shared/js/mapa-store.js?v=20261025"></script>
+  <script src="js/tv-mapa.js?v=20261025"></script>
+  <script src="js/tv-voz.js?v=20261025"></script>
   <script>
-    /* Som de chamada (WebAudio, sem arquivo externo) */
-    const NotificarTV = {
-      somChamada() {
-        try {
-          const ctx = new (window.AudioContext || window.webkitAudioContext)();
-          if (ctx.state === 'suspended') ctx.resume();
-          const notas = [[880, 0], [1174.66, 0.22], [880, 0.44], [1567.98, 0.66]];
-          notas.forEach(([freq, t]) => {
-            const o = ctx.createOscillator();
-            const g = ctx.createGain();
-            o.type = 'sine'; o.frequency.value = freq;
-            g.gain.setValueAtTime(0.0001, ctx.currentTime + t);
-            g.gain.exponentialRampToValueAtTime(0.4, ctx.currentTime + t + 0.03);
-            g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + t + 0.18);
-            o.connect(g).connect(ctx.destination);
-            o.start(ctx.currentTime + t);
-            o.stop(ctx.currentTime + t + 0.25);
-          });
-        } catch (e) {}
-      }
-    };
-
     /* ===== Avisos institucionais (rotativos) =====
        Somente mensagens gerais — nada de dados de pacientes. */
     const AVISOS = [
@@ -176,6 +207,9 @@
         chamadaEl.style.display = 'none';
         aguardando.style.display = 'flex';
         destaque.classList.remove('modo-triagem', 'modo-consulta');
+        if (typeof OrientacaoHospitalTV !== 'undefined') {
+          OrientacaoHospitalTV.atualizar(null);
+        }
         return;
       }
       aguardando.style.display = 'none';
@@ -211,6 +245,10 @@
         medicoEl.textContent = chamada.guiche ? 'Guichê ' + chamada.guiche : '';
         pista.textContent = 'Por favor, dirija-se à triagem';
       }
+
+      if (typeof OrientacaoHospitalTV !== 'undefined') {
+        OrientacaoHospitalTV.atualizar(chamada);
+      }
     }
 
     /* Chamadas recentes: SOMENTE senha + destino + hora (sem nome,
@@ -236,8 +274,31 @@
       }).join('');
     }
 
-        /* ---------- Atualização periódica ---------- */
-    let ultimaChamadaId = null;
+    /* ---------- Mapa publicado pelo Administrativo ----------
+       O telão nunca lê o rascunho. Se não houver publicação, o
+       exemplo estático continua identificado como ilustrativo. */
+    let mapaEmAtualizacao = false;
+    async function carregarMapaPublicado() {
+      if (mapaEmAtualizacao || typeof MapaHospitalStore === 'undefined' ||
+          typeof OrientacaoHospitalTV === 'undefined') return;
+      mapaEmAtualizacao = true;
+      try {
+        const unidade = typeof TV_CONFIG !== 'undefined' && TV_CONFIG.UNIDADE
+          ? TV_CONFIG.UNIDADE : APP_CONFIG.UNIDADES[0];
+        const mapa = await MapaHospitalStore.carregarPublicado(unidade);
+        OrientacaoHospitalTV.definirMapa(mapa);
+      } catch (e) {
+        console.warn('[Telão] Mantendo o último mapa válido:', e.message);
+      } finally {
+        mapaEmAtualizacao = false;
+      }
+    }
+
+    /* ---------- Atualização periódica ---------- */
+    // ID + horário identifica também uma nova chamada do mesmo atendimento
+    // (por exemplo, a chamada para triagem e, depois, para o consultório).
+    let ultimaChamadaIdentificacao = null;
+    let identificacoesRecentes = new Set();
     let atualizacaoEmAndamento = false;
 
     async function atualizar() {
@@ -252,17 +313,34 @@
         const ultima = recentes[0] || null;
         const destaque = document.getElementById('destaque');
 
-        if (ultima && ultima.id !== ultimaChamadaId) {
-          // Nova chamada → anima o destaque
-          ultimaChamadaId = ultima.id;
+        const identificacaoUltima = ultima
+          ? ultima.id + ':' + (ultima.chamado_em || '')
+          : null;
+        const chamadaInedita = identificacaoUltima &&
+          !identificacoesRecentes.has(identificacaoUltima);
+
+        if (ultima && identificacaoUltima !== ultimaChamadaIdentificacao) {
+          // Nova chamada → anima o destaque, toca o sinal e anuncia por voz
+          ultimaChamadaIdentificacao = identificacaoUltima;
           renderizarDestaque(ultima);
           destaque.classList.remove('animando');
           void destaque.offsetWidth; // reinicia a animação
           destaque.classList.add('animando');
-          NotificarTV.somChamada();
+          if (chamadaInedita && typeof VozChamadaTV !== 'undefined') {
+            const chamadaParaVoz = typeof OrientacaoHospitalTV !== 'undefined'
+              ? OrientacaoHospitalTV.prepararChamadaParaVoz(ultima)
+              : ultima;
+            VozChamadaTV.anunciar(chamadaParaVoz);
+          }
         } else {
           renderizarDestaque(ultima);
         }
+
+        // Evita anunciar novamente uma chamada antiga que volte ao primeiro
+        // lugar quando o atendimento mais recente deixar o status "chamado".
+        identificacoesRecentes = new Set(recentes.map(function(c) {
+          return c.id + ':' + (c.chamado_em || '');
+        }));
       } catch (e) {
         console.error('[Telão] Erro:', e);
       } finally {
@@ -270,14 +348,19 @@
       }
     }
 
-    // Atualiza a cada 3 segundos
-    atualizar();
+    // Carrega a versão publicada antes da primeira renderização e
+    // verifica novas publicações periodicamente, sem recarregar a TV.
+    carregarMapaPublicado().finally(atualizar);
     setInterval(atualizar, 3000);
+    setInterval(carregarMapaPublicado, 60000);
 
     // Também escuta mudanças no localStorage (outras abas)
     window.addEventListener('storage', function(e) {
       if (e.key && e.key.indexOf('vidamais_') === 0) {
-        atualizar();
+        const chaveMapa = typeof MapaHospitalStore !== 'undefined' && typeof TV_CONFIG !== 'undefined'
+          ? MapaHospitalStore.chavePublicado(TV_CONFIG.UNIDADE) : '';
+        if (e.key === chaveMapa) carregarMapaPublicado().finally(atualizar);
+        else atualizar();
       }
     });
 

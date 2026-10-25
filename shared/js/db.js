@@ -688,7 +688,8 @@
     gravar('consultas', lista);
     sbUpdate('consultas', {
       status: c.status, chamado_em: c.chamado_em, tipo_chamada: c.tipo_chamada,
-      guiche: c.guiche, consultorio: c.consultorio, nome_chamado: c.nome_chamado
+      guiche: c.guiche, consultorio: c.consultorio, nome_chamado: c.nome_chamado,
+      medico_nome: c.medico_nome
     }, { id: consultaId });
 
     const destino = c.tipo_chamada === 'consulta'
