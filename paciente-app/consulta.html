@@ -50,37 +50,89 @@
     const cpf = DB.getSessao();
     if (!cpf) { location.href = 'index.html'; }
 
+    function esc(t) {
+      return String(t === undefined || t === null ? '' : t)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // Data pura (AAAA-MM-DD) lida como data local, sem voltar um dia no fuso do Brasil
+    function dataCurta(v) {
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v || '');
+      return m ? m[3] + '/' + m[2] + '/' + m[1] : UI.fmtData(v);
+    }
+
+    // O sistema médico grava diagnóstico, receita e exames direto na consulta.
+    // "c.relatorio" é um formato antigo, mantido só por compatibilidade.
+    function montarRelatorio(c) {
+      if (c.relatorio) return c.relatorio;
+      if (c.status !== 'finalizado') return null;
+      return {
+        diagnostico: c.diagnostico || 'Consulta finalizada',
+        conduta: c.conduta || '',
+        orientacoes: c.orientacoes || '',
+        medicamentos: Array.isArray(c.receita) ? c.receita : [],
+        // status atualizado (resultado lançado depois da consulta)
+        exames: DB.getExames(cpf).filter(e => e.consulta_id === c.id),
+        finalizado_em: c.finalizado_em || c.criado_em,
+        unidade: c.unidade,
+        medico: [c.medico_nome, c.medico_crm].filter(Boolean).join(' — ') || 'Equipe médica'
+      };
+    }
+
+    const TIPO_RECEITA = {
+      simples: 'Receita simples',
+      antimicrobiano: 'Receita de antimicrobiano',
+      controle_especial: 'Receita de controle especial'
+    };
+
     async function carregar() {
-      const consultas = await DB.getConsultas(cpf);
-      const c = consultas.find(x => x.id === id) || consultas[0];
-      if (!c || !c.relatorio) {
+      if (DB.aguardarSincronizacao) { await DB.aguardarSincronizacao(); }
+      // Só as consultas deste paciente
+      const consultas = DB.getConsultasPorCpf(cpf);
+      const c = consultas.find(x => x.id === id) || (!id ? consultas.find(x => x.status === 'finalizado') : null);
+      const r = c ? montarRelatorio(c) : null;
+      if (!c || !r) {
         document.getElementById('conteudo').innerHTML =
           '<div class="vazio">' + UI.icone('doc') + '<h3>Nada por aqui</h3><p>Não encontramos o relatório desta consulta.</p></div>';
         return;
       }
-      const r = c.relatorio;
-      const meds = (r.medicamentos || []).map(m => `
+
+      // Medicamentos agrupados pela receita emitida (nº, tipo e validade)
+      const grupos = [];
+      (r.medicamentos || []).forEach(m => {
+        const chave = m.receita_numero || '';
+        let g = grupos.find(x => x.chave === chave);
+        if (!g) { g = { chave: chave, tipo: m.receita_tipo, valida_ate: m.valida_ate, itens: [] }; grupos.push(g); }
+        g.itens.push(m);
+      });
+      const meds = grupos.map(g => `
+        ${g.chave ? `<div class="receita-cab">📄 ${TIPO_RECEITA[g.tipo] || 'Receita'} nº <b>${esc(g.chave)}</b>${g.valida_ate ? ' • válida até ' + dataCurta(g.valida_ate) : ''}${g.tipo && g.tipo !== 'simples' ? ' • a farmácia retém 1 via' : ''}</div>` : ''}
+        ${g.itens.map(m => `
         <div class="receita">
-          <div class="med">💊 ${m.nome}</div>
-          <div class="dos">${m.dosagem} • ${m.frequencia}</div>
-          <div class="dos suave">Duração: ${m.duracao}</div>
+          <div class="med">💊 ${esc(m.nome)}</div>
+          ${m.dosagem || m.frequencia ? `<div class="dos">${esc([m.dosagem, m.frequencia].filter(Boolean).join(' • '))}</div>` : ''}
+          ${m.duracao ? `<div class="dos suave">Duração: ${esc(m.duracao)}</div>` : ''}
           <div class="tags">
-            ${m.obs ? '<span class="tag">📝 ' + m.obs + '</span>' : ''}
-            <span class="tag">${c.unidade}</span>
+            ${m.via ? '<span class="tag">' + esc(m.via) + '</span>' : ''}
+            ${m.quantidade ? '<span class="tag">Qtd.: ' + esc(m.quantidade) + '</span>' : ''}
+            ${m.obs ? '<span class="tag">📝 ' + esc(m.obs) + '</span>' : ''}
+            <span class="tag">${esc(c.unidade)}</span>
           </div>
-        </div>`).join('') || '<p class="suave">Nenhum medicamento prescrito.</p>';
+        </div>`).join('')}`).join('') || '<p class="suave">Nenhum medicamento prescrito.</p>';
 
       const exames = (r.exames || []).map(e => {
         const st = (e.status || 'solicitado');
-        const rot = st === 'resultado_disponivel' || st === 'concluido' ? 'resultado' : st === 'realizado' || st === 'em_analise' ? 'realizado' : 'solicitado';
-        const txt = st === 'resultado_disponivel' || st === 'concluido' ? 'Resultado' : st === 'realizado' || st === 'em_analise' ? 'Em análise' : 'Solicitado';
+        const rot = st === 'resultado_disponivel' || st === 'concluido' ? 'resultado' : st === 'realizado' || st === 'em_analise' ? 'realizado' : st === 'cancelado' ? 'cancelado' : 'solicitado';
+        const txt = st === 'resultado_disponivel' || st === 'concluido' ? 'Resultado' : st === 'realizado' || st === 'em_analise' ? 'Em análise' : st === 'cancelado' ? 'Cancelado' : 'Solicitado';
         return `
           <div class="exame-card">
             <div class="e-icone">${UI.icone('tube')}</div>
             <div class="e-info">
-              <div class="e-nome">${e.nome || e.exame}</div>
-              ${e.orientacao ? '<div class="e-det">📌 ' + e.orientacao + '</div>' : ''}
-              ${e.resultado ? '<div class="resultado-box">📊 Resultado: <b>' + e.resultado + '</b></div>' : ''}
+              <div class="e-nome">${esc(e.nome || e.exame)}${e.prioridade === 'urgente' && st !== 'cancelado' ? ' <span class="e-urgente">Urgente</span>' : ''}</div>
+              ${e.local_realizacao ? '<div class="e-det">📍 ' + esc(e.local_realizacao) + '</div>' : ''}
+              ${e.orientacao ? '<div class="e-det">📌 ' + esc(e.orientacao) + '</div>' : ''}
+              ${e.resultado ? '<div class="resultado-box">📊 Resultado: <b>' + esc(e.resultado) + '</b></div>' : ''}
+              ${st === 'cancelado' && e.motivo_cancelamento ? '<div class="e-det">Motivo: ' + esc(e.motivo_cancelamento) + '</div>' : ''}
             </div>
             <span class="e-status ${'e-' + rot}">${txt}</span>
           </div>`;
@@ -95,8 +147,8 @@
 
         <div class="card">
           <span class="tag-secao">Diagnóstico</span>
-          <h2 style="color:var(--verde-escuro);">${r.diagnostico}</h2>
-          <p class="mt-8" style="font-size:0.92rem;">${r.conduta}</p>
+          <h2 style="color:var(--verde-escuro);">${esc(r.diagnostico)}</h2>
+          <p class="mt-8" style="font-size:0.92rem;">${esc(r.conduta)}</p>
         </div>
 
         ${c.triagem ? `
@@ -126,8 +178,8 @@
 
         <div class="card">
           <div class="card-titulo"><span>📌 Orientações</span></div>
-          <p style="font-size:0.92rem;">${r.orientacoes || 'Seguir as orientações da equipe médica.'}</p>
-          <div class="linha mt-12"><span class="rotulo">Médico(a)</span><span class="valor">${r.medico}</span></div>
+          <p style="font-size:0.92rem;">${esc(r.orientacoes || 'Seguir as orientações da equipe médica.')}</p>
+          <div class="linha mt-12"><span class="rotulo">Médico(a)</span><span class="valor">${esc(r.medico)}</span></div>
         </div>
 
         <p class="dica central mt-16">Guarde este relatório — ele fica no seu histórico.</p>`;
@@ -136,6 +188,9 @@
     }
 
     carregar();
+    // Resultado de exame lançado pelo médico aparece sem recarregar a página
+    ['consulta_atualizada', 'exame_atualizado', 'exame_solicitado_atualizado']
+      .forEach(evt => DB.on(evt, () => carregar()));
   </script>
 
 <script>

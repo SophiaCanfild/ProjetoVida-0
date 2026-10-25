@@ -60,7 +60,13 @@
       const st = (e.status || 'solicitado');
       if (st === 'resultado_disponivel' || st === 'concluido') return ['resultado', 'Resultado'];
       if (st === 'realizado' || st === 'em_analise') return ['realizado', 'Em análise'];
+      if (st === 'cancelado') return ['cancelado', 'Cancelado'];
       return ['solicitado', 'Solicitado'];
+    }
+
+    function esc(t) {
+      return String(t === undefined || t === null ? '' : t)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
     async function carregar() {
@@ -78,10 +84,12 @@
           <div class="exame-card">
             <div class="e-icone">${UI.icone('tube')}</div>
             <div class="e-info">
-              <div class="e-nome">${e.nome || e.exame || 'Exame'}</div>
-              <div class="e-det">${e.unidade || ''} • ${UI.fmtData(e.data)}</div>
-              ${e.orientacao ? '<div class="e-det">📌 ' + e.orientacao + '</div>' : ''}
-              ${e.resultado ? '<div class="resultado-box">📊 Resultado: <b>' + e.resultado + '</b></div>' : ''}
+              <div class="e-nome">${esc(e.nome || e.exame || 'Exame')}${e.prioridade === 'urgente' && classe !== 'cancelado' ? ' <span class="e-urgente">Urgente</span>' : ''}</div>
+              <div class="e-det">${esc(e.unidade || '')} • ${UI.fmtData(e.data)}</div>
+              ${e.local_realizacao ? '<div class="e-det">📍 ' + esc(e.local_realizacao) + '</div>' : ''}
+              ${e.orientacao ? '<div class="e-det">📌 ' + esc(e.orientacao) + '</div>' : ''}
+              ${e.resultado ? '<div class="resultado-box">📊 Resultado: <b>' + esc(e.resultado) + '</b></div>' : ''}
+              ${classe === 'cancelado' && e.motivo_cancelamento ? '<div class="e-det">Motivo: ' + esc(e.motivo_cancelamento) + '</div>' : ''}
             </div>
             <span class="e-status ${'e-' + classe}">${rotulo}</span>
           </div>`;
@@ -89,6 +97,9 @@
     }
 
     carregar();
+    // Resultado lançado pelo médico aparece sem recarregar a página
+    ['consulta_atualizada', 'exame_atualizado', 'exame_solicitado_atualizado']
+      .forEach(evt => DB.on(evt, () => carregar()));
   </script>
 
 <script>
