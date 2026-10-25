@@ -89,7 +89,9 @@ vida-mais/
 ├── telao/                        ← 📺 Display da sala de espera
 │   ├── index.html                ← Tela do telão
 │   ├── js/voz-chamada.js         ← 🔊 Voz das chamadas (Web Speech API)
-│   └── js/tv-dados.js            ← Chamadas do Supabase/localStorage
+│   ├── js/som-chamada.js         ← 🔔 Bip da chamada (um AudioContext só)
+│   ├── js/tv-dados.js            ← Chamadas do Supabase/localStorage
+│   └── teste-voz.html            ← 🩺 Diagnóstico de som e voz
 │
 └── supabase/                     ← 🗄️ Banco de dados
     └── schema.sql                ← Schema completo (8 tabelas)
@@ -226,6 +228,25 @@ Ajustes em `TV_CONFIG`, no `shared/js/config.js` (e na cópia `paciente-app/js/c
 >
 > A voz é a do próprio sistema operacional: em Linux sem vozes pt-BR instaladas
 > (ex.: `espeak-ng`), o timbre muda. A qualidade é melhor com as vozes do Chrome/Windows/Android.
+
+#### 🩺 Não está saindo som? Use `telao/teste-voz.html`
+
+Abra **`telao/teste-voz.html` no próprio computador do telão**. A página mostra, em tempo real:
+
+- se o navegador suporta `AudioContext` e `speechSynthesis`;
+- o **estado do áudio** (`running` = liberado, `suspended` = falta um clique);
+- **quais vozes pt-BR existem** na máquina e se são locais (funcionam sem internet);
+- botões para tocar o bip, falar uma chamada e simular a chamada completa;
+- um registro do que aconteceu em cada tentativa.
+
+O caminho mais rápido para o diagnóstico: se o **bip toca e a voz não**, o problema é a síntese de
+voz (vozes do sistema). Se **nada** toca, é a política de áudio do navegador (autoplay).
+
+> 🐞 **Correção importante (som do bip):** o código antigo criava um `new AudioContext()` a cada
+> chamada e nunca o fechava, com o erro escondido em `catch (e) {}`. O Chrome limita a quantidade
+> de AudioContexts por página, então **depois de algumas chamadas o telão ficava mudo para sempre**.
+> Agora existe um único contexto reaproveitado (`telao/js/som-chamada.js`), ele é retomado no
+> primeiro clique e as falhas aparecem no console em vez de serem engolidas.
 
 ---
 

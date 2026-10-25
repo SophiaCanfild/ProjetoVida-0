@@ -106,29 +106,11 @@
   <script src="../shared/js/db.js"></script>
   <script src="js/relogio.js"></script>
   <script src="js/tv-dados.js"></script>
+  <script src="js/som-chamada.js"></script>
   <script src="js/voz-chamada.js"></script>
   <script>
-    /* Som de chamada (WebAudio, sem arquivo externo) */
-    const NotificarTV = {
-      somChamada() {
-        try {
-          const ctx = new (window.AudioContext || window.webkitAudioContext)();
-          if (ctx.state === 'suspended') ctx.resume();
-          const notas = [[880, 0], [1174.66, 0.22], [880, 0.44], [1567.98, 0.66]];
-          notas.forEach(([freq, t]) => {
-            const o = ctx.createOscillator();
-            const g = ctx.createGain();
-            o.type = 'sine'; o.frequency.value = freq;
-            g.gain.setValueAtTime(0.0001, ctx.currentTime + t);
-            g.gain.exponentialRampToValueAtTime(0.4, ctx.currentTime + t + 0.03);
-            g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + t + 0.18);
-            o.connect(g).connect(ctx.destination);
-            o.start(ctx.currentTime + t);
-            o.stop(ctx.currentTime + t + 0.25);
-          });
-        } catch (e) {}
-      }
-    };
+    /* O bip da chamada vive em js/som-chamada.js (NotificarTV),
+       que reaproveita um único AudioContext. */
 
     /* ===== Avisos institucionais (rotativos) =====
        Somente mensagens gerais — nada de dados de pacientes. */

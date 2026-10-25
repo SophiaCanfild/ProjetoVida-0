@@ -174,10 +174,12 @@ var VozChamada = (function () {
     }
   }
 
-  function falarUmaVez(texto, aoTerminar) {
+  function falarUmaVez(texto, aoTerminar, tentativa) {
     var c = cfg();
+    var n = tentativa || 1;
     var utter = new window.SpeechSynthesisUtterance(texto);
     var voz = escolherVoz();
+    var iniciou = false;
 
     if (voz) utter.voice = voz;
     utter.lang = c.idioma;
@@ -185,13 +187,38 @@ var VozChamada = (function () {
     utter.rate = c.velocidade;
     utter.pitch = 1;
 
-    utter.onend = function () { if (aoTerminar) aoTerminar(); };
-    /* Em erro não repete (evita loop de falha em navegador sem voz) */
-    utter.onerror = function () {};
+    utter.onstart = function () { iniciou = true; };
+
+    utter.onend = function () {
+      if (aoTerminar) aoTerminar();
+    };
+
+    utter.onerror = function (ev) {
+      /* Mantém o erro visível no console — antes ele era engolido
+         e não havia como saber por que o telão ficou mudo. */
+      console.warn('[Telão] Voz não falou:', (ev && (ev.error || ev.message)) || 'erro desconhecido');
+    };
+
+    /* O Chrome às vezes "engole" a primeira fala, principalmente
+       logo após um cancel() ou quando a voz ainda está carregando.
+       Se em 2,5s nada começou e o motor está ocioso, tenta 1 vez. */
+    timers.push(setTimeout(function () {
+      if (iniciou) return;
+      try {
+        if (window.speechSynthesis.speaking || window.speechSynthesis.pending) return;
+      } catch (e) { return; }
+
+      if (n >= 2) { if (aoTerminar) aoTerminar(); return; }
+      falarUmaVez(texto, aoTerminar, n + 1);
+    }, 2500));
 
     try {
+      if (typeof window.speechSynthesis.resume === 'function') {
+        window.speechSynthesis.resume();   /* destrava o motor parado */
+      }
       window.speechSynthesis.speak(utter);
     } catch (e) {
+      console.warn('[Telão] Falha ao acionar a síntese de voz:', e && e.message);
       if (aoTerminar) aoTerminar();
     }
   }
@@ -200,7 +227,12 @@ var VozChamada = (function () {
      nova cancela a anterior (nunca falam juntas). */
   function falarChamada(chamada) {
     var c = cfg();
-    if (!c.ativa || !suportaVoz()) return false;
+    if (!c.ativa) return false;
+
+    if (!suportaVoz()) {
+      console.warn('[Telão] Este navegador não tem síntese de voz (speechSynthesis).');
+      return false;
+    }
 
     var texto = textoDaChamada(chamada);
     if (!texto) return false;
