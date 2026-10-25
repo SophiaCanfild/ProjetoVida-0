@@ -33,14 +33,6 @@
     </div>
     <button class="btn btn-primario" id="entrar">Entrar</button>
 
-   <div id="banner-demo" class="banner-demo escondido mt-16">
-      <b>🎬 MODO DEMONSTRAÇÃO</b>
-      <p style="margin-bottom:10px;">Sem cadastro criado ainda? Use o paciente de exemplo.</p>
-      <div class="botoes">
-        <button class="btn" id="demo-entrar">✨ Entrar como paciente demo</button>
-      </div>
-    </div>
-
     <button class="btn btn-contorno btn-bloco" id="voltar">← Voltar ao Portal Vida+</button>
   </div>
 
@@ -59,13 +51,6 @@
     UI.mascararCPF(inputCpf);
 
     document.getElementById('voltar').onclick = () => location.href = '../index.html';
-    document.getElementById('banner-demo').classList.toggle('escondido', SUPABASE_CONFIGURADO);
-
-    document.getElementById('demo-entrar').onclick = () => {
-      DB.seedDemo();
-      DB.setSessao('12345678909');
-      location.href = 'index.html';
-    };
 
     document.getElementById('entrar').onclick = async () => {
       const cpf = inputCpf.value.replace(/\D/g, '');

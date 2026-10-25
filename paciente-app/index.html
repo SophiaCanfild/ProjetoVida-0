@@ -36,13 +36,6 @@
 
       <a class="btn btn-contorno btn-bloco" href="../index.html" style="text-align:center;">← Voltar ao Portal Vida+</a>
 
-      <div class="banner-demo mt-16" style="background:linear-gradient(135deg,#6B4FA0,#4A3573);">
-        <b>🎬 MODO DEMONSTRAÇÃO</b>
-        <p style="margin-bottom:10px;">Para testar na banca, carregue um paciente de exemplo (cadastrado pela recepção) e entre com um toque.</p>
-        <div class="botoes">
-          <button class="btn" id="btn-demo-entrar">✨ Entrar como paciente demo</button>
-        </div>
-      </div>
     </div>
 
     <!-- Logado -->
@@ -56,15 +49,6 @@
       <!-- Aviso de atendimento iniciado / nenhum -->
       <div id="faixa-status"></div>
 
-      <!-- Área demo: recepção inicia atendimento -->
-       <div id="banner-demo-logado" class="banner-demo escondido">
-        <b>🎬 MODO DEMONSTRAÇÃO</b>
-        <p style="margin-bottom:10px;">Simule a equipe da unidade trabalhando:</p>
-        <div class="botoes">
-          <button class="btn" id="btn-demo-iniciar">🩺 Simular: recepção iniciou atendimento</button>
-          <button class="btn" id="btn-demo-agendar">🗓️ Simular: agendamento de consulta</button>
-        </div>
-      </div>
 
       <!-- Atalhos -->
       <a class="mini-card" href="fila.html">
@@ -151,11 +135,6 @@
       const areaLogado = document.getElementById('area-logado');
 
       document.getElementById('btn-entrar').onclick = () => location.href = 'login.html';
-      document.getElementById('btn-demo-entrar').onclick = () => {
-        DB.seedDemo();
-        DB.setSessao('12345678909');
-        location.reload();
-      };
 
       if (!cpf) { areaVisitante.classList.remove('escondido'); return; }
 
@@ -171,28 +150,6 @@
         const fila = await DB.getMinhaFila(cpf);
         montarCartaoAtivo(fila.ativa);
         montarFaixa(fila.ativa);
-        document.getElementById('banner-demo-logado').classList.toggle('escondido', SUPABASE_CONFIGURADO);
-
-        document.getElementById('btn-demo-iniciar').onclick = async () => {
-          const btn = document.getElementById('btn-demo-iniciar');
-          btn.disabled = true;
-          try {
-            await DB.iniciarAtendimentoDemo(cpf);
-            UI.toast('Recepção iniciou seu atendimento ✓', 'sucesso');
-            montarCartaoAtivo(await DB.getMinhaFila(cpf).then(f => f.ativa));
-            montarFaixa(await DB.getMinhaFila(cpf).then(f => f.ativa));
-            Nav.atualizarBadge();
-            setTimeout(() => location.href = 'fila.html', 900);
-          } catch (e) { UI.toast('Erro: ' + e.message, 'erro'); btn.disabled = false; }
-        };
-
-        document.getElementById('btn-demo-agendar').onclick = async () => {
-          try {
-            await DB.agendarDemo(cpf);
-            UI.toast('Consulta agendada + lembrete criado ✓', 'sucesso');
-            Nav.atualizarBadge();
-          } catch (e) { UI.toast('Erro: ' + e.message, 'erro'); }
-        };
       } catch (e) { /* mantém padrão */ }
 
       document.getElementById('btn-sair-home').onclick = () => {

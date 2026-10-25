@@ -99,17 +99,6 @@
         </ul>
       </div>
 
-      <!-- Área demo: simular equipe -->
-        <div id="banner-demo" class="banner-demo escondido">
-        <b>🎬 MODO DEMONSTRAÇÃO</b>
-        <p style="margin-bottom:10px;">Simule a equipe da unidade (como o sistema médico faria):</p>
-        <div class="botoes">
-          <button class="btn" id="btn-demo-triagem">🌡️ Enfermeira faz a triagem</button>
-          <button class="btn" id="btn-demo-chamada">📺 Telão chama o nome</button>
-          <button class="btn" id="btn-demo-finalizar">📋 Médico finaliza consulta</button>
-        </div>
-      </div>
-
       <button class="btn btn-perigo btn-bloco" id="btn-cancelar">
         ✕ Cancelar meu atendimento e sair da fila
       </button>
@@ -258,8 +247,6 @@
         if (i === 0) li.className = 'feito';
       });
 
-      /* Banner demo */
-      document.getElementById('banner-demo').classList.toggle('escondido', SUPABASE_CONFIGURADO);
     }
 
     async function atualizar() {
@@ -287,33 +274,6 @@
           } catch (e) { UI.toast('Erro: ' + e.message, 'erro'); }
         }
       });
-    };
-
-    /* ===== SIMULAÇÕES (o que o sistema médico faria) ===== */
-    document.getElementById('btn-demo-triagem').onclick = async () => {
-      try {
-        await DB.simularTriagem(cpf);
-        UI.toast('Enfermeira concluiu a triagem ✓', 'sucesso');
-        Nav.atualizarBadge();
-        atualizar();
-      } catch (e) { UI.toast('Erro: ' + e.message, 'erro'); }
-    };
-
-    document.getElementById('btn-demo-chamada').onclick = async () => {
-      try {
-        await DB.simularChamada(cpf);
-        UI.toast('Telão chamou seu nome! 🔔', 'sucesso');
-        atualizar();
-      } catch (e) { UI.toast('Erro: ' + e.message, 'erro'); }
-    };
-
-    document.getElementById('btn-demo-finalizar').onclick = async () => {
-      try {
-        await DB.simularFinalizar(cpf);
-        UI.toast('Consulta finalizada — relatório disponível ✓', 'sucesso');
-        Nav.atualizarBadge();
-        setTimeout(() => location.href = 'consulta.html?id=' + consultaAtiva.id, 1000);
-      } catch (e) { UI.toast('Erro: ' + e.message, 'erro'); }
     };
 
     /* Guarda o nome (usado na notificação).

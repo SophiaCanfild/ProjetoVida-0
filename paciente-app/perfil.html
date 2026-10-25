@@ -78,14 +78,6 @@
       </div>
     </div>
 
-     <div id="banner-demo" class="banner-demo escondido mt-16">
-      <b>🎛️ Área de demonstração</b>
-      <p style="margin-bottom:10px;">Carregue um paciente de exemplo (com consultas, exames, agendamentos e notificações) para testar o app completo na banca.</p>
-      <div class="botoes">
-        <button class="btn" id="btn-seed">✨ Carregar paciente de exemplo</button>
-        <button class="btn" id="btn-limpar">🗑️ Limpar dados demo</button>
-      </div>
-    </div>
   </main>
 
   <nav class="bottomnav">
@@ -146,7 +138,6 @@
       document.getElementById('ed-end').value = paciente.endereco || '';
       document.getElementById('ed-meds').value = paciente.medicamentos_uso || '';
 
-      document.getElementById('banner-demo').classList.toggle('escondido', SUPABASE_CONFIGURADO);
     }
 
     document.getElementById('btn-editar').onclick = () => {
@@ -171,21 +162,6 @@
     };
 
     UI.mascararTelefone(document.getElementById('ed-tel'));
-
-    /* Demo */
-    document.getElementById('btn-seed').onclick = () => {
-      DB.seedDemo();
-      DB.setSessao('12345678909');
-      UI.toast('Paciente de exemplo carregado ✨', 'sucesso');
-      setTimeout(() => location.href = 'index.html', 1000);
-    };
-    document.getElementById('btn-limpar').onclick = () => {
-      UI.modalConfirmar({
-        titulo: 'Limpar dados demo?', texto: 'Todos os dados locais serão apagados.',
-        botao: 'Limpar', perigo: true,
-        onConfirmar: () => { DB.limparDemo(); DB.clearSessao(); location.href = 'index.html'; }
-      });
-    };
 
     carregar();
   </script>
