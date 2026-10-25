@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Vida+</title>
   <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="stylesheet" href="css/app.css">
 </head>
 <body class="tela-login">
@@ -26,62 +26,21 @@
 
     <!-- Visitante (não logado) -->
     <div id="area-visitante" class="escondido">
-
-      <div class="hero-boas-vindas">
-        <div class="hero-icone" id="hero-icone"></div>
-        <h2>Bem-vindo(a)!</h2>
-        <p class="suave">
-          Seu cadastro é feito pela recepção da unidade. Entre com seu CPF
-          para acompanhar fila, exames e consultas pelo celular.
-        </p>
-      </div>
+      <h2>👋 Bem-vindo(a)!</h2>
+      <p class="suave" style="margin-bottom:18px;">
+        Seu cadastro é feito pela recepção da unidade. É só entrar com seu CPF para acompanhar tudo.
+      </p>
 
       <button class="btn btn-primario" id="btn-entrar">🔐 Entrar com meu CPF</button>
 
-      <div class="passos-card">
-        <div class="passos-titulo">Como funciona</div>
-        <ol class="passos">
-          <li>
-            <span class="passo-n">1</span>
-            <div>
-              <b>A recepção cadastra você</b>
-              <span class="s">Com CPF, telefone e endereço — na própria unidade.</span>
-            </div>
-          </li>
-          <li>
-            <span class="passo-n">2</span>
-            <div>
-              <b>Você entra com o CPF</b>
-              <span class="s">Sem senha para lembrar ou guardar.</span>
-            </div>
-          </li>
-          <li>
-            <span class="passo-n">3</span>
-            <div>
-              <b>Acompanha tudo por aqui</b>
-              <span class="s">Senha, chamada no telão, exames e consultas.</span>
-            </div>
-          </li>
-        </ol>
-      </div>
-
-      <div class="unidades-lista" id="unidades-lista"></div>
-
-      <hr class="separador">
-      <a class="btn btn-contorno" href="../index.html" style="text-align:center;">← Voltar ao Portal Vida+</a>
+      <a class="btn btn-contorno btn-bloco" href="../index.html" style="text-align:center;">← Voltar ao Portal Vida+</a>
 
     </div>
 
     <!-- Logado -->
     <div id="area-logado" class="escondido">
-
-      <div class="home-topo">
-        <div class="avatar-nome" id="avatar-nome">👤</div>
-        <div>
-          <h2 id="saudacao-logado">Olá! 👋</h2>
-          <p class="suave">Como podemos ajudar hoje?</p>
-        </div>
-      </div>
+      <h2 id="saudacao-logado">Olá! 👋</h2>
+      <p class="suave" style="margin-bottom:14px;">Como podemos ajudar hoje?</p>
 
       <!-- Atendimento ativo (senha) -->
       <div id="cartao-ativo" class="cartao-ativo escondido"></div>
@@ -89,40 +48,35 @@
       <!-- Aviso de atendimento iniciado / nenhum -->
       <div id="faixa-status"></div>
 
+
       <!-- Atalhos -->
-      <div class="grupo-titulo">Atendimento</div>
       <a class="mini-card" href="fila.html">
-        <div class="icone-mini tom-verde" id="ic-1"></div>
-        <div class="txt-mini"><div class="t">Meu atendimento</div><div class="s">Fila, senha e chamada</div></div>
+        <div class="icone-mini" id="ic-1"></div>
+        <div class="txt-mini"><div class="t">Meu atendimento</div><div class="s">Fila, senha, chamada</div></div>
         <div class="seta-mini" id="seta-1"></div>
       </a>
-
-      <div class="grupo-titulo">Consultas e exames</div>
       <a class="mini-card" href="historico.html">
-        <div class="icone-mini tom-azul" id="ic-2"></div>
+        <div class="icone-mini" id="ic-2"></div>
         <div class="txt-mini"><div class="t">Histórico de consultas</div><div class="s">Todas as suas consultas passadas</div></div>
         <div class="seta-mini" id="seta-2"></div>
       </a>
       <a class="mini-card" href="exames.html">
-        <div class="icone-mini tom-amarelo" id="ic-3"></div>
+        <div class="icone-mini" id="ic-3"></div>
         <div class="txt-mini"><div class="t">Exames solicitados</div><div class="s">Solicitações e resultados</div></div>
         <div class="seta-mini" id="seta-3"></div>
       </a>
       <a class="mini-card" href="agendamentos.html">
-        <div class="icone-mini tom-azul" id="ic-4"></div>
+        <div class="icone-mini" id="ic-4"></div>
         <div class="txt-mini"><div class="t">Próximas consultas</div><div class="s">Agendar, confirmar ou desmarcar</div></div>
         <div class="seta-mini" id="seta-4"></div>
       </a>
-
-      <div class="grupo-titulo">Conta</div>
       <a class="mini-card" href="perfil.html">
-        <div class="icone-mini tom-roxo" id="ic-5"></div>
+        <div class="icone-mini" id="ic-5"></div>
         <div class="txt-mini"><div class="t">Meus dados</div><div class="s">Telefone, endereço, informações de saúde</div></div>
         <div class="seta-mini" id="seta-5"></div>
       </a>
 
-      <hr class="separador">
-      <button class="btn btn-perigo" id="btn-sair-home">🚪 Sair da conta</button>
+      <button class="btn btn-perigo btn-bloco" id="btn-sair-home">🚪 Sair da conta</button>
       <a class="btn btn-contorno btn-bloco" href="../index.html" style="text-align:center;">← Voltar ao Portal Vida+</a>
     </div>
 
@@ -143,19 +97,6 @@
       fila: 'coracao', historico: 'historico', exame: 'tube',
       agenda: 'agendamento', perfil: 'usuario', seta: 'seta'
     };
-
-    /* Ícone do bloco de boas-vindas */
-    document.getElementById('hero-icone').innerHTML = UI.icone('cruz');
-
-    /* Unidades de atendimento (vêm do config, sem inventar dado) */
-    (function montarUnidades() {
-      const alvo = document.getElementById('unidades-lista');
-      const unidades = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.UNIDADES) || [];
-      alvo.innerHTML = unidades.map(function (u) {
-        return '<span class="unidade-chip">' + UI.icone('local') +
-               '<span>' + u + '</span></span>';
-      }).join('');
-    })();
 
     document.getElementById('logo-svg').innerHTML =
   '<img src="icons/logo.png" alt="Logo Vida+">';
@@ -205,7 +146,6 @@
         if (p && p.nome) {
           document.getElementById('saudacao-logado').textContent =
             'Olá, ' + p.nome.split(' ')[0] + '! 👋';
-          document.getElementById('avatar-nome').textContent = p.nome.trim().charAt(0);
         }
         const fila = await DB.getMinhaFila(cpf);
         montarCartaoAtivo(fila.ativa);
