@@ -27,7 +27,7 @@
    Ao publicar nova versão do app, incremente CACHE_VERSION.
    ============================================================ */
 
-const CACHE_VERSION = 'vidaplus-paciente-v10';
+const CACHE_VERSION = 'vidaplus-paciente-v11';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const RUNTIME_CACHE = CACHE_VERSION + '-runtime';
 
@@ -212,9 +212,13 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  /* 3. Arquivos do app (mesma origem, dentro do escopo): cache + atualização */
+  /* 3. Arquivos do app (mesma origem, dentro do escopo): rede primeiro.
+     Antes era cache-primeiro (stale-while-revalidate), e isso criava um
+     descompasso: o HTML vinha novo da rede e o CSS velho do cache, então
+     uma correção de CSS simplesmente não aparecia na tela. Online sempre
+     pega a versão atual; offline cai no cache. */
   if (url.origin === self.location.origin && url.pathname.startsWith(escopo)) {
-    event.respondWith(staleWhileRevalidate(req));
+    event.respondWith(networkFirst(req, null));
     return;
   }
 

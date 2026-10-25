@@ -200,6 +200,17 @@ if ('serviceWorker' in navigator) {
     /* updateViaCache: 'none' → o navegador NUNCA usa uma cópia em cache
        HTTP do service-worker.js ao procurar atualização. Sem isso, um SW
        antigo pode ficar preso por dias e o app continua quebrado offline. */
+    /* Quando um service worker novo assume o controle, recarrega a pagina
+       uma vez (no maximo 2 por sessao, para nao entrar em laco). Sem isso
+       o app no iPhone continuava exibindo a versao antiga em cache. */
+    const tinhaControlador = !!navigator.serviceWorker.controller;
+    const recargas = Number(sessionStorage.getItem('vidamais_recargas_sw') || 0);
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!tinhaControlador || recargas >= 2) return;
+      sessionStorage.setItem('vidamais_recargas_sw', String(recargas + 1));
+      location.reload();
+    });
+
     navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' })
       .then((reg) => {
         console.log('[PWA] Service worker ativo:', reg.scope);
