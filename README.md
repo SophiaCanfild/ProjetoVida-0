@@ -208,7 +208,7 @@ Abra `http://localhost:8000` no navegador — é o portal com todos os acessos. 
 - Instalável como app (PWA)
 - Login pelo CPF cadastrado pela recepção (sem atalho de "paciente demo")
 - **Funciona offline**: as telas, o CSS e os scripts ficam guardados no aparelho
-  (service worker `vidaplus-paciente-v7`); os dados vêm da última sincronização local
+  (service worker `vidaplus-paciente-v10`); os dados vêm da última sincronização local
 
 #### 📴 Não abre sem internet? Use `paciente-app/status-offline.html`
 
