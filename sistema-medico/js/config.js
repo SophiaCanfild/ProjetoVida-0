@@ -151,7 +151,13 @@ function verificarAcesso(tipoPermitido) {
     const usuario = getUsuarioLogado();
     
     if (!usuario) {
-        window.location.href = '../login/funcionario.html';
+        if (tipoPermitido === 'admin') {
+            const paginaAtual = window.location.pathname.split('/').pop() || 'index.html';
+            const retorno = paginaAtual === 'mapa.html' ? '?retorno=mapa.html' : '';
+            window.location.href = '../login/admin.html' + retorno;
+        } else {
+            window.location.href = '../login/funcionario.html';
+        }
         return false;
     }
     

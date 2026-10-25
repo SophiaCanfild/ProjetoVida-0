@@ -668,6 +668,10 @@ CREATE INDEX IF NOT EXISTS idx_consultas_cpf         ON public.consultas (cpf);
 CREATE INDEX IF NOT EXISTS idx_consultas_status      ON public.consultas (status);
 CREATE INDEX IF NOT EXISTS idx_consultas_fila        ON public.consultas (status, criado_em);
 CREATE INDEX IF NOT EXISTS idx_consultas_paciente    ON public.consultas (paciente_id);
+-- Consulta exata do telão: unidade + status "chamado", mais recentes primeiro.
+CREATE INDEX IF NOT EXISTS idx_consultas_telao
+    ON public.consultas (unidade, chamado_em DESC)
+    WHERE status = 'chamado';
 CREATE INDEX IF NOT EXISTS idx_agendamentos_cpf      ON public.agendamentos (paciente_cpf);
 CREATE INDEX IF NOT EXISTS idx_agendamentos_data     ON public.agendamentos (data_hora);
 CREATE INDEX IF NOT EXISTS idx_notificacoes_cpf      ON public.notificacoes (cpf);

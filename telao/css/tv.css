@@ -128,7 +128,7 @@ body::after {
 }
 .tv-marca .nome-unidade { display: none; }
 
-relogio { text-align: right; display: flex; align-items: center; gap: 14px; }
+.tv-relogio { text-align: right; display: flex; align-items: center; justify-content: flex-end; gap: 14px; flex-shrink: 0; }
 .tv-relogio .hora {
   font-size: 2.5rem; font-weight: 800; line-height: 1; letter-spacing: 1px;
   font-variant-numeric: tabular-nums;
@@ -146,6 +146,112 @@ relogio { text-align: right; display: flex; align-items: center; gap: 14px; }
   padding: 8px 18px;
   text-transform: capitalize;
   max-width: 220px;
+}
+
+/* ============ Controles da chamada por voz ============ */
+.tv-audio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid var(--borda);
+  border-radius: 16px;
+  background: rgba(248, 253, 255, 0.94);
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.07);
+}
+.tv-audio-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  max-width: 100%;
+  color: var(--texto-suave);
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.tv-audio-indicador {
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--verde);
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.12);
+}
+.tv-audio[data-estado="playing"] .tv-audio-indicador {
+  background: var(--azul);
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.13);
+  animation: audio-falando 1.2s ease-in-out infinite;
+}
+.tv-audio[data-estado="playing"] .tv-audio-status { color: var(--azul-tinta); }
+.tv-audio[data-estado="paused"] .tv-audio-indicador {
+  background: #D97706;
+  box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.13);
+}
+.tv-audio[data-estado="paused"] .tv-audio-status { color: #92400E; }
+.tv-audio[data-estado="muted"] .tv-audio-indicador {
+  background: #94A3B8;
+  box-shadow: 0 0 0 3px rgba(100, 116, 139, 0.12);
+}
+.tv-audio[data-estado="muted"] .tv-audio-status { color: #64748B; }
+@keyframes audio-falando {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(0.72); opacity: 0.55; }
+}
+.tv-audio-acoes {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.tv-audio-btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 32px;
+  padding: 6px 9px;
+  border: 1px solid #CFE7F5;
+  border-radius: 9px;
+  background: #fff;
+  color: var(--azul-tinta);
+  font-family: inherit;
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.18s, border-color 0.18s, transform 0.18s, box-shadow 0.18s;
+}
+.tv-audio-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+.tv-audio-btn [hidden] { display: none !important; }
+.tv-audio-btn:not(:disabled):hover {
+  border-color: var(--azul-claro);
+  background: var(--azul-suave);
+  box-shadow: 0 3px 9px rgba(2, 132, 199, 0.12);
+}
+.tv-audio-btn:not(:disabled):active { transform: translateY(1px); }
+.tv-audio-btn:focus-visible { outline: 3px solid rgba(2, 132, 199, 0.3); outline-offset: 2px; }
+.tv-audio-btn:disabled { opacity: 0.42; cursor: not-allowed; }
+.tv-audio-btn.tv-audio-teste {
+  border-color: var(--azul);
+  background: var(--azul);
+  color: #fff;
+}
+.tv-audio-btn.tv-audio-teste:not(:disabled):hover {
+  border-color: #0369A1;
+  background: #0369A1;
+}
+.tv-audio[data-estado="muted"] #btn-silenciar-voz {
+  border-color: #FCD34D;
+  background: #FFFBEB;
+  color: #92400E;
 }
 
 /* ============ Destaque: última chamada ============ */
@@ -564,6 +670,182 @@ relogio { text-align: right; display: flex; align-items: center; gap: 14px; }
   to { opacity: 1; transform: none; }
 }
 
+/* ============================================================
+   ORIENTAÇÃO HOSPITALAR / MAPA DA ROTA
+   ============================================================ */
+.orientacao-painel [hidden],
+.tv-painel-orientacao [hidden] { display: none !important; }
+.orientacao-rota {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.rota-topo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.rota-destino-wrap { min-width: 0; }
+.rota-destino-wrap .rota-rotulo {
+  display: block;
+  color: var(--texto-suave);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+.rota-destino-wrap strong {
+  display: block;
+  overflow: hidden;
+  color: var(--azul-tinta);
+  font-size: clamp(0.95rem, 1.4vw, 1.2rem);
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rota-destino-wrap #rota-local {
+  display: block;
+  margin-top: 2px;
+  color: var(--texto-suave);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+.rota-badges {
+  display: flex;
+  align-items: flex-end;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.rota-badge {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #BAE6FD;
+  border-radius: 20px;
+  padding: 4px 8px;
+  background: var(--azul-suave);
+  color: var(--azul-tinta);
+  font-size: 0.61rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.rota-badge.acessivel {
+  border-color: #BBF7D0;
+  background: var(--verde-suave);
+  color: var(--verde-tinta);
+}
+.rota-badge.acessivel.com-obstaculos {
+  border-color: #FDE68A;
+  background: #FFFBEB;
+  color: #92400E;
+}
+.mapa-e-passos {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(150px, 0.65fr);
+  align-items: stretch;
+  gap: 12px;
+}
+.mapa-hospital {
+  min-width: 0;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid var(--borda);
+  border-radius: 14px;
+  background: #FAFDFF;
+}
+.mapa-hospital svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 168px;
+}
+.mapa-area rect { fill: #F0F9FF; stroke: #DCEEF9; stroke-width: 1; }
+.mapa-area.consultas rect { fill: #F0FDF4; stroke: #DCFCE7; }
+.mapa-area text {
+  fill: #64748B;
+  font-family: var(--fonte);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+}
+.mapa-ligacao {
+  stroke: #CBD5E1;
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+.mapa-ligacao.com-obstaculo { stroke-dasharray: 5 6; }
+.mapa-ligacao.ativa {
+  stroke: var(--azul);
+  stroke-width: 5;
+}
+#seta-rota path { fill: var(--azul); }
+.mapa-no circle { fill: #fff; stroke: #94A3B8; stroke-width: 3; }
+.mapa-no text {
+  fill: #475569;
+  stroke: #fff;
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  paint-order: stroke;
+  text-anchor: middle;
+  font-family: var(--fonte);
+  font-size: 10px;
+  font-weight: 800;
+}
+.mapa-no.tipo-elevador circle { fill: #F59E0B; stroke: #FFFBEB; }
+.mapa-no.inicio circle { fill: var(--verde); stroke: #F0FDF4; }
+.mapa-no.destino circle { fill: var(--azul); stroke: #EFF6FF; }
+.mapa-no.destino text { fill: var(--azul-tinta); }
+.mapa-no.destino circle { animation: mapa-destino 1.7s ease-in-out infinite; }
+@keyframes mapa-destino {
+  0%, 100% { stroke-width: 3; }
+  50% { stroke-width: 7; }
+}
+.rota-passos {
+  min-width: 0;
+  max-height: 168px;
+  margin: 0;
+  padding: 4px 4px 4px 25px;
+  overflow-y: auto;
+  color: var(--tinta);
+  font-size: clamp(0.66rem, 0.82vw, 0.78rem);
+  font-weight: 650;
+  line-height: 1.4;
+}
+.rota-passos li { margin-bottom: 8px; padding-left: 2px; }
+.rota-passos li::marker { color: var(--azul); font-weight: 800; }
+.mapa-aviso-config {
+  flex-shrink: 0;
+  border: 1px solid #FDE68A;
+  border-radius: 9px;
+  padding: 6px 9px;
+  background: #FFFBEB;
+  color: #92400E;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.rota-sem-mapa {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 22px;
+  color: var(--texto-suave);
+  font-size: 0.85rem;
+  font-weight: 650;
+  line-height: 1.5;
+  text-align: center;
+}
+
 /* Chamada recente sem nome (privacidade) */
 .tv-paineis .item-recente .guiche { order: 2; }
 .tv-paineis .item-recente .hora { order: 3; }
@@ -656,6 +938,14 @@ relogio { text-align: right; display: flex; align-items: center; gap: 14px; }
   font-weight: 800; line-height: 1.05; color: #fff;
   letter-spacing: -0.01em;
 }
+.tv-destaque .destino-box .destino-local {
+  margin-top: 7px;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: clamp(0.68rem, 0.95vw, 0.85rem);
+  font-weight: 700;
+  line-height: 1.3;
+}
+.tv-destaque .destino-box .destino-local:empty { display: none; }
 .tv-destaque .destino-box .destino-medico {
   margin-top: 10px;
   padding: 6px 18px;
@@ -678,8 +968,21 @@ relogio { text-align: right; display: flex; align-items: center; gap: 14px; }
 /* Guichê/destino com cor por tipo nas recentes */
 .item-recente .guiche { background: linear-gradient(135deg, var(--azul-claro), var(--azul)); }
 .item-recente .guiche.guiche-consulta { background: linear-gradient(135deg, var(--verde-claro), var(--verde)); box-shadow: 0 4px 10px rgba(22, 163, 74, 0.25); }
+
+/* Em TVs menos largas, preserva os três controles e compacta o relógio. */
+@media (min-width: 901px) and (max-width: 1180px) {
+  .tv-topo { gap: 12px; padding-left: 16px; padding-right: 16px; }
+  .tv-relogio .data { display: none; }
+  .tv-audio { padding-left: 7px; padding-right: 7px; }
+  .tv-audio-btn { padding-left: 7px; padding-right: 7px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tv-audio[data-estado="playing"] .tv-audio-indicador,
+  .mapa-no.destino circle { animation: none; }
+}
         
-//* Telas baixas (ex.: 1366x768): compacta a chamada sem perder legibilidade */
+/* Telas baixas (ex.: 1366x768): compacta a chamada sem perder legibilidade */
 @media (min-width: 901px) and (max-height: 780px) {
   .tv-destaque .chamada-grade { gap: 32px; }
   .tv-destaque .destino-box { padding: 14px 22px; }
@@ -687,6 +990,9 @@ relogio { text-align: right; display: flex; align-items: center; gap: 14px; }
   .tv-destaque .destino-box .destino-medico { margin-top: 6px; }
   .tv-destaque .rotulo-chamada { margin-bottom: 6px; }
   .tv-destaque .pista-chamada { margin-top: 8px; }
+  .mapa-hospital svg, .rota-passos { max-height: 138px; }
+  .orientacao-rota { gap: 5px; }
+  .rota-passos li { margin-bottom: 5px; }
 }
 
 /* ============================================================
@@ -700,6 +1006,10 @@ relogio { text-align: right; display: flex; align-items: center; gap: 14px; }
   .tv-topo { flex-direction: column; text-align: center; gap: 12px; }
   .tv-relogio { flex-direction: column; gap: 8px; }
   .tv-relogio .hora { font-size: 2rem; }
+  .tv-audio { width: 100%; max-width: 440px; }
+  .tv-audio-acoes { width: 100%; }
+  .tv-audio-btn { flex: 1; }
+  .tv-audio-btn.tv-audio-teste { flex: 1.35; }
   .tv-paineis { grid-template-columns: 1fr; max-height: none; }
   .tv-destaque { padding: 20px 16px; }
   .tv-destaque .chamada, .tv-destaque .chamada-grade { min-height: 0; }
@@ -707,4 +1017,12 @@ relogio { text-align: right; display: flex; align-items: center; gap: 14px; }
   .tv-destaque .chamada-principal { align-items: center; text-align: center; }
   .tv-destaque .destino-box { width: 100%; }
   .tv-destaque .senha-chamada { letter-spacing: 0.02em; }
+  .mapa-e-passos { grid-template-columns: 1fr; }
+  .mapa-hospital svg { max-height: 220px; }
+  .rota-passos { max-height: none; overflow: visible; }
+  .rota-topo { align-items: center; }
+}
+
+@media (max-width: 480px) {
+  .tv-audio-btn.tv-audio-teste { flex-basis: 100%; }
 }
