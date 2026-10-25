@@ -83,7 +83,8 @@ vida-mais/
 │   ├── agendamentos.html         ← Agendamentos
 │   ├── js/config.js              ← cópia de shared/js/config.js (escopo do SW)
 │   ├── js/db.js                  ← cópia de shared/js/db.js (escopo do SW)
-│   ├── service-worker.js         ← cache offline (CACHE_VERSION v3)
+│   ├── service-worker.js         ← cache offline (CACHE_VERSION v4)
+│   ├── status-offline.html       ← 🩺 Diagnóstico do modo offline
 │   └── manifest.json             ← PWA manifest
 │
 ├── telao/                        ← 📺 Display da sala de espera
@@ -191,6 +192,22 @@ Abra `http://localhost:8000` no navegador — é o portal com todos os acessos. 
 - Histórico de consultas e exames
 - Notificações automáticas
 - Instalável como app (PWA)
+- **Funciona offline**: as telas, o CSS e os scripts ficam guardados no aparelho
+  (service worker `vidaplus-paciente-v4`); os dados vêm da última sincronização local
+
+#### 📴 Não abre sem internet? Use `paciente-app/status-offline.html`
+
+Abra essa página **no aparelho onde a PWA está instalada**. Ela mostra:
+
+- se o service worker está **registrado, ativo e controlando** a página;
+- se há uma versão nova **em espera** (aguardando ativação);
+- **quais arquivos estão no cache** e quantos dos 23 itens do precache já chegaram;
+- botões **Forçar atualização** e **Reinstalar do zero** (para sair de uma versão presa).
+
+> ℹ️ O registro do service worker usa `updateViaCache: 'none'`: o navegador nunca
+> aproveita uma cópia em cache do `service-worker.js`, então uma versão antiga do SW não
+> fica presa por dias. Depois de publicar mudanças, **recarregue o app uma vez com internet**
+> para o precache novo rodar.
 
 ### 📺 Telão
 - Display para sala de espera

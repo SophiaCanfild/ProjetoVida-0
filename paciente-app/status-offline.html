@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vida+ — Diagnóstico offline</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    margin: 0; padding: 18px; background: #f4faff; color: #0f172a; line-height: 1.5;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; }
+  h1 { font-size: 1.3rem; margin: 0 0 4px; }
+  .sub { color: #475569; margin: 0 0 16px; font-size: .9rem; }
+  .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+  .card h2 { font-size: .95rem; margin: 0 0 10px; color: #0369a1; }
+  .linha { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px dashed #e2e8f0; font-size: .88rem; }
+  .linha:last-child { border: 0; }
+  .pill { font-size: .7rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; text-transform: uppercase; margin-left: auto; white-space: nowrap; }
+  .ok { background: #dcfce7; color: #15803d; }
+  .erro { background: #fee2e2; color: #b91c1c; }
+  .alerta { background: #fef3c7; color: #b45309; }
+  button {
+    font: inherit; font-weight: 600; cursor: pointer; border: 0; border-radius: 9px;
+    padding: 11px 16px; background: #0369a1; color: #fff; margin: 0 8px 8px 0;
+  }
+  button.sec { background: #e2e8f0; color: #0f172a; }
+  #log {
+    background: #0f172a; color: #e2e8f0; border-radius: 10px; padding: 12px;
+    font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .78rem;
+    height: 170px; overflow-y: auto; white-space: pre-wrap;
+  }
+  .dica { font-size: .85rem; color: #475569; background: #f8fafc; border-left: 3px solid #0369a1; padding: 10px 12px; border-radius: 0 8px 8px 0; }
+  code { background: #eef2f7; padding: 1px 5px; border-radius: 4px; font-size: .85em; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>📴 Diagnóstico do modo offline</h1>
+  <p class="sub">
+    Abra esta página <strong>no aparelho onde a PWA está instalada</strong>. Ela mostra se o
+    service worker está ativo e o que já está guardado no cache do aparelho.
+  </p>
+
+  <div class="card">
+    <h2>1. Estado agora</h2>
+    <div id="estado"><div class="linha">verificando…</div></div>
+  </div>
+
+  <div class="card">
+    <h2>2. Arquivos em cache</h2>
+    <div id="caches"><div class="linha">verificando…</div></div>
+  </div>
+
+  <div class="card">
+    <h2>3. Ações</h2>
+    <button id="btn-atualizar">Forçar atualização</button>
+    <button id="btn-recache" class="sec">Reinstalar do zero</button>
+    <div style="margin-top:10px" class="dica">
+      <strong>Forçar atualização</strong> procura uma versão nova do service worker.<br>
+      <strong>Reinstalar do zero</strong> apaga o cache e registra de novo — use se o app
+      estiver “preso” numa versão antiga. Depois de reinstalar, <strong>abra o app normalmente
+      uma vez com internet</strong> para ele guardar tudo.
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Registro</h2>
+    <div id="log"></div>
+  </div>
+
+  <div class="card">
+    <h2>Como testar de verdade</h2>
+    <p class="dica" style="margin:0">
+      1. Com internet, abra o app e espere uns segundos (o precache roda no primeiro acesso).<br>
+      2. Volte aqui: <strong>Arquivos em cache</strong> deve mostrar todos os itens como <em>ok</em>.<br>
+      3. Ative o modo avião, feche o app pela multitarefa e abra de novo.
+    </p>
+  </div>
+</div>
+
+<script>
+  (function () {
+    'use strict';
+
+    var logEl = document.getElementById('log');
+    function log(msg, tipo) {
+      var marca = tipo === 'erro' ? '✗' : tipo === 'ok' ? '✓' : '•';
+      logEl.textContent += '[' + new Date().toLocaleTimeString('pt-BR') + '] ' + marca + ' ' + msg + '\n';
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+    function linha(rotulo, valor, estado) {
+      return '<div class="linha"><span>' + rotulo + '</span>' +
+             '<span class="pill ' + estado + '">' + valor + '</span></div>';
+    }
+
+    var VERSAO = 'vidaplus-paciente-v4';
+    var PRECACHE = [
+      './', './index.html', './login.html', './fila.html', './consulta.html',
+      './historico.html', './exames.html', './agendamentos.html',
+      './notificacoes.html', './perfil.html', './status-offline.html',
+      './css/app.css', './js/config.js', './js/db.js', './js/nav.js',
+      './js/ui.js', './js/notificacao.js', './manifest.json',
+      './icons/icon-192.png', './icons/icon-512.png',
+      './icons/icon-maskable-512.png', './icons/apple-touch-icon.png', './icons/logo.png'
+    ];
+
+    /* ---------- 1. Estado ---------- */
+    async function estado() {
+      var el = document.getElementById('estado');
+      var html = '';
+
+      html += linha('Internet agora',
+        navigator.onLine ? 'online' : 'offline',
+        navigator.onLine ? 'ok' : 'alerta');
+
+      if (!('serviceWorker' in navigator)) {
+        html += linha('Service worker', 'sem suporte neste navegador', 'erro');
+        el.innerHTML = html;
+        log('Este navegador não suporta service worker — offline não é possível.', 'erro');
+        return;
+      }
+      html += linha('Service worker', 'suportado', 'ok');
+
+      var reg = null;
+      try { reg = await navigator.serviceWorker.getRegistration(); } catch (e) {}
+
+      if (!reg) {
+        html += linha('Registrado', 'não', 'erro');
+        el.innerHTML = html;
+        log('Nenhum service worker registrado. Abra o app com internet uma vez.', 'erro');
+        return;
+      }
+
+      html += linha('Registrado', 'sim', 'ok');
+      html += linha('Escopo', reg.scope.replace(location.origin, '') || '/', 'ok');
+      html += linha('Ativo', reg.active ? 'sim' : 'não', reg.active ? 'ok' : 'erro');
+      html += linha('Em espera (aguardando ativação)', reg.waiting ? 'sim' : 'não',
+        reg.waiting ? 'alerta' : 'ok');
+      html += linha('Instalando', reg.installing ? 'sim' : 'não',
+        reg.installing ? 'alerta' : 'ok');
+
+      var controlando = !!navigator.serviceWorker.controller;
+      html += linha('Controla esta página', controlando ? 'sim' : 'não',
+        controlando ? 'ok' : 'erro');
+
+      el.innerHTML = html;
+
+      log('Service worker ativo: ' + (reg.active ? (reg.active.scriptURL || 'sim') : 'NÃO'));
+      if (!navigator.serviceWorker.controller) {
+        log('Esta página NÃO está sendo controlada pelo SW: recarregue para o app passar a funcionar offline.', 'erro');
+      }
+      if (reg.waiting) {
+        log('Há uma versão nova esperando ativação — recarregue o app.', 'erro');
+      }
+    }
+
+    /* ---------- 2. Caches ---------- */
+    async function inspecionarCaches() {
+      var el = document.getElementById('caches');
+      if (!('caches' in window)) {
+        el.innerHTML = linha('Cache API', 'sem suporte', 'erro');
+        return;
+      }
+
+      var nomes = await caches.keys();
+      var doApp = nomes.filter(function (n) { return n.indexOf('vidaplus-paciente') === 0; });
+      var outros = nomes.filter(function (n) { return n.indexOf('vidaplus-paciente') !== 0; });
+
+      var html = '';
+      if (!doApp.length) {
+        el.innerHTML = linha('Caches do app', 'nenhum (precache não rodou)', 'erro');
+        log('Nenhum cache do app encontrado — o install do SW não completou.', 'erro');
+        return;
+      }
+
+      var alvo = doApp.indexOf(VERSAO + '-static') >= 0
+        ? await caches.open(VERSAO + '-static')
+        : await caches.open(doApp.find(function (n) { return /-static$/.test(n); }) || doApp[0]);
+
+      var total = 0;
+      for (var i = 0; i < PRECACHE.length; i++) {
+        var url = new URL(PRECACHE[i], reg_base()).href;
+        var ok = !!(await alvo.match(url, { ignoreSearch: true }));
+        if (ok) total++;
+        html += linha(PRECACHE[i], ok ? 'no cache' : 'FALTANDO', ok ? 'ok' : 'erro');
+      }
+
+      html = linha('Caches do app', doApp.join(' · '), 'ok') + html;
+      html += linha('Itens do precache presentes', total + ' de ' + PRECACHE.length,
+        total === PRECACHE.length ? 'ok' : 'erro');
+      if (outros.length) {
+        html += linha('Outros caches (não são do app)', outros.length, 'alerta');
+      }
+      el.innerHTML = html;
+
+      log('Precache: ' + total + '/' + PRECACHE.length + ' itens presentes.', total === PRECACHE.length ? 'ok' : 'erro');
+      if (total < PRECACHE.length) {
+        log('Faltando itens: abra o app com internet para o SW guardar tudo.', 'erro');
+      }
+    }
+
+    function reg_base() {
+      /* base = pasta do próprio service worker (esta página está nela) */
+      return location.href.replace(/status-offline\.html.*$/, '');
+    }
+
+    /* ---------- 3. Ações ---------- */
+    document.getElementById('btn-atualizar').addEventListener('click', async function () {
+      log('Procurando atualização do service worker…');
+      try {
+        var reg = await navigator.serviceWorker.getRegistration();
+        if (!reg) { log('Nenhum SW registrado.', 'erro'); return; }
+        await reg.update();
+        log('Atualização verificada. Recarregue o app.', 'ok');
+        setTimeout(function () { location.reload(); }, 800);
+      } catch (e) {
+        log('Falha ao atualizar: ' + e.message, 'erro');
+      }
+    });
+
+    document.getElementById('btn-recache').addEventListener('click', async function () {
+      log('Apagando caches e registro do service worker…');
+      try {
+        var nomes = await caches.keys();
+        for (var i = 0; i < nomes.length; i++) {
+          if (nomes[i].indexOf('vidaplus-paciente') === 0) {
+            await caches.delete(nomes[i]);
+            log('Cache apagado: ' + nomes[i]);
+          }
+        }
+        var regs = await navigator.serviceWorker.getRegistrations();
+        for (var j = 0; j < regs.length; j++) { await regs[j].unregister(); }
+        log('Registro removido. Recarregando — abra o app COM internet para guardar tudo de novo.', 'ok');
+        setTimeout(function () { location.href = 'index.html'; }, 1200);
+      } catch (e) {
+        log('Falha: ' + e.message, 'erro');
+      }
+    });
+
+    /* ---------- inicia ---------- */
+    log('Página aberta em ' + location.href);
+    log('Versão esperada do cache: ' + VERSAO);
+    estado().then(inspecionarCaches).catch(function (e) { log('Erro: ' + e.message, 'erro'); });
+  })();
+</script>
+</body>
+</html>

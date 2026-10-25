@@ -111,9 +111,18 @@ const Notificacao = (function () {
      detecta a mudança de status e dispara a notificação. */
   function iniciarEscuta() {
     if (!SUPABASE_CONFIGURADO || !DB.getSessao()) return;
+
+    /* Offline o script do CDN não carrega e o global `supabase` não
+       existe: usar direto lançava ReferenceError e abortava a página.
+       O cliente real fica em `supabaseClient` (null quando indisponível). */
+    const cliente = (typeof supabaseClient !== 'undefined' && supabaseClient)
+      ? supabaseClient
+      : (typeof supabase !== 'undefined' && supabase && supabase.channel ? supabase : null);
+    if (!cliente) return;
+
     const cpf = DB.getSessao();
 
-    supabase
+    cliente
       .channel('consultas-app-' + cpf)
       .on('postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'consultas', filter: 'cpf=eq.' + cpf },
