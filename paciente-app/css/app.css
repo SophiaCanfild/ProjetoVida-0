@@ -485,7 +485,12 @@ textarea { min-height: 90px; resize: vertical; }
 .mini-card .icone-mini {
   width: 46px; height: 46px; border-radius: 13px; flex-shrink: 0;
   display: grid; place-items: center;
+  background: var(--azul-claro); color: var(--azul-escuro);
 }
+.mini-card .icone-mini.tom-verde   { background: var(--verde-claro);  color: var(--verde-escuro); }
+.mini-card .icone-mini.tom-azul    { background: var(--azul-claro);   color: var(--azul-escuro); }
+.mini-card .icone-mini.tom-amarelo { background: var(--amarelo-claro); color: var(--amarelo); }
+.mini-card .icone-mini.tom-roxo    { background: #EDE9FE;             color: #6D28D9; }
 .mini-card .icone-mini svg { width: 24px; height: 24px; }
 .mini-card .txt-mini { flex: 1; min-width: 0; }
 .mini-card .txt-mini .t { font-weight: 700; font-size: 0.95rem; }
@@ -503,6 +508,90 @@ textarea { min-height: 90px; resize: vertical; }
 .cartao-ativo .senha-g { font-size: 2.4rem; font-weight: 800; letter-spacing: 3px; line-height: 1.15; }
 .cartao-ativo .inf { font-size: 0.88rem; opacity: 0.92; margin-top: 4px; }
 .cartao-ativo .link { display: inline-block; margin-top: 12px; background: rgba(255,255,255,0.18); color: #fff; padding: 8px 14px; border-radius: 30px; font-size: 0.82rem; font-weight: 700; text-decoration: none; }
+
+/* ============================================================
+   HOME DO PACIENTE (index.html)
+   ------------------------------------------------------------
+   Blocos do topo, "como funciona" (visitante) e os títulos de
+   grupo dos atalhos (logado).
+   ============================================================ */
+
+/* Topo do logado: avatar com a inicial + saudação */
+.home-topo {
+  display: flex; align-items: center; gap: 14px; margin-bottom: 18px;
+}
+.home-topo h2 { font-size: 1.22rem; color: var(--azul-escuro); line-height: 1.25; }
+.home-topo p { font-size: 0.85rem; }
+.avatar-nome {
+  width: 52px; height: 52px; border-radius: 50%; flex-shrink: 0;
+  display: grid; place-items: center;
+  font-weight: 800; font-size: 1.3rem; color: #fff; text-transform: uppercase;
+  background: linear-gradient(135deg, var(--azul), var(--verde));
+  box-shadow: 0 6px 16px rgba(2, 132, 199, 0.24);
+}
+
+/* Boas-vindas do visitante */
+.hero-boas-vindas { text-align: center; }
+.hero-icone {
+  width: 64px; height: 64px; border-radius: 20px; margin: 2px auto 14px;
+  display: grid; place-items: center;
+  color: var(--azul-escuro);
+  background: linear-gradient(135deg, var(--azul-claro), var(--verde-claro));
+  border: 1px solid var(--borda);
+  box-shadow: var(--sombra-suave);
+}
+.hero-icone svg { width: 30px; height: 30px; }
+.hero-boas-vindas h2 { margin-bottom: 8px; color: var(--azul-escuro); }
+.hero-boas-vindas p { font-size: 0.88rem; max-width: 32ch; margin: 0 auto 18px; }
+
+/* "Como funciona" — passos numerados */
+.passos-card {
+  margin-top: 20px; padding-top: 16px;
+  border-top: 1px dashed var(--borda);
+}
+.passos-titulo {
+  font-size: 0.7rem; font-weight: 800; letter-spacing: 1.2px;
+  text-transform: uppercase; color: var(--azul); margin-bottom: 12px;
+}
+.passos { list-style: none; display: grid; gap: 12px; }
+.passos li { display: flex; gap: 12px; align-items: flex-start; }
+.passos li > div { min-width: 0; }
+.passos b { display: block; font-size: 0.88rem; line-height: 1.3; }
+.passos .s { font-size: 0.78rem; color: var(--texto-suave); }
+.passo-n {
+  width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+  display: grid; place-items: center;
+  font-size: 0.78rem; font-weight: 800; color: #fff;
+  background: linear-gradient(135deg, var(--azul), var(--verde));
+}
+
+/* Unidades de atendimento (visitante) */
+.unidades-lista {
+  margin-top: 18px; display: flex; flex-wrap: wrap;
+  gap: 8px; justify-content: center;
+}
+.unidade-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.74rem; font-weight: 700;
+  color: var(--azul-escuro); background: var(--azul-claro);
+  border-radius: 999px; padding: 6px 12px;
+}
+.unidade-chip svg { width: 14px; height: 14px; }
+
+/* Título de grupo dos atalhos */
+.grupo-titulo {
+  font-size: 0.7rem; font-weight: 800; letter-spacing: 1.2px;
+  text-transform: uppercase; color: var(--texto-suave);
+  margin: 20px 0 10px;
+}
+/* logo abaixo de um aviso, o respiro é menor */
+#faixa-status:not(:empty) + .grupo-titulo { margin-top: 8px; }
+
+/* Divisor antes dos botões do rodapé */
+.separador {
+  height: 0; border: 0; border-top: 1px solid var(--borda);
+  margin: 22px 0 16px;
+}
 
 /* ---------- Lista de notificações ---------- */
 .notif-item {
