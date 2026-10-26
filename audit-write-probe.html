@@ -1,0 +1,29 @@
+<!doctype html><html><head><meta charset="utf-8"><title>write-probe</title></head><body><pre id="out">PENDING</pre><script>
+var KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mcXlxb3JzZWR4dmVlcnNxZnVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NjYwNTUsImV4cCI6MjA5NjQ0MjA1NX0.ZKz40dXHnloi0w8n87MvExq1RQZe_nyThfxqvGIj-lc';
+var BASE='https://ofqyqorsedxveersqful.supabase.co/rest/v1/';
+var out=document.getElementById('out');
+function log(s){out.textContent+='\n'+s;}
+function req(method,path,body,prefer){
+  var x=new XMLHttpRequest();
+  x.open(method,BASE+path,false);
+  x.setRequestHeader('apikey',KEY);
+  x.setRequestHeader('Authorization','Bearer '+KEY);
+  x.setRequestHeader('Content-Type','application/json');
+  if(prefer) x.setRequestHeader('Prefer',prefer);
+  try { x.send(body?JSON.stringify(body):null); }
+  catch(e){ return {status:-1,text:'XHR_ERR '+e.message}; }
+  return {status:x.status,text:x.responseText};
+}
+var k='_audit_probe_'+Date.now();
+var r1=req('POST','configuracoes?on_conflict=chave',{chave:k,valor:'v1',descricao:'teste',atualizado_em:new Date().toISOString()},'resolution=merge-duplicates,return=representation');
+log('UPSERT '+r1.status+' '+r1.text.slice(0,300));
+var r2=req('PATCH','configuracoes?chave=eq.'+encodeURIComponent(k),{valor:'v2'},'return=representation');
+log('PATCH '+r2.status+' '+r2.text.slice(0,300));
+var r3=req('GET','configuracoes?select=chave,valor&chave=eq.'+encodeURIComponent(k),null,'');
+log('GET '+r3.status+' '+r3.text.slice(0,300));
+var r4=req('DELETE','configuracoes?chave=eq.'+encodeURIComponent(k),null,'return=representation');
+log('DELETE '+r4.status+' '+r4.text.slice(0,300));
+var r5=req('GET','configuracoes?select=count&chave=eq.'+encodeURIComponent(k),null,'');
+log('CHECK '+r5.status+' '+r5.text.slice(0,200));
+document.title='WRITE_PROBE_DONE';
+</script></body></html>
