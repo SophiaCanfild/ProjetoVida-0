@@ -370,25 +370,31 @@
             <div class="content-area" id="pageSenhas">
                 <div class="p-6">
                     <h2 class="mb-4"><i class="fas fa-ticket-alt me-2" style="color: var(--alerta);"></i> Gerar Senha</h2>
-                    
+
                     <div class="card">
                         <div class="card-body text-center py-6">
-                            <div style="font-size: 6rem; font-weight: 700; color: var(--verde-500);" id="senhaAtual">A001</div>
-                            <p class="text-muted mb-4">Próxima senha a ser chamada</p>
-                            
+                            <div style="font-size: 6rem; font-weight: 700; color: var(--verde-500); line-height: 1.05;" id="senhaAtual">—</div>
+                            <p class="text-muted mb-1">Próxima senha a ser chamada</p>
+                            <p class="text-muted mb-4" id="senhaFilaInfo" style="font-size: 0.875rem;"></p>
+
                             <div class="flex justify-center gap-3">
-                                <button class="btn btn-success btn-lg" onclick="gerarSenha()">
-                                    <i class="fas fa-print"></i>
+                                <button class="btn btn-success btn-lg" id="btnChamarProxima" type="button">
+                                    <i class="fas fa-bullhorn"></i>
                                     CHAMAR PRÓXIMA
                                 </button>
-                                <button class="btn btn-outline btn-lg" onclick="mostrarPagina('senhas')">
-                                    <i class="fas fa-redo"></i>
-                                    REINICIAR CONTADOR
+                                <button class="btn btn-outline btn-lg" id="btnAtualizarSenhas" type="button">
+                                    <i class="fas fa-sync-alt"></i>
+                                    ATUALIZAR
                                 </button>
                             </div>
+
+                            <p class="text-muted mt-4" style="font-size: 0.8125rem;">
+                                A senha é criada quando o atendimento é iniciado — em
+                                <strong>Novo Paciente</strong> ou em <strong>Buscar Paciente &rarr; Atender</strong>.
+                            </p>
                         </div>
                     </div>
-                    
+
                     <div class="card mt-4">
                         <div class="card-header">
                             <h3>Últimas Senhas Chamadas</h3>
@@ -404,24 +410,9 @@
                                             <th>Status</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
+                                    <tbody id="tabelaSenhas">
                                         <tr>
-                                            <td><strong>A098</strong></td>
-                                            <td>João Pereira Costa</td>
-                                            <td>14:35</td>
-                                            <td><span class="badge badge-success">Atendido</span></td>
-                                        </tr>
-                                        <tr>
-                                            <td><strong>A099</strong></td>
-                                            <td>Maria Silva Santos</td>
-                                            <td>14:42</td>
-                                            <td><span class="badge badge-success">Atendido</span></td>
-                                        </tr>
-                                        <tr>
-                                            <td><strong>A100</strong></td>
-                                            <td>Ana Rodrigues Lima</td>
-                                            <td>14:50</td>
-                                            <td><span class="badge badge-warning">Em atendimento</span></td>
+                                            <td colspan="4" class="text-center text-muted py-4">Carregando…</td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -455,12 +446,13 @@
             atualizarDashboard();
             carregarTabelaRecentes();
             carregarFila();
+            carregarSenhas();
         });
         
         // Escutar eventos de outros módulos (tempo real)
         DB.on('paciente_cadastrado', () => { atualizarDashboard(); carregarTabelaRecentes(); });
-        DB.on('atendimento_iniciado', () => { atualizarDashboard(); carregarFila(); });
-        DB.on('paciente_chamado', () => { carregarFila(); });
+        DB.on('atendimento_iniciado', () => { atualizarDashboard(); carregarFila(); carregarSenhas(); });
+        DB.on('paciente_chamado', () => { carregarFila(); carregarSenhas(); });
         DB.on('triagem_realizada', () => { carregarFila(); });
         DB.on('consulta_finalizada', () => { atualizarDashboard(); });
         DB.on('persistencia_falhou', evento => {
@@ -486,6 +478,7 @@
             
             // Recarregar dados ao trocar de página
             if (pagina === 'fila') carregarFila();
+            if (pagina === 'senhas') carregarSenhas();
             if (pagina === 'dashboard') { atualizarDashboard(); carregarTabelaRecentes(); }
         }
         
@@ -565,6 +558,109 @@
             }).join('');
         }
         
+        // ============================================================
+        // GERAR SENHA — próxima da fila e últimas chamadas (dados reais)
+        // ------------------------------------------------------------
+        // Antes esta tela era um mock: o número A001 e a tabela
+        // (A098–A100, nomes fixos) eram só HTML, e o botão chamava
+        // gerarSenha(), que existe apenas dentro do DB (escopo privado)
+        // — por isso o clique não fazia nada.
+        // ============================================================
+        const BADGES_SENHA = {
+            chamado: ['badge-warning', 'Chamado'],
+            em_consulta: ['badge-warning', 'Em atendimento'],
+            finalizado: ['badge-success', 'Atendido'],
+            cancelado: ['badge-danger', 'Cancelado']
+        };
+
+        function proximaDaFila() {
+            return DB.getFila().filter(c => c.status === 'em_fila')[0] || null;
+        }
+
+        function carregarSenhas() {
+            const numero = document.getElementById('senhaAtual');
+            const info = document.getElementById('senhaFilaInfo');
+            const botao = document.getElementById('btnChamarProxima');
+            if (!numero || !info) return;
+
+            const fila = DB.getFila().filter(c => c.status === 'em_fila');
+            const proxima = fila[0] || null;
+
+            numero.textContent = proxima ? proxima.senha : '—';
+
+            if (proxima) {
+                const paciente = DB.getPacientePorId(proxima.paciente_id);
+                const nome = paciente ? paciente.nome : 'Paciente';
+                info.textContent = nome + ' • ' + fila.length +
+                    (fila.length === 1 ? ' pessoa aguardando' : ' pessoas aguardando');
+            } else {
+                info.textContent = 'Ninguém aguardando — inicie um atendimento para gerar uma senha.';
+            }
+
+            if (botao) {
+                botao.disabled = !proxima;
+                botao.style.opacity = proxima ? '1' : '0.55';
+                botao.style.cursor = proxima ? 'pointer' : 'not-allowed';
+            }
+
+            // Últimas chamadas: qualquer consulta que já tenha sido chamada
+            const tbody = document.getElementById('tabelaSenhas');
+            if (!tbody) return;
+
+            const chamadas = DB.getConsultas()
+                .filter(c => c.chamado_em)
+                .sort((a, b) => new Date(b.chamado_em) - new Date(a.chamado_em))
+                .slice(0, 8);
+
+            if (!chamadas.length) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">' +
+                    'Nenhuma senha chamada ainda.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = chamadas.map(c => {
+                const paciente = DB.getPacientePorId(c.paciente_id);
+                const nome = (paciente && paciente.nome) || c.nome_chamado || 'Paciente';
+                const hora = new Date(c.chamado_em).toLocaleTimeString('pt-BR', {
+                    hour: '2-digit', minute: '2-digit'
+                });
+                const badge = BADGES_SENHA[c.status] || ['badge-warning', c.status];
+                return '<tr>' +
+                    '<td><strong>' + c.senha + '</strong></td>' +
+                    '<td>' + nome + '</td>' +
+                    '<td>' + hora + '</td>' +
+                    '<td><span class="badge ' + badge[0] + '">' + badge[1] + '</span></td>' +
+                    '</tr>';
+            }).join('');
+        }
+
+        // Chama a próxima pessoa da fila (aparece no telão e no app)
+        function chamarProxima() {
+            const proxima = proximaDaFila();
+            if (!proxima) {
+                mostrarToast('Não há ninguém aguardando na fila.', 'info');
+                return;
+            }
+            try {
+                DB.chamarPaciente(proxima.id, { tipo: 'triagem', guiche: '1' });
+                const paciente = DB.getPacientePorId(proxima.paciente_id);
+                const nome = paciente ? paciente.nome : 'Paciente';
+                mostrarToast('📢 ' + proxima.senha + ' — ' + nome + ' chamado(a) no telão!', 'success');
+                carregarSenhas();
+                carregarFila();
+                atualizarDashboard();
+            } catch (e) {
+                mostrarToast('Erro ao chamar: ' + e.message, 'error');
+            }
+        }
+
+        document.getElementById('btnChamarProxima')?.addEventListener('click', chamarProxima);
+        document.getElementById('btnAtualizarSenhas')?.addEventListener('click', function() {
+            carregarSenhas();
+            carregarFila();
+            mostrarToast('Lista atualizada.', 'info');
+        });
+
         // CHAMAR PACIENTE DA FILA (integra com telão + app)
         function chamarDaFila(consultaId) {
             try {
