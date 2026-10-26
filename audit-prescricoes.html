@@ -1,0 +1,43 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Vida+ prescricoes write audit</title></head><body><pre id="out">RUNNING</pre><script>
+var KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mcXlxb3JzZWR4dmVlcnNxZnVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NjYwNTUsImV4cCI6MjA5NjQ0MjA1NX0.ZKz40dXHnloi0w8n87MvExq1RQZe_nyThfxqvGIj-lc';
+var BASE='https://ofqyqorsedxveersqful.supabase.co/rest/v1/';
+var out=document.getElementById('out');var ok=0,fail=0;
+function log(s){out.textContent+='\n'+s;}
+function short(t){return String(t||'').replace(/\s+/g,' ').slice(0,200);}
+function req(method,path,body,prefer,expect){
+ var x=new XMLHttpRequest();x.open(method,BASE+path,false);
+ x.setRequestHeader('apikey',KEY);x.setRequestHeader('Authorization','Bearer '+KEY);x.setRequestHeader('Content-Type','application/json');
+ if(prefer)x.setRequestHeader('Prefer',prefer);
+ try{x.send(body?JSON.stringify(body):null);}catch(e){fail++;log('FAIL XHR '+e.message);return null;}
+ var good=expect?expect.indexOf(x.status)!==-1:(x.status>=200&&x.status<300);
+ if(good)ok++;else fail++;
+ log((good?'OK  ':'FAIL')+' '+x.status+' '+method+' '+path.split('?')[0]+' '+short(x.responseText));
+ return {status:x.status,text:x.responseText};
+}
+function uuid(){return crypto.randomUUID?crypto.randomUUID():'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0,v=c==='x'?r:(r&0x3|0x8);return v.toString(16);});}
+var stamp=String(Date.now());var cpf='7'+stamp.slice(-10);var pid=uuid(),cid=uuid(),rid=uuid(),eid=uuid();var now=new Date().toISOString();
+log('TEST cpf='+cpf+' receita='+rid+' exame='+eid);
+// paciente + consulta minimos para satisfazer as FKs
+req('POST','pacientes',{id:pid,cpf:cpf,nome:'Auditoria Prescricoes',sexo:'O',gestante:false,tabagista:false,alergias:[],doencas_cronicas:[],criado_em:now},'return=representation',[201]);
+req('POST','consultas',{id:cid,paciente_id:pid,cpf:cpf,unidade:'_AUDIT_VIDAMAIS_',senha:'T998',recepcao:{criado_por:'Auditoria'},triagem:null,receita:[],exames:[],status:'em_fila',criado_em:now},'return=representation',[201]);
+// receita (shape do DB.registrarReceitas)
+var r={id:rid,consulta_id:cid,paciente_id:pid,cpf:cpf,numero:'RX-AUDIT-'+stamp,tipo:'simples',vias:1,itens:[{nome:'Paracetamol 500mg',dosagem:'1cp',frequencia:'8/8h',duracao:'3 dias'}],orientacoes:'Tomar apos as refeicoes',validade_dias:null,valida_ate:null,alertas:[],medico_nome:'Dr. Auditoria',medico_crm:'CRM/PR 00000',unidade:'_AUDIT_VIDAMAIS_',emitida_em:now,criado_em:now};
+req('POST','receitas',r,'return=representation',[201]);
+req('GET','receitas?select=id,numero,tipo,vias&id=eq.'+rid,null,'',[200]);
+// exame (shape do DB.registrarExames)
+var e={id:eid,consulta_id:cid,paciente_id:pid,cpf:cpf,pedido:'EX-AUDIT-'+stamp,nome:'Hemograma completo',categoria:'laboratorial',prioridade:'rotina',indicacao:'Auditoria',cid10:null,orientacao:'Jejum 8h',local_realizacao:'Lab',status:'solicitado',resultado:null,realizado_em:null,resultado_em:null,cancelado_em:null,motivo_cancelamento:null,atualizado_por:null,medico_nome:'Dr. Auditoria',medico_crm:'CRM/PR 00000',unidade:'_AUDIT_VIDAMAIS_',solicitado_em:now,atualizado_em:now};
+req('POST','exames_solicitados',e,'return=representation',[201]);
+// UPDATE de resultado (DB.atualizarExame) — exercita a policy de UPDATE
+req('PATCH','exames_solicitados?id=eq.'+eid,{status:'resultado_disponivel',resultado:'Dentro da normalidade',resultado_em:now,realizado_em:now,atualizado_em:now,atualizado_por:'Dr. Auditoria'},'return=representation',[200]);
+req('GET','exames_solicitados?select=id,status,resultado&id=eq.'+eid,null,'',[200]);
+// Limpeza: consultas tem ON DELETE CASCADE para receitas/exames
+req('DELETE','consultas?id=eq.'+cid,null,'return=representation',[200,204]);
+req('DELETE','pacientes?cpf=eq.'+cpf,null,'return=representation',[200,204]);
+var leftovers=0;
+[['receitas','id=eq.'+rid],['exames_solicitados','id=eq.'+eid],['consultas','id=eq.'+cid],['pacientes','cpf=eq.'+cpf]].forEach(function(t){
+ var x=req('GET',t[0]+'?select=count&'+t[1],null,'',[200]);
+ try{var j=JSON.parse(x.text);if(j&&j[0]&&j[0].count>0){leftovers+=j[0].count;log('LEFTOVER '+t[0]+' '+j[0].count);}}catch(err){}
+});
+log('SUMMARY ok='+ok+' fail='+fail+' leftovers='+leftovers);
+document.title='AUDIT_'+(fail===0&&leftovers===0?'PASS':'FAIL');
+</script></body></html>
