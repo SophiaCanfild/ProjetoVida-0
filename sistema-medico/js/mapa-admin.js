@@ -61,8 +61,12 @@ var EditorMapaAdmin = (function () {
   function atualizarOrigem() {
     var origem = estado.mapa && estado.mapa._origem;
     var texto = 'Modelo ilustrativo. Publique somente depois da conferência presencial.';
-    if (origem === 'rascunho') {
-      texto = 'Rascunho salvo neste navegador; o telão continua usando a última versão publicada.';
+    if (origem === 'rascunho-supabase') {
+      texto = 'Rascunho completo sincronizado no Supabase; o telão continua usando a última versão publicada.';
+    } else if (origem === 'rascunho-local' || origem === 'rascunho-cache') {
+      texto = 'Há alterações locais ainda não sincronizadas. Clique em “Salvar rascunho” para enviar todos os pontos e caminhos ao Supabase.';
+    } else if (origem === 'rascunho') {
+      texto = 'Rascunho salvo neste navegador; clique em “Salvar rascunho” para sincronizá-lo. O telão não foi alterado.';
     } else if (origem === 'supabase') {
       texto = 'Versão publicada no Supabase e disponível para o telão desta unidade.';
     } else if (origem === 'local') {
@@ -88,13 +92,65 @@ var EditorMapaAdmin = (function () {
       var salvo = MapaHospitalStore.salvarRascunho(estado.unidade, estado.mapa);
       salvo._origem = 'rascunho';
       estado.mapa = normalizarMapa(salvo);
-      definirStatus('Rascunho salvo', 'info');
+      definirStatus(MapaHospitalStore.temSupabase() ? 'Rascunho local salvo' : 'Rascunho salvo', 'info');
       atualizarOrigem();
-      if (!silencioso) feedback('Rascunho salvo. O telão ainda não foi alterado.', 'success');
+      if (!silencioso) feedback(MapaHospitalStore.temSupabase()
+        ? 'Rascunho local salvo. Clique novamente para sincronizar todos os dados com o Supabase.'
+        : 'Rascunho salvo. O telão ainda não foi alterado.', 'success');
       return true;
     } catch (e) {
       feedback(e.message, 'danger');
       return false;
+    }
+  }
+
+  async function tentarResolverConflitoRascunho(erro, unidade) {
+    if (!erro || erro.codigo !== 'CONFLITO_RASCUNHO') return false;
+    var carregarRemoto = window.confirm(
+      'Existe um rascunho remoto mais recente. O envio foi bloqueado para não apagar esse trabalho.\n\n' +
+      'Clique em OK para carregar a versão remota e substituir a cópia local (exporte antes se precisar dela), ou em Cancelar para manter a cópia local.'
+    );
+    if (!carregarRemoto) return false;
+    try {
+      var carregado = await MapaHospitalStore.carregarRascunho(unidade, { preferirRemoto: true });
+      if (unidade !== estado.unidade) return true;
+      estado.mapa = normalizarMapa(carregado);
+      estado.pontoOriginal = estado.mapa.ponto_inicial || (estado.mapa.nos[0] && estado.mapa.nos[0].id) || '';
+      invalidarValidacao();
+      renderizarTudo();
+      preencherFormularioPonto();
+      atualizarOrigem();
+      if (estado.mapa._origem === 'rascunho-supabase') definirStatus('Rascunho sincronizado', 'info');
+      else definirStatus(estado.mapa.configurado ? 'Versão publicada' : 'Exemplo ilustrativo', estado.mapa.configurado ? 'success' : 'warning');
+      feedback('Versão remota carregada. O rascunho remoto foi preservado; revise os dados antes de salvar ou publicar.', 'info');
+    } catch (erroRecarga) {
+      if (unidade === estado.unidade) feedback('Não foi possível carregar a versão remota: ' + erroRecarga.message, 'danger');
+    }
+    return true;
+  }
+
+  async function sincronizarRascunho() {
+    if (!salvarMapeamentos(false) || !salvarRascunho(true)) return;
+    if (!MapaHospitalStore.temSupabase()) {
+      feedback('Rascunho salvo neste navegador. O telão ainda não foi alterado.', 'success');
+      return;
+    }
+
+    var unidade = estado.unidade;
+    definirStatus('Sincronizando rascunho…', 'secondary');
+    try {
+      var salvo = await MapaHospitalStore.salvarRascunhoRemoto(unidade, estado.mapa);
+      if (unidade !== estado.unidade) return;
+      estado.mapa = normalizarMapa(salvo);
+      definirStatus('Rascunho sincronizado', 'info');
+      atualizarOrigem();
+      feedback('Rascunho completo salvo no Supabase: áreas, pontos, destinos, ligações, tempos e acessibilidade. O telão continua na versão publicada.', 'success');
+    } catch (e) {
+      if (unidade !== estado.unidade) return;
+      if (await tentarResolverConflitoRascunho(e, unidade)) return;
+      definirStatus('Rascunho apenas local', 'warning');
+      atualizarOrigem();
+      feedback(e.message, 'danger');
     }
   }
 
@@ -157,7 +213,8 @@ var EditorMapaAdmin = (function () {
       estado.equipe = carregados[1];
       el('card-form-consultorio').hidden = true;
       estado.pontoOriginal = estado.mapa.ponto_inicial || (estado.mapa.nos[0] && estado.mapa.nos[0].id) || '';
-      if (estado.mapa._origem === 'rascunho') definirStatus('Rascunho salvo', 'info');
+      if (estado.mapa._origem === 'rascunho-supabase') definirStatus('Rascunho sincronizado', 'info');
+      else if (estado.mapa._origem && estado.mapa._origem.indexOf('rascunho') === 0) definirStatus('Rascunho local salvo', 'info');
       else if (estado.mapa.configurado) definirStatus('Versão publicada', 'success');
       else definirStatus('Exemplo ilustrativo', 'warning');
       renderizarTudo();
@@ -1144,7 +1201,7 @@ var EditorMapaAdmin = (function () {
     botoes.forEach(function (botao) { botao.disabled = true; });
     el('btn-publicar').textContent = 'Publicando…';
     try {
-      salvarRascunho(true);
+      if (!salvarRascunho(true)) throw new Error('O rascunho não pôde ser preservado. A publicação foi cancelada.');
       estado.mapa = normalizarMapa(await MapaHospitalStore.publicar(estado.unidade, estado.mapa));
       estado.mapa._origem = MapaHospitalStore.temSupabase() ? 'supabase' : 'local';
       definirStatus('Publicado no telão', 'success');
@@ -1152,11 +1209,16 @@ var EditorMapaAdmin = (function () {
       atualizarOrigem();
       renderizarTudo();
       preencherFormularioPonto();
-      feedback(MapaHospitalStore.temSupabase()
+      var rascunhoPendente = !!estado.mapa._rascunho_remoto_pendente;
+      var mensagemPublicacao = MapaHospitalStore.temSupabase()
         ? 'Mapa publicado no Supabase. O telão desta unidade receberá a nova versão na próxima atualização.'
-        : 'Mapa publicado neste navegador. No modo demonstração, outros dispositivos exigem Supabase ou configuração local.',
-        'success');
+        : 'Mapa publicado neste navegador. No modo demonstração, outros dispositivos exigem Supabase ou configuração local.';
+      if (rascunhoPendente) {
+        mensagemPublicacao += ' A publicação foi concluída, mas não foi possível apagar o rascunho remoto antigo; ele será ignorado pelos timestamps na próxima carga.';
+      }
+      feedback(mensagemPublicacao, rascunhoPendente ? 'warning' : 'success');
     } catch (e) {
+      if (await tentarResolverConflitoRascunho(e, estado.unidade)) return;
       feedback(e.message, 'danger');
       definirStatus('Rascunho preservado', 'warning');
     } finally {
@@ -1176,16 +1238,23 @@ var EditorMapaAdmin = (function () {
   }
 
   async function descartarRascunho() {
-    if (!window.confirm('Descartar o rascunho e recarregar a última versão publicada/modelo?')) return;
-    MapaHospitalStore.descartarRascunho(estado.unidade);
-    estado.mapa = normalizarMapa(await MapaHospitalStore.carregarPublicado(estado.unidade));
-    estado.pontoOriginal = estado.mapa.ponto_inicial || '';
-    invalidarValidacao();
-    renderizarTudo();
-    preencherFormularioPonto();
-    atualizarOrigem();
-    definirStatus(estado.mapa.configurado ? 'Versão publicada' : 'Exemplo ilustrativo', estado.mapa.configurado ? 'success' : 'warning');
-    feedback('Rascunho descartado. A versão publicada no telão não foi alterada.', 'success');
+    if (!window.confirm('Descartar o rascunho local e remoto e recarregar a última versão publicada/modelo?')) return;
+    var unidade = estado.unidade;
+    try {
+      await MapaHospitalStore.descartarRascunhoRemoto(unidade);
+      if (unidade !== estado.unidade) return;
+      estado.mapa = normalizarMapa(await MapaHospitalStore.carregarPublicado(unidade));
+      if (unidade !== estado.unidade) return;
+      estado.pontoOriginal = estado.mapa.ponto_inicial || '';
+      invalidarValidacao();
+      renderizarTudo();
+      preencherFormularioPonto();
+      atualizarOrigem();
+      definirStatus(estado.mapa.configurado ? 'Versão publicada' : 'Exemplo ilustrativo', estado.mapa.configurado ? 'success' : 'warning');
+      feedback('Rascunho descartado. A versão publicada no telão não foi alterada.', 'success');
+    } catch (e) {
+      feedback(e.message, 'danger');
+    }
   }
 
   function exportar() {
@@ -1194,6 +1263,9 @@ var EditorMapaAdmin = (function () {
     var copia = MapaHospitalStore.clonar(estado.mapa);
     delete copia._origem;
     delete copia._publicado_em;
+    delete copia._rascunho_em;
+    delete copia._rascunho_base_em;
+    delete copia._rascunho_remoto_pendente;
     var blob = new Blob([JSON.stringify(copia, null, 2)], { type: 'application/json' });
     var url = URL.createObjectURL(blob);
     var link = document.createElement('a');
@@ -1217,9 +1289,7 @@ var EditorMapaAdmin = (function () {
       botao.addEventListener('click', function () { mostrarAba(botao.getAttribute('data-aba')); });
     });
     el('mapa-unidade').addEventListener('change', function (evento) { carregarUnidade(evento.target.value); });
-    el('btn-salvar-rascunho').addEventListener('click', function () {
-      if (salvarMapeamentos(false)) salvarRascunho(false);
-    });
+    el('btn-salvar-rascunho').addEventListener('click', sincronizarRascunho);
     el('btn-descartar').addEventListener('click', descartarRascunho);
     el('btn-exportar').addEventListener('click', exportar);
     el('btn-publicar-topo').addEventListener('click', function () {
@@ -1317,7 +1387,7 @@ var EditorMapaAdmin = (function () {
     estado.iniciado = true;
     var unidades = preencherUnidades();
     el('mapa-modo-armazenamento').textContent = MapaHospitalStore.temSupabase()
-      ? 'Supabase + cache local' : 'Demonstração • armazenamento local';
+      ? 'Supabase • rascunho + publicação' : 'Demonstração • armazenamento local';
     vincularEventos();
     if (typeof DB !== 'undefined' && typeof DB.on === 'function') {
       ['usuario_cadastrado', 'usuario_atualizado'].forEach(function (evento) {

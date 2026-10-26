@@ -187,7 +187,7 @@ Depois de rodar o `schema.sql`, se quiser trazer os pacientes antigos de `*_lega
 | `paciente-app/service-worker.js` | `CACHE_VERSION` → `vidaplus-paciente-v4` (força atualização do `db.js` e do Realtime em cache). Leitura com `matchAny()` nos caches de precache e runtime, precache com `allSettled` e escopo restrito a `/paciente-app/`. |
 | `paciente-app/js/config.js` e `paciente-app/js/db.js` | **Novos.** Cópias de `shared/js/config.js` e `shared/js/db.js` para dentro do escopo do service worker — antes esses arquivos ficavam em `../shared/js/`, fora do escopo, e o app não abria offline. As 9 páginas de `paciente-app/` passaram a usar `js/config.js` e `js/db.js`. **Ao mudar credenciais ou a camada de dados, atualize os dois arquivos.** |
 | `status-banco.html` | Novos testes: colunas esperadas por tabela, INSERT real em `pacientes` com limpeza e leitura do código de erro; resumo específico “Schema do banco diferente do app”. |
-| `supabase/diagnostico.sql` | **Novo.** Script somente-leitura que responde: qual modelo está instalado, colunas, NOT NULL/FK, RLS, políticas, grants do `anon`, Realtime e contagens. |
+| `supabase/diagnostico.sql` | Script somente-leitura que responde: qual modelo está instalado, colunas, NOT NULL/FK, RLS, políticas, grants do `anon`, Realtime, contagens e as chaves de mapas publicados/rascunhos. |
 | `supabase/schema.sql` | **Reescrito** como instalador único em 11 fases (migração do modelo antigo, tabelas, reparo de colunas, PK/FK/índices, RLS, GRANTs, Realtime, view/função, seeds e verificação final). Validado em PostgreSQL 16 nos três cenários. |
 
 ### Observação de segurança (para a banca)

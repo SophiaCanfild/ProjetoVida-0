@@ -178,3 +178,16 @@ LEFT JOIN information_schema.columns c
       AND c.column_name = e.coluna
 WHERE c.column_name IS NULL
 ORDER BY e.coluna;
+
+
+-- ============================================================
+-- 12) MAPAS PUBLICADOS E RASCUNHOS (somente leitura)
+-- Cada unidade pode ter até duas chaves: a publicada, lida pelo
+-- telão, e a de rascunho, usada somente pelo Administrativo.
+-- Não converta nem execute este JSON aqui: a aplicação valida o
+-- grafo completo antes de publicar.
+-- ============================================================
+SELECT chave, descricao, atualizado_em, length(valor) AS bytes_json
+FROM public.configuracoes
+WHERE chave LIKE 'mapa_hospital_%'
+ORDER BY chave;

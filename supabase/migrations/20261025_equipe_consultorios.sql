@@ -5,6 +5,7 @@
 -- Use quando o banco JÁ existe e ainda não tem public.configuracoes.
 -- A tabela guarda:
 --   • mapa_hospital_*       → mapas publicados por unidade;
+--   • mapa_hospital_*_rascunho → rascunhos completos, separados do telão;
 --   • equipe_consultorios_* → vínculos de médicos por CPF/unidade.
 --
 -- O SQL legado com usuarios.id_usuario BIGINT, pacientes.id_paciente,
@@ -76,7 +77,7 @@ BEGIN
 END $$;
 
 COMMENT ON TABLE public.configuracoes IS
-    'Configurações VIDA+: mapas publicados e vínculos de médicos/consultórios por unidade.';
+    'Configurações VIDA+: mapas publicados, rascunhos completos de mapas e vínculos de médicos/consultórios por unidade.';
 
 -- Faz o PostgREST enxergar a tabela sem esperar uma nova implantação.
 NOTIFY pgrst, 'reload schema';

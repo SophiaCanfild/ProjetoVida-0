@@ -119,7 +119,7 @@ cd vida-mais
      `supabase/migrations/20261025_receitas_exames.sql` (cria `receitas` e `exames_solicitados`).
      Detalhes em [RECEITA-E-EXAMES.md](RECEITA-E-EXAMES.md).
    - **O banco já existe, mas não tem `configuracoes`?** Rode também
-     `supabase/migrations/20261025_equipe_consultorios.sql` para mapas publicados e vínculos de consultório.
+     `supabase/migrations/20261025_equipe_consultorios.sql` para mapas publicados, rascunhos remotos e vínculos de consultório.
      A migração é aditiva; ela não converte o modelo antigo de IDs `BIGINT`.
 3. Vá em **Settings > API** → copie a **URL** e a **anon key**
 4. Edite `shared/js/config.js` **e a cópia `paciente-app/js/config.js`** (o app do paciente usa a
@@ -236,7 +236,7 @@ Abra essa página **no aparelho onde a PWA está instalada**. Ela mostra:
 - Anuncia a chamada por voz, com pausa, silêncio e teste fictício
 - Mapa hospitalar por unidade, com rota acessível, bloco, andar e passo a passo no momento da chamada
 - Editor visual em **Administrativo → Unidades → Mapa e rotas**, com rascunho, prévia, validação e publicação separada
-- Publicação do mapa em `configuracoes` no Supabase e fallback local para demonstração — [guia do mapa](telao/MAPA-HOSPITAL.md)
+- Publicação e rascunho completo do mapa em `configuracoes` no Supabase, com chaves separadas e fallback local para demonstração — [guia do mapa](telao/MAPA-HOSPITAL.md)
 - Atualização automática via Supabase Realtime
 - Chamadas gravadas em `consultas` e avisos do paciente em `notificacoes`
 - **Voz:** toda chamada nova é falada em voz alta (Web Speech API do navegador —

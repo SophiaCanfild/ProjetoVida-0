@@ -91,27 +91,33 @@ O cadastro rápido de consultório pede apenas dados operacionais (número, nome
 ## Rascunho x publicação
 
 ```text
-Editor → rascunho local → testes → validação técnica + presencial → publicação
-                                                              ├─ Supabase
-                                                              └─ cache local
+Editor → rascunho local + rascunho remoto → testes → validação técnica + presencial → publicação
+                                                                                  ├─ Supabase
+                                                                                  └─ cache local
 Telão → lê somente a versão publicada
 ```
 
-- Salvar rascunho **não altera o telão**.
-- O rascunho fica no navegador do administrador e é preservado se a publicação remota falhar.
-- Descartar rascunho recarrega a última versão publicada; se ainda não houver publicação, recarrega o modelo.
+- **Salvar rascunho** grava primeiro uma cópia local e, com Supabase configurado, envia o pacote completo para `mapa_hospital_<unidade>_rascunho`. Ele **não altera o telão**.
+- O rascunho remoto permite retomar o trabalho em outro navegador; o cache local continua disponível durante uma indisponibilidade.
+- O pacote inclui `areas`, `nos` (inclusive coordenadas, bloco e andar), `destinos`, `ligacoes` (peso, tempo, instrução e acessibilidade) e os demais campos do mapa. Não há uma tabela separada que possa deixar as rotas para trás.
+- Se a leitura ou a gravação remota falhar, o editor não anuncia sincronização: a cópia local é preservada e o erro é exibido.
+- Antes de enviar ou publicar, o editor compara a base do rascunho com a versão remota. Se outro administrador salvou algo mais recente, a gravação é bloqueada para não sobrescrevê-lo. O editor oferece carregar a versão remota após confirmação; cancelar mantém a cópia local para revisão/exportação.
+- Publicar grava somente `mapa_hospital_<unidade>` e depois tenta apagar o rascunho remoto. Se essa limpeza falhar, a publicação continua válida e os timestamps impedem que o rascunho antigo volte a abrir.
+- Descartar rascunho remove também a chave remota e recarrega a última versão publicada; se ainda não houver publicação, recarrega o modelo.
 - Qualquer alteração no rascunho invalida a confirmação presencial e exige nova validação antes da próxima publicação.
 - Publicar marca o mapa como `configurado: true`. Não é recomendável alterar esse sinalizador manualmente para contornar a validação.
 
 ## Armazenamento
 
-A publicação e os vínculos usam a tabela `configuracoes`. O instalador `supabase/schema.sql` já a cria. Em um banco existente que ainda não a possui, rode `supabase/migrations/20261025_equipe_consultorios.sql`; a migração é aditiva e pode ser repetida.
+A publicação, os rascunhos remotos e os vínculos usam a tabela `configuracoes`. O instalador `supabase/schema.sql` já a cria. Em um banco existente que ainda não a possui, rode `supabase/migrations/20261025_equipe_consultorios.sql`; a migração é aditiva e pode ser repetida.
 
 O SQL legado com `usuarios.id_usuario BIGINT`, `pacientes.id_paciente`, `medicos`, `triagens` e `fila_atendimento` não é o schema completo do aplicativo e não contém `configuracoes`. Ele precisa do instalador completo (com backup), que preserva as tabelas antigas como `*_legado`; a migração pequena não faz essa conversão. O trecho de SQL recebido também estava incompleto/fora de ordem e não deve ser executado sem corrigir sua sintaxe.
 
-- chave do mapa: `mapa_hospital_<unidade-em-slug>`;
+- chave do mapa publicado: `mapa_hospital_<unidade-em-slug>`;
+- chave do rascunho remoto: `mapa_hospital_<unidade-em-slug>_rascunho`;
 - chave da equipe: `equipe_consultorios_<unidade-em-slug>`;
 - valor: pacote JSON com versão, unidade, data e mapa, ou vínculos por CPF;
+- o rascunho usa `rascunho_em` e `base_em` para recuperação e detecção de concorrência;
 - conflito/atualização: coluna `chave`.
 
 Arquivos envolvidos:
@@ -132,7 +138,9 @@ Arquivos envolvidos:
 
 Sem cliente Supabase, rascunho e publicação usam `localStorage`. Nesse modo, a publicação vale para o navegador/dispositivo onde foi feita. Para que vários telões recebam o mesmo mapa, configure o Supabase.
 
-Quando o Supabase está configurado, mas a escrita falha, o editor **não apresenta a operação como publicada**: ele mantém o rascunho e conserva a última versão publicada. Na leitura, uma indisponibilidade temporária permite usar o último cache válido; sem cache, permanece o modelo ilustrativo.
+Quando o Supabase está configurado, mas a escrita falha, o editor **não apresenta a operação como publicada nem como rascunho remoto salvo**: ele mantém a cópia local e conserva a última versão publicada. Na leitura, uma indisponibilidade temporária permite usar o último cache válido; sem cache, permanece o modelo ilustrativo.
+
+A migração não executa nem converte o SQL legado incompleto. A compatibilidade de dados históricos ainda exige backup, script completo e revisão antes de ser validada no Supabase real.
 
 > As políticas SQL distribuídas com este projeto são demonstrativas. Em produção, restrinja a escrita em `configuracoes` a administradores autenticados e mantenha para o telão somente a leitura necessária.
 

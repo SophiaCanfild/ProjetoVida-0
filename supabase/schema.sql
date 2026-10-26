@@ -266,6 +266,11 @@ CREATE TABLE IF NOT EXISTS public.configuracoes (
     atualizado_em  TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Os valores JSON mapa_hospital_<unidade> e
+-- mapa_hospital_<unidade>_rascunho preservam o grafo completo.
+-- O telão consulta apenas a chave publicada; o rascunho usa a mesma
+-- tabela, mas nunca é retornado por carregarPublicado.
+
 -- ------------------------------------------------------------
 -- 1.9 RECEITAS — documento emitido pelo médico (área do médico)
 -- MAPA_TABELAS.receitas em db.js
