@@ -7,8 +7,11 @@ var EditorMapaAdmin = (function () {
   var estado = {
     unidade: '',
     mapa: null,
+    equipe: null,
     pontoOriginal: '',
     arraste: null,
+    salvandoEquipe: false,
+    carregamento: 0,
     iniciado: false
   };
 
@@ -97,7 +100,7 @@ var EditorMapaAdmin = (function () {
 
   function alterarESalvar() {
     marcarAlterado();
-    salvarRascunho(true);
+    return salvarRascunho(true);
   }
 
   function mostrarAba(nome) {
@@ -134,13 +137,25 @@ var EditorMapaAdmin = (function () {
 
   async function carregarUnidade(unidade) {
     if (!unidade) return;
+    var carregamento = ++estado.carregamento;
     if (estado.mapa && estado.unidade && estado.unidade !== unidade) salvarRascunho(true);
     estado.unidade = unidade;
     el('mapa-unidade').value = unidade;
     definirStatus('Carregando mapa…', 'secondary');
     feedback('', 'info');
     try {
-      estado.mapa = normalizarMapa(await MapaHospitalStore.carregarRascunho(unidade));
+      if (typeof DB !== 'undefined' && typeof DB.aguardarSincronizacao === 'function') {
+        await DB.aguardarSincronizacao();
+      }
+      if (carregamento !== estado.carregamento) return;
+      var carregados = await Promise.all([
+        MapaHospitalStore.carregarRascunho(unidade),
+        EquipeConsultorioStore.carregar(unidade)
+      ]);
+      if (carregamento !== estado.carregamento) return;
+      estado.mapa = normalizarMapa(carregados[0]);
+      estado.equipe = carregados[1];
+      el('card-form-consultorio').hidden = true;
       estado.pontoOriginal = estado.mapa.ponto_inicial || (estado.mapa.nos[0] && estado.mapa.nos[0].id) || '';
       if (estado.mapa._origem === 'rascunho') definirStatus('Rascunho salvo', 'info');
       else if (estado.mapa.configurado) definirStatus('Versão publicada', 'success');
@@ -149,7 +164,7 @@ var EditorMapaAdmin = (function () {
       preencherFormularioPonto();
       atualizarOrigem();
     } catch (e) {
-      feedback('Não foi possível carregar o mapa: ' + e.message, 'danger');
+      if (carregamento === estado.carregamento) feedback('Não foi possível carregar o mapa: ' + e.message, 'danger');
     }
   }
 
@@ -280,6 +295,13 @@ var EditorMapaAdmin = (function () {
       feedback('Defina outro ponto como início antes de excluir a recepção atual.', 'warning');
       return;
     }
+    var salasOcupadas = Object.keys(estado.mapa.destinos.consultorios).filter(function (numero) {
+      return estado.mapa.destinos.consultorios[numero] === id && medicosUsandoSala(numero).length;
+    });
+    if (salasOcupadas.length) {
+      feedback('Reatribua os médicos dos Consultórios ' + salasOcupadas.join(', ') + ' antes de excluir este ponto.', 'warning');
+      return;
+    }
     if (!window.confirm('Excluir “' + nomeNo(id) + '”? As ligações e destinos associados também serão removidos.')) return;
     estado.mapa.nos = estado.mapa.nos.filter(function (no) { return no.id !== id; });
     estado.mapa.ligacoes = estado.mapa.ligacoes.filter(function (ligacao) {
@@ -407,6 +429,120 @@ var EditorMapaAdmin = (function () {
     feedback('Fundos das áreas reorganizados conforme bloco e andar dos pontos.', 'success');
   }
 
+  /* ------------------------- Equipe e salas ------------------------- */
+  function medicosDaEquipe() {
+    return DB.getUsuarios().filter(function (usuario) {
+      return usuario && usuario.tipo === 'medico';
+    }).sort(function (a, b) {
+      return String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR');
+    });
+  }
+
+  function vinculoMedico(usuario) {
+    var central = EquipeConsultorioStore.obterVinculo(estado.equipe, usuario);
+    if (central) return central;
+    return {
+      consultorio: MedicoConsultorios.consultorioPadrao(usuario),
+      atualizado_em: null,
+      origem: 'configuracao'
+    };
+  }
+
+  function medicosUsandoSala(numero) {
+    return medicosDaEquipe().filter(function (usuario) {
+      return vinculoMedico(usuario).consultorio === String(numero);
+    });
+  }
+
+  function renderizarEquipe() {
+    if (!estado.mapa || !estado.equipe) return;
+    var medicos = medicosDaEquipe();
+    var salas = MedicoConsultorios.listar(estado.mapa);
+    var corpo = el('lista-equipe-medicos');
+    var vinculados = 0;
+
+    el('total-medicos-equipe').textContent = medicos.length;
+    el('total-consultorios-operacional').textContent = salas.length;
+    if (!medicos.length) {
+      corpo.innerHTML = '<tr><td colspan="5" class="mapa-equipe-vazio">Nenhum médico cadastrado. Use “Cadastrar médico” para incluir o primeiro.</td></tr>';
+      el('total-medicos-vinculados').textContent = '0';
+      return;
+    }
+
+    corpo.innerHTML = medicos.map(function (usuario) {
+      var documento = String(usuario.cpf || '').replace(/\D/g, '');
+      var vinculo = vinculoMedico(usuario);
+      var atual = String(vinculo.consultorio || '');
+      var salaValida = salas.some(function (sala) { return sala.numero === atual; });
+      if (atual && salaValida) vinculados++;
+      var iniciais = String(usuario.nome || 'M').split(' ').filter(Boolean).map(function (parte) {
+        return parte.charAt(0);
+      }).join('').substring(0, 2).toUpperCase();
+      var opcoes = '<option value=""' + (!atual ? ' selected' : '') + '>Não atribuído</option>';
+      opcoes += salas.map(function (sala) {
+        var local = [sala.bloco, sala.andar].filter(Boolean).join(' • ');
+        return '<option value="' + escapar(sala.numero) + '"' + (atual === sala.numero ? ' selected' : '') + '>' +
+          escapar(sala.nome + (local ? ' — ' + local : '')) + '</option>';
+      }).join('');
+      if (atual && !salaValida) {
+        opcoes += '<option value="' + escapar(atual) + '" selected>Consultório ' + escapar(atual) + ' (não mapeado)</option>';
+      }
+      var aviso = atual && !salaValida
+        ? '<small class="mapa-equipe-vinculo-inconsistente">Sala ausente neste rascunho</small>' : '';
+      return '<tr>' +
+        '<td><div class="mapa-equipe-medico"><span class="mapa-equipe-avatar">' + escapar(iniciais) + '</span><div><strong>' +
+          escapar(usuario.nome || 'Médico') + '</strong><small>CPF ' + escapar(documento) + ' • ' + (usuario.ativo === false ? 'Inativo' : 'Ativo') + '</small></div></div></td>' +
+        '<td>' + escapar(usuario.especialidade || 'Não informada') + '</td>' +
+        '<td>' + escapar(usuario.crm || usuario.registroProfissional || usuario.registro_profissional || '—') + '</td>' +
+        '<td><select class="mapa-equipe-select" data-equipe-select="' + documento + '" aria-label="Consultório de ' + escapar(usuario.nome) + '">' +
+          opcoes + '</select>' + aviso + '</td>' +
+        '<td><button type="button" class="btn btn-secondary btn-sm" data-salvar-equipe="' + documento + '">Salvar</button></td>' +
+      '</tr>';
+    }).join('');
+    el('total-medicos-vinculados').textContent = vinculados;
+  }
+
+  async function salvarVinculoEquipe(documento, botao) {
+    if (estado.salvandoEquipe) return;
+    var usuario = medicosDaEquipe().find(function (item) {
+      return String(item.cpf || '').replace(/\D/g, '') === documento;
+    });
+    var select = document.querySelector('[data-equipe-select="' + documento + '"]');
+    if (!usuario || !select) return;
+    var consultorio = select.value;
+    if (consultorio && !MedicoConsultorios.listar(estado.mapa).some(function (sala) {
+      return sala.numero === consultorio;
+    })) {
+      feedback('Cadastre esse consultório no mapa antes de vinculá-lo ao médico.', 'warning');
+      return;
+    }
+
+    var unidade = estado.unidade;
+    estado.salvandoEquipe = true;
+    if (botao) {
+      botao.disabled = true;
+      botao.textContent = 'Salvando…';
+    }
+    try {
+      var equipe = await EquipeConsultorioStore.salvarVinculo(unidade, usuario, consultorio);
+      if (estado.unidade !== unidade) return;
+      estado.equipe = equipe;
+      renderizarEquipe();
+      renderizarConsultoriosOperacional();
+      feedback(consultorio
+        ? usuario.nome + ' foi vinculado ao Consultório ' + consultorio + ' em ' + unidade + '.'
+        : 'O vínculo de ' + usuario.nome + ' foi removido nesta unidade.', 'success');
+    } catch (e) {
+      if (estado.unidade === unidade) feedback(e.message, 'danger');
+    } finally {
+      estado.salvandoEquipe = false;
+      if (botao) {
+        botao.disabled = false;
+        botao.textContent = 'Salvar';
+      }
+    }
+  }
+
   /* ------------------------- Ligações ------------------------- */
   function renderizarCaminhos() {
     el('total-caminhos').textContent = estado.mapa.ligacoes.length;
@@ -488,6 +624,209 @@ var EditorMapaAdmin = (function () {
     feedback('Ligação salva no rascunho.', 'success');
   }
 
+  /* --------------------- Cadastro rápido de consultórios --------------------- */
+  function posicaoNovoConsultorio() {
+    var candidatos = [];
+    [55, 115, 175, 235, 285].forEach(function (y) {
+      [555, 450, 345, 240, 135, 75].forEach(function (x) { candidatos.push({ x: x, y: y }); });
+    });
+    return candidatos.find(function (ponto) {
+      return estado.mapa.nos.every(function (no) {
+        return Math.hypot(Number(no.x) - ponto.x, Number(no.y) - ponto.y) >= 62;
+      });
+    }) || { x: 555, y: Math.min(285, 55 + estado.mapa.nos.length * 12) };
+  }
+
+  function preencherOrigemConsultorio(destinoId) {
+    var select = el('consultorio-origem');
+    var anterior = select.value;
+    select.innerHTML = '<option value="">Selecione a origem</option>';
+    estado.mapa.nos.filter(function (no) { return no.id !== destinoId; }).forEach(function (no) {
+      var option = document.createElement('option');
+      option.value = no.id;
+      option.textContent = no.nome;
+      select.appendChild(option);
+    });
+    if (anterior && estado.mapa.nos.some(function (no) { return no.id === anterior && no.id !== destinoId; })) {
+      select.value = anterior;
+    }
+    if (!select.value && destinoId) {
+      var existente = estado.mapa.ligacoes.find(function (ligacao) { return ligacao.para === destinoId; });
+      if (existente) select.value = existente.de;
+    }
+    if (!select.value) {
+      var corredor = estado.mapa.nos.find(function (no) { return no.tipo === 'corredor' && no.id !== destinoId; });
+      var inicial = estado.mapa.ponto_inicial !== destinoId ? estado.mapa.ponto_inicial : '';
+      select.value = corredor ? corredor.id : inicial;
+    }
+    if (!select.value && select.options.length > 1) select.selectedIndex = 1;
+  }
+
+  function abrirFormularioConsultorio(numero) {
+    var original = numero ? String(numero) : '';
+    var destinoId = original ? estado.mapa.destinos.consultorios[original] : null;
+    var no = destinoId ? estado.mapa.nos.find(function (item) { return item.id === destinoId; }) : null;
+    if (original && !no) {
+      feedback('O ponto desse consultório não existe mais. Corrija-o na edição avançada.', 'warning');
+      return;
+    }
+    var ligacao = destinoId ? estado.mapa.ligacoes.find(function (item) { return item.para === destinoId; }) : null;
+    var form = el('form-consultorio-rapido');
+    form.reset();
+    var novoNumero = original || proximaChave(estado.mapa.destinos.consultorios);
+    el('consultorio-original').value = original;
+    el('consultorio-numero').value = novoNumero;
+    el('consultorio-nome').value = no ? no.nome : 'Consultório ' + novoNumero;
+    el('consultorio-bloco').value = no ? no.bloco || '' : (estado.mapa.nos[0] && estado.mapa.nos[0].bloco) || '';
+    el('consultorio-andar').value = no ? no.andar || '' : (estado.mapa.nos[0] && estado.mapa.nos[0].andar) || '';
+    el('consultorio-tempo').value = ligacao ? Number(ligacao.tempo) || 0 : 30;
+    el('consultorio-acessivel').checked = ligacao ? ligacao.acessivel !== false : true;
+    el('consultorio-instrucao').value = ligacao ? ligacao.instrucao || '' : '';
+    el('consultorio-origem').value = '';
+    preencherOrigemConsultorio(destinoId);
+    el('titulo-form-consultorio').textContent = original ? 'Editar Consultório ' + original : 'Novo consultório';
+    el('card-form-consultorio').hidden = false;
+    el('consultorio-numero').focus();
+  }
+
+  function renderizarConsultoriosOperacional() {
+    if (!estado.mapa || !estado.equipe) return;
+    var salas = MedicoConsultorios.listar(estado.mapa);
+    var container = el('lista-consultorios-operacional');
+    el('total-consultorios-operacional').textContent = salas.length;
+    if (!salas.length) {
+      container.innerHTML = '<div class="mapa-consultorio-vazio">Nenhum consultório cadastrado. Clique em “Novo consultório” para criar ponto, destino e caminho em uma única etapa.</div>';
+      return;
+    }
+    container.innerHTML = salas.map(function (sala) {
+      var nomes = medicosUsandoSala(sala.numero).map(function (usuario) { return usuario.nome; });
+      var local = [sala.bloco, sala.andar].filter(Boolean).join(' • ') || 'Bloco e andar não informados';
+      return '<article class="mapa-consultorio-card">' +
+        '<div class="mapa-consultorio-topo"><h3>' + escapar(sala.nome) + '</h3><span class="mapa-consultorio-numero">Sala ' + escapar(sala.numero) + '</span></div>' +
+        '<div class="mapa-consultorio-local">' + escapar(local) + '</div>' +
+        '<div class="mapa-consultorio-equipe"><strong>Equipe:</strong> ' + escapar(nomes.length ? nomes.join(', ') : 'Nenhum médico vinculado') + '</div>' +
+        '<div class="mapa-consultorio-acoes"><button type="button" class="btn btn-secondary btn-sm" data-editar-consultorio="' + escapar(sala.numero) + '">Editar</button>' +
+        '<button type="button" class="btn btn-danger btn-sm" data-remover-consultorio="' + escapar(sala.numero) + '">Excluir</button></div>' +
+      '</article>';
+    }).join('');
+  }
+
+  function salvarConsultorioRapido(evento) {
+    evento.preventDefault();
+    var original = el('consultorio-original').value;
+    var numero = el('consultorio-numero').value.trim();
+    var nome = el('consultorio-nome').value.trim();
+    var bloco = el('consultorio-bloco').value.trim();
+    var andar = el('consultorio-andar').value.trim();
+    var origem = el('consultorio-origem').value;
+    var tempo = Number(el('consultorio-tempo').value);
+    if (!/^[A-Za-z0-9_-]+$/.test(numero) || !nome) {
+      feedback('Informe número e nome. No número, use somente letras, números, hífen ou sublinhado, sem espaços.', 'danger');
+      return;
+    }
+    if (original !== numero && Object.prototype.hasOwnProperty.call(estado.mapa.destinos.consultorios, numero)) {
+      feedback('Já existe um Consultório ' + numero + '. Escolha outro número.', 'warning');
+      return;
+    }
+    if (original && original !== numero && medicosUsandoSala(original).length) {
+      feedback('Reatribua os médicos desta sala antes de alterar o número do consultório.', 'warning');
+      return;
+    }
+    if (!origem || !estado.mapa.nos.some(function (no) { return no.id === origem; })) {
+      feedback('Selecione de qual ponto o paciente sairá para chegar ao consultório.', 'danger');
+      return;
+    }
+    if (!isFinite(tempo) || tempo < 0) {
+      feedback('Informe um tempo de percurso igual ou maior que zero.', 'danger');
+      return;
+    }
+
+    var destinoId = original ? estado.mapa.destinos.consultorios[original] : null;
+    if (!destinoId) {
+      var base = 'consultorio_' + numero.toLowerCase();
+      destinoId = base;
+      var sequencia = 2;
+      while (estado.mapa.nos.some(function (no) { return no.id === destinoId; })) {
+        destinoId = base + '_' + sequencia;
+        sequencia++;
+      }
+    }
+    if (origem === destinoId) {
+      feedback('A origem do caminho precisa ser diferente do consultório.', 'danger');
+      return;
+    }
+
+    var indiceNo = estado.mapa.nos.findIndex(function (no) { return no.id === destinoId; });
+    var anterior = indiceNo >= 0 ? estado.mapa.nos[indiceNo] : null;
+    var posicao = anterior || posicaoNovoConsultorio();
+    var dadosNo = {
+      id: destinoId, nome: nome, tipo: 'consultorio', bloco: bloco, andar: andar,
+      x: anterior ? anterior.x : posicao.x, y: anterior ? anterior.y : posicao.y
+    };
+    if (indiceNo >= 0) estado.mapa.nos[indiceNo] = dadosNo;
+    else estado.mapa.nos.push(dadosNo);
+    if (original && original !== numero) delete estado.mapa.destinos.consultorios[original];
+    estado.mapa.destinos.consultorios[numero] = destinoId;
+
+    var local = [bloco, andar].filter(Boolean).join(', ');
+    var instrucao = el('consultorio-instrucao').value.trim() ||
+      'A partir de ' + nomeNo(origem) + ', siga as placas para ' + nome + (local ? ', ' + local : '') + '.';
+    var dadosLigacao = {
+      de: origem, para: destinoId, peso: 1, tempo: Math.round(tempo),
+      acessivel: el('consultorio-acessivel').checked, instrucao: instrucao,
+      cadastro_rapido: true
+    };
+    var indiceLigacao = estado.mapa.ligacoes.findIndex(function (ligacao) {
+      return (ligacao.de === origem && ligacao.para === destinoId) ||
+        (ligacao.cadastro_rapido && ligacao.para === destinoId);
+    });
+    if (indiceLigacao >= 0) estado.mapa.ligacoes[indiceLigacao] = dadosLigacao;
+    else estado.mapa.ligacoes.push(dadosLigacao);
+
+    if (!alterarESalvar()) {
+      feedback('O consultório foi alterado na tela, mas o rascunho não pôde ser salvo. Verifique o armazenamento do navegador e tente novamente.', 'danger');
+      return;
+    }
+    el('card-form-consultorio').hidden = true;
+    renderizarTudo();
+    feedback('Consultório ' + numero + ' salvo no rascunho com ponto, destino e caminho. Revise e publique o mapa para liberá-lo no telão.', 'success');
+  }
+
+  function removerConsultorioRapido(numero) {
+    var vinculados = medicosUsandoSala(numero);
+    if (vinculados.length) {
+      feedback('Reatribua ' + vinculados.map(function (usuario) { return usuario.nome; }).join(', ') +
+        ' antes de excluir o Consultório ' + numero + '.', 'warning');
+      return;
+    }
+    var destinoId = estado.mapa.destinos.consultorios[numero];
+    if (!destinoId || !window.confirm('Excluir o Consultório ' + numero + ' do rascunho?')) return;
+    delete estado.mapa.destinos.consultorios[numero];
+    var usadoEmOutroDestino = estado.mapa.ponto_inicial === destinoId || estado.mapa.destinos.triagem === destinoId ||
+      Object.keys(estado.mapa.destinos.consultorios).some(function (chave) {
+        return estado.mapa.destinos.consultorios[chave] === destinoId;
+      }) || Object.keys(estado.mapa.destinos.guiches).some(function (chave) {
+        return estado.mapa.destinos.guiches[chave] === destinoId;
+      });
+    if (!usadoEmOutroDestino) {
+      estado.mapa.nos = estado.mapa.nos.filter(function (no) { return no.id !== destinoId; });
+      estado.mapa.ligacoes = estado.mapa.ligacoes.filter(function (ligacao) {
+        return ligacao.de !== destinoId && ligacao.para !== destinoId;
+      });
+    }
+    if (estado.pontoOriginal === destinoId) {
+      estado.pontoOriginal = estado.mapa.ponto_inicial || (estado.mapa.nos[0] && estado.mapa.nos[0].id) || '';
+    }
+    if (!alterarESalvar()) {
+      feedback('A exclusão não pôde ser salva no rascunho. Verifique o armazenamento do navegador e tente novamente.', 'danger');
+      return;
+    }
+    el('card-form-consultorio').hidden = true;
+    renderizarTudo();
+    preencherFormularioPonto();
+    feedback('Consultório ' + numero + ' removido do rascunho.', 'success');
+  }
+
   /* ------------------------- Destinos ------------------------- */
   function opcoesNos(select, valor, textoVazio) {
     var anterior = valor != null ? valor : select.value;
@@ -504,6 +843,13 @@ var EditorMapaAdmin = (function () {
       option.textContent = no.nome + ' (' + no.id + ')';
       select.appendChild(option);
     });
+    if (anterior && !estado.mapa.nos.some(function (no) { return no.id === anterior; })) {
+      var ausente = document.createElement('option');
+      ausente.value = anterior;
+      ausente.textContent = 'Ponto removido (' + anterior + ') — selecione outro';
+      ausente.disabled = true;
+      select.appendChild(ausente);
+    }
     select.value = anterior || '';
     if (select.value !== (anterior || '') && select.options.length) select.selectedIndex = 0;
   }
@@ -608,9 +954,13 @@ var EditorMapaAdmin = (function () {
     var erro = '';
     document.querySelectorAll('[data-grupo-destino]').forEach(function (linha) {
       var grupo = linha.getAttribute('data-grupo-destino');
+      var chaveOriginal = linha.getAttribute('data-chave-original');
       var chave = linha.querySelector('.destino-chave').value.trim();
       var noId = linha.querySelector('.destino-no').value;
       var destino = grupo === 'consultorios' ? consultorios : guiches;
+      if (grupo === 'consultorios' && chaveOriginal && chaveOriginal !== chave && medicosUsandoSala(chaveOriginal).length) {
+        erro = 'Reatribua os médicos do Consultório ' + chaveOriginal + ' antes de alterar seu número.';
+      }
       if (!chave || !noId) erro = 'Preencha o número e o ponto de todos os destinos.';
       else if (Object.prototype.hasOwnProperty.call(destino, chave)) erro = 'Há números repetidos em ' + (grupo === 'consultorios' ? 'consultórios.' : 'guichês.');
       else destino[chave] = noId;
@@ -628,6 +978,8 @@ var EditorMapaAdmin = (function () {
       alterarESalvar();
       renderizarMapa();
       renderizarDestinos();
+      renderizarEquipe();
+      renderizarConsultoriosOperacional();
       preencherFormularioPonto();
       feedback('Configuração dos destinos salva no rascunho.', 'success');
     }
@@ -655,12 +1007,20 @@ var EditorMapaAdmin = (function () {
     destinos[proximaChave(destinos)] = no.id;
     alterarESalvar();
     renderizarDestinos();
+    renderizarEquipe();
+    renderizarConsultoriosOperacional();
   }
 
   function removerDestino(grupo, chave) {
+    if (grupo === 'consultorios' && medicosUsandoSala(chave).length) {
+      feedback('Reatribua os médicos do Consultório ' + chave + ' antes de remover este destino.', 'warning');
+      return;
+    }
     delete estado.mapa.destinos[grupo][chave];
     alterarESalvar();
     renderizarDestinos();
+    renderizarEquipe();
+    renderizarConsultoriosOperacional();
   }
 
   /* ------------------------- Teste e validação ------------------------- */
@@ -810,6 +1170,8 @@ var EditorMapaAdmin = (function () {
     renderizarMapa();
     renderizarCaminhos();
     renderizarDestinos();
+    renderizarEquipe();
+    renderizarConsultoriosOperacional();
     novaLigacao();
   }
 
@@ -896,6 +1258,26 @@ var EditorMapaAdmin = (function () {
       }
     });
 
+    el('form-consultorio-rapido').addEventListener('submit', salvarConsultorioRapido);
+    el('btn-novo-consultorio-rapido').addEventListener('click', function () { abrirFormularioConsultorio(); });
+    el('btn-cancelar-consultorio').addEventListener('click', function () { el('card-form-consultorio').hidden = true; });
+    el('lista-consultorios-operacional').addEventListener('click', function (evento) {
+      var editar = evento.target.closest('[data-editar-consultorio]');
+      var remover = evento.target.closest('[data-remover-consultorio]');
+      if (editar) abrirFormularioConsultorio(editar.getAttribute('data-editar-consultorio'));
+      if (remover) removerConsultorioRapido(remover.getAttribute('data-remover-consultorio'));
+    });
+    el('lista-equipe-medicos').addEventListener('click', function (evento) {
+      var botao = evento.target.closest('[data-salvar-equipe]');
+      if (botao) salvarVinculoEquipe(botao.getAttribute('data-salvar-equipe'), botao);
+    });
+    el('lista-equipe-medicos').addEventListener('change', function (evento) {
+      if (evento.target.matches('[data-equipe-select]')) {
+        var documento = evento.target.getAttribute('data-equipe-select');
+        salvarVinculoEquipe(documento, document.querySelector('[data-salvar-equipe="' + documento + '"]'));
+      }
+    });
+
     el('btn-salvar-destinos-basicos').addEventListener('click', function () { salvarMapeamentos(true); });
     ['mapa-nome', 'mapa-ponto-inicial', 'destino-triagem'].forEach(function (id) {
       el(id).addEventListener('change', function () {
@@ -903,6 +1285,8 @@ var EditorMapaAdmin = (function () {
           alterarESalvar();
           renderizarMapa();
           renderizarDestinos();
+          renderizarEquipe();
+          renderizarConsultoriosOperacional();
           preencherFormularioPonto();
         }
       });
@@ -918,6 +1302,8 @@ var EditorMapaAdmin = (function () {
         if (salvarMapeamentos(false)) {
           alterarESalvar();
           renderizarDestinos();
+          renderizarEquipe();
+          renderizarConsultoriosOperacional();
         }
       });
     });
@@ -933,6 +1319,16 @@ var EditorMapaAdmin = (function () {
     el('mapa-modo-armazenamento').textContent = MapaHospitalStore.temSupabase()
       ? 'Supabase + cache local' : 'Demonstração • armazenamento local';
     vincularEventos();
+    if (typeof DB !== 'undefined' && typeof DB.on === 'function') {
+      ['usuario_cadastrado', 'usuario_atualizado'].forEach(function (evento) {
+        DB.on(evento, function () {
+          if (estado.mapa && estado.equipe) {
+            renderizarEquipe();
+            renderizarConsultoriosOperacional();
+          }
+        });
+      });
+    }
     aoTrocarTipoTeste();
     carregarUnidade(unidades[0]);
   }

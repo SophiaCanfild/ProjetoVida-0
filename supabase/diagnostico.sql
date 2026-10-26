@@ -89,7 +89,7 @@ SELECT table_name, string_agg(column_name, ', ' ORDER BY ordinal_position) AS co
 FROM information_schema.columns
 WHERE table_schema = 'public'
   AND table_name IN ('usuarios', 'consultas', 'agendamentos', 'notificacoes',
-                     'receitas', 'exames_solicitados')
+                     'configuracoes', 'receitas', 'exames_solicitados')
 GROUP BY table_name
 ORDER BY table_name;
 
@@ -119,7 +119,7 @@ FROM information_schema.role_table_grants
 WHERE table_schema = 'public'
   AND grantee IN ('anon', 'authenticated')
   AND table_name IN ('pacientes', 'usuarios', 'consultas', 'agendamentos', 'notificacoes',
-                     'receitas', 'exames_solicitados')
+                     'configuracoes', 'receitas', 'exames_solicitados')
 GROUP BY table_name, grantee
 ORDER BY table_name, grantee;
 
@@ -160,3 +160,21 @@ SELECT t.tabela,
        t.colunas_esperadas
 FROM (VALUES ('receitas', 17), ('exames_solicitados', 24)) AS t(tabela, colunas_esperadas)
 ORDER BY t.tabela;
+
+
+-- ============================================================
+-- 11) MAPAS E VÍNCULOS DE CONSULTÓRIO (somente leitura)
+-- Deve voltar vazio. Se faltar a tabela/coluna, rode
+-- supabase/migrations/20261025_equipe_consultorios.sql.
+-- ============================================================
+WITH esperado (coluna) AS (
+    VALUES ('id'), ('chave'), ('valor'), ('descricao'), ('atualizado_em')
+)
+SELECT 'configuracoes' AS tabela, e.coluna, 'FALTA' AS situacao
+FROM esperado e
+LEFT JOIN information_schema.columns c
+       ON c.table_schema = 'public'
+      AND c.table_name = 'configuracoes'
+      AND c.column_name = e.coluna
+WHERE c.column_name IS NULL
+ORDER BY e.coluna;

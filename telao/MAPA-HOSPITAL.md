@@ -47,6 +47,47 @@ Acesse **Administrativo → Unidades → Mapa e rotas**. Também há um atalho *
 
 **Exportar JSON** gera uma cópia do rascunho para backup ou auditoria.
 
+## Vínculo entre médico, paciente e consultório
+
+O painel médico possui o campo **Consultório para as chamadas**, acima da fila de espera. O fluxo é:
+
+```text
+Médico logado + unidade da consulta
+  → consultório padrão ou sala escolhida pelo médico
+  → validação do número em destinos.consultorios do mapa
+  → chamada grava paciente + médico + CRM + consultório
+  → telão, aplicativo, mapa e voz recebem o mesmo destino
+```
+
+Os médicos de demonstração possuem estes padrões em `APP_CONFIG.MEDICOS`:
+
+```js
+{ consultorio: "1", cpf: "12345678901", crm: "CRM/PR 12345", nome: "Dr. Alexandre Medicina" }
+{ consultorio: "2", cpf: "23456789012", crm: "CRM/PR 67890", nome: "Dra. Carla Dermatologia" }
+```
+
+- O usuário é reconhecido preferencialmente por **CPF ou CRM**; o nome é apenas fallback.
+- O médico pode trocar a sala antes de chamar. A escolha fica salva no navegador, separada por médico e unidade.
+- A preferência local não altera o cadastro do usuário nem publica mudanças no mapa.
+- Um médico sem padrão configurado deve selecionar uma sala. O Administrativo pode definir ou remover o vínculo permanente em **Mapa e rotas → Equipe e salas**; os padrões de `APP_CONFIG.MEDICOS` continuam sendo apenas o fallback de demonstração.
+- A lista de salas vem do mapa da **unidade do atendimento**. Uma sala sem ponto válido, ou uma unidade sem consultórios mapeados, impede a chamada até que o problema seja corrigido.
+- Se o Administrativo publicar uma sala nova, ela fica disponível na próxima carga do painel médico. Se uma sala for removida, uma preferência antiga para ela é ignorada ao recarregar o mapa.
+- A chamada do tipo `consulta` também é validada no banco compartilhado e não pode ser gravada sem consultório. Chamadas de triagem continuam usando guichê e não exigem consultório.
+
+Esse vínculo não escala médicos nem distribui pacientes automaticamente: o médico continua escolhendo o paciente da fila. O sistema garante que a chamada selecionada indique a sala correta.
+
+## Equipe e salas no Administrativo
+
+A primeira aba do editor reúne os médicos, especialidade, CRM, situação do cadastro e consultório principal de cada um na unidade selecionada. O cadastro de um novo médico também permite escolher a unidade e a sala, ou deixar o vínculo para depois.
+
+O cadastro rápido de consultório pede apenas dados operacionais (número, nome, bloco/andar, origem, tempo e acessibilidade). Em uma única ação ele cria o ponto, o destino e uma ligação no **rascunho**, sem exigir identificadores técnicos ou coordenadas. A planta e as ligações avançadas continuam disponíveis para ajustes especiais.
+
+- O vínculo médico–sala é salvo por **CPF e unidade** em `configuracoes`, com cache local para demonstração.
+- O vínculo pode ser salvo antes da publicação, mas uma sala que existe só no rascunho ainda não deve ser usada em chamadas; a interface avisa quando é necessário publicar.
+- Para excluir ou renumerar uma sala com médicos vinculados, primeiro reatribua esses profissionais. Isso evita deixar chamadas apontando para um destino inexistente.
+- A leitura remota é refeita antes de cada alteração do vínculo. Se ela falhar, a gravação é bloqueada para não sobrescrever a equipe com dados desatualizados.
+- Nenhuma alteração de consultório, ponto ou percurso no editor altera o telão até **Validar**, confirmar a conferência presencial e **Publicar**.
+
 ## Rascunho x publicação
 
 ```text
@@ -64,10 +105,13 @@ Telão → lê somente a versão publicada
 
 ## Armazenamento
 
-Nenhuma tabela nova é necessária. A publicação usa a tabela `configuracoes` já existente no Supabase:
+A publicação e os vínculos usam a tabela `configuracoes`. O instalador `supabase/schema.sql` já a cria. Em um banco existente que ainda não a possui, rode `supabase/migrations/20261025_equipe_consultorios.sql`; a migração é aditiva e pode ser repetida.
 
-- chave: `mapa_hospital_<unidade-em-slug>`;
-- valor: pacote JSON com versão, unidade, data e mapa;
+O SQL legado com `usuarios.id_usuario BIGINT`, `pacientes.id_paciente`, `medicos`, `triagens` e `fila_atendimento` não é o schema completo do aplicativo e não contém `configuracoes`. Ele precisa do instalador completo (com backup), que preserva as tabelas antigas como `*_legado`; a migração pequena não faz essa conversão. O trecho de SQL recebido também estava incompleto/fora de ordem e não deve ser executado sem corrigir sua sintaxe.
+
+- chave do mapa: `mapa_hospital_<unidade-em-slug>`;
+- chave da equipe: `equipe_consultorios_<unidade-em-slug>`;
+- valor: pacote JSON com versão, unidade, data e mapa, ou vínculos por CPF;
 - conflito/atualização: coluna `chave`.
 
 Arquivos envolvidos:
@@ -76,6 +120,9 @@ Arquivos envolvidos:
 - `sistema-medico/js/mapa-admin.js`: ações, validação e prévia;
 - `sistema-medico/css/mapa-admin.css`: apresentação do editor;
 - `shared/js/mapa-store.js`: rascunho, cache e publicação;
+- `shared/js/equipe-consultorios.js`: vínculos administrativos por CPF/unidade;
+- `sistema-medico/js/medico-consultorios.js`: vínculo do médico, preferência por unidade e validação da sala;
+- `sistema-medico/medico/index.html`: seleção do consultório e chamada do paciente;
 - `telao/config/mapa-hospital.js`: modelo demonstrativo e fallback;
 - `telao/js/tv-mapa.js`: validação, Dijkstra, acessibilidade, voz e SVG;
 - `telao/js/voz-chamada.js`: anúncio, controles de áudio e orientação validada;

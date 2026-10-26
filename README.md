@@ -83,7 +83,7 @@ vida-mais/
 │   ├── agendamentos.html         ← Agendamentos
 │   ├── js/config.js              ← cópia de shared/js/config.js (escopo do SW)
 │   ├── js/db.js                  ← cópia de shared/js/db.js (escopo do SW)
-│   ├── service-worker.js         ← cache offline (CACHE_VERSION v12)
+│   ├── service-worker.js         ← cache offline (CACHE_VERSION v13)
 │   ├── status-offline.html       ← 🩺 Diagnóstico do modo offline
 │   └── manifest.json             ← PWA manifest
 │
@@ -118,6 +118,9 @@ cd vida-mais
    - **Já tinha o banco instalado antes da receita médica / exames?** Rode também
      `supabase/migrations/20261025_receitas_exames.sql` (cria `receitas` e `exames_solicitados`).
      Detalhes em [RECEITA-E-EXAMES.md](RECEITA-E-EXAMES.md).
+   - **O banco já existe, mas não tem `configuracoes`?** Rode também
+     `supabase/migrations/20261025_equipe_consultorios.sql` para mapas publicados e vínculos de consultório.
+     A migração é aditiva; ela não converte o modelo antigo de IDs `BIGINT`.
 3. Vá em **Settings > API** → copie a **URL** e a **anon key**
 4. Edite `shared/js/config.js` **e a cópia `paciente-app/js/config.js`** (o app do paciente usa a
    cópia para poder funcionar offline — os dois arquivos precisam ter as mesmas credenciais):
@@ -193,11 +196,13 @@ Abra `http://localhost:8000` no navegador — é o portal com todos os acessos. 
 ## 📸 Módulos do Sistema
 
 ### 🏥 Sistema Médico
-- **Admin:** Dashboard, gerenciamento de usuários e pacientes
+- **Admin:** Dashboard, gerenciamento de usuários e pacientes; cadastro de médicos com unidade/consultório e editor **Equipe e salas** para vínculos, pontos e percursos
 - **Médico:** Fila de espera, prontuário, **receita médica** (separação automática em receita
   simples / antimicrobiano / controle especial, alerta de alergia, impressão e reimpressão) e
   **solicitação de exames** (catálogo, preparo, prioridade, acompanhamento do resultado com aviso
   ao paciente) — ver [RECEITA-E-EXAMES.md](RECEITA-E-EXAMES.md)
+- **Consultório por médico:** sala padrão pelo CPF/CRM do usuário, troca manual por unidade e
+  validação no mapa antes da chamada; telão, app e voz recebem o mesmo destino
 - **Enfermeiro:** Triagem com protocolo de Manchester
 - **Recepcionista:** Cadastro, fila, chamada de pacientes
 
@@ -209,7 +214,7 @@ Abra `http://localhost:8000` no navegador — é o portal com todos os acessos. 
 - Instalável como app (PWA)
 - Login pelo CPF cadastrado pela recepção (sem atalho de "paciente demo")
 - **Funciona offline**: as telas, o CSS e os scripts ficam guardados no aparelho
-  (service worker `vidaplus-paciente-v10`); os dados vêm da última sincronização local
+  (service worker `vidaplus-paciente-v13`); os dados vêm da última sincronização local
 
 #### 📴 Não abre sem internet? Use `paciente-app/status-offline.html`
 
@@ -244,7 +249,7 @@ Exemplos do que é falado:
 | Tipo | Frase |
 |:---|:---|
 | Recepção → triagem | *“Senha A cento e vinte e três. Dirija-se à triagem, guichê 2.”* |
-| Triagem → consultório | *“Paciente Maria da Silva. Dirija-se ao consultório 3. Com Dr. Carlos Pereira. Senha C 457.”* |
+| Triagem → consultório | *“Paciente Maria da Silva. Dirija-se ao consultório 1. Com Dr. Alexandre Medicina. Senha C 457.”* |
 
 Ajustes em `TV_CONFIG`, no `shared/js/config.js` (e na cópia `paciente-app/js/config.js`):
 

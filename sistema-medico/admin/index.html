@@ -351,14 +351,26 @@
                                         </select>
                                     </div>
                                     <div class="form-group">
-                                        <label class="form-label">Unidade/Setor</label>
+                                        <label class="form-label">Unidade de atendimento</label>
                                         <select class="form-input" id="funcUnidade">
                                             <option value="">Selecione...</option>
-                                            <option value="UBS Centro">UBS Centro</option>
-                                            <option value="UBS Campo Magro">UBS Campo Magro</option>
-                                            <option value="UPA Araucária">UPA Araucária</option>
-                                            <option value="Hospital Municipal">Hospital Municipal</option>
                                         </select>
+                                        <small class="text-muted">Usada para localizar os consultórios do médico.</small>
+                                    </div>
+                                </div>
+
+                                <div class="form-row" id="grupoFuncConsultorio" hidden>
+                                    <div class="form-group">
+                                        <label class="form-label" for="funcConsultorio">Consultório principal</label>
+                                        <select class="form-input" id="funcConsultorio" disabled>
+                                            <option value="">Selecione a unidade primeiro</option>
+                                        </select>
+                                        <small id="funcConsultorioAjuda" class="text-muted">
+                                            O vínculo será usado no painel do médico e nas chamadas do telão.
+                                        </small>
+                                        <a href="mapa.html" target="_blank" rel="noopener" class="btn btn-outline btn-sm mt-2">
+                                            <i class="fas fa-map-marked-alt"></i> Gerenciar consultórios e rotas
+                                        </a>
                                     </div>
                                 </div>
                                 
@@ -487,8 +499,12 @@
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../../shared/js/config.js"></script>
+    <script src="../../telao/config/mapa-hospital.js"></script>
+    <script src="../../shared/js/mapa-store.js"></script>
+    <script src="../../shared/js/equipe-consultorios.js"></script>
     <script src="../../shared/js/db.js"></script>
     <script src="../js/config.js"></script>
+    <script src="../js/medico-consultorios.js"></script>
     <script>
         // Verificar acesso
         verificarAcesso('admin');
@@ -502,6 +518,11 @@
             carregarTabelaUsuarios();
             carregarTabelaUsuariosRecentes();
             carregarTabelaPacientes();
+            prepararFormularioFuncionario();
+            const paginaInicial = new URLSearchParams(window.location.search).get('pagina');
+            if (paginaInicial === 'funcionarios' || paginaInicial === 'usuarios') {
+                mostrarPagina(paginaInicial);
+            }
         });
         
         // Escutar eventos em tempo real
@@ -510,6 +531,85 @@
         DB.on('usuario_atualizado', () => { carregarTabelaUsuarios(); carregarTabelaUsuariosRecentes(); });
         DB.on('atendimento_iniciado', () => atualizarDashboard());
         DB.on('consulta_finalizada', () => atualizarDashboard());
+
+        let carregamentoFuncConsultorio = 0;
+
+        function prepararFormularioFuncionario() {
+            const select = document.getElementById('funcUnidade');
+            const anterior = select.value;
+            if (select.options.length <= 1) {
+                APP_CONFIG.UNIDADES.forEach(function(unidade) {
+                    const option = document.createElement('option');
+                    option.value = unidade;
+                    option.textContent = unidade;
+                    select.appendChild(option);
+                });
+            }
+            if (anterior && APP_CONFIG.UNIDADES.includes(anterior)) select.value = anterior;
+            atualizarCamposMedico();
+        }
+
+        function atualizarCamposMedico() {
+            const medico = document.getElementById('funcCargo').value === 'Médico';
+            document.getElementById('grupoFuncConsultorio').hidden = !medico;
+            carregarConsultoriosFuncionario();
+        }
+
+        async function carregarConsultoriosFuncionario() {
+            const medico = document.getElementById('funcCargo').value === 'Médico';
+            const unidade = document.getElementById('funcUnidade').value;
+            const select = document.getElementById('funcConsultorio');
+            const ajuda = document.getElementById('funcConsultorioAjuda');
+            const token = ++carregamentoFuncConsultorio;
+            if (!medico) {
+                select.innerHTML = '<option value="">Não se aplica</option>';
+                select.disabled = true;
+                return;
+            }
+            if (!unidade) {
+                select.innerHTML = '<option value="">Selecione a unidade primeiro</option>';
+                select.disabled = true;
+                ajuda.textContent = 'Escolha a unidade para ver as salas disponíveis.';
+                return;
+            }
+
+            const anterior = select.value;
+            select.innerHTML = '<option value="">Carregando consultórios...</option>';
+            select.disabled = true;
+            ajuda.textContent = 'Buscando o mapa de ' + unidade + '...';
+            try {
+                const mapa = await MapaHospitalStore.carregarPublicado(unidade);
+                if (token !== carregamentoFuncConsultorio) return;
+                const salas = MedicoConsultorios.listar(mapa);
+                select.innerHTML = '';
+                const opcaoInicial = document.createElement('option');
+                opcaoInicial.value = '';
+                opcaoInicial.textContent = salas.length ? 'Definir consultório depois' : 'Nenhuma sala mapeada — definir depois';
+                select.appendChild(opcaoInicial);
+                salas.forEach(function(sala) {
+                    const option = document.createElement('option');
+                    const local = [sala.bloco, sala.andar].filter(Boolean).join(' • ');
+                    option.value = sala.numero;
+                    option.textContent = sala.nome + (local ? ' — ' + local : '');
+                    select.appendChild(option);
+                });
+                if (anterior && salas.some(function(sala) { return sala.numero === anterior; })) {
+                    select.value = anterior;
+                }
+                select.disabled = !salas.length;
+                ajuda.textContent = salas.length
+                    ? 'O vínculo será usado no painel do médico e nas chamadas do telão.'
+                    : 'Cadastre as salas em Mapa e rotas. Você pode salvar o médico e definir o vínculo depois.';
+                if (salas.length && mapa.configurado !== true) {
+                    ajuda.textContent += ' As salas exibidas ainda são do modelo demonstrativo.';
+                }
+            } catch (erro) {
+                if (token !== carregamentoFuncConsultorio) return;
+                select.innerHTML = '<option value="">Definir consultório depois</option>';
+                select.disabled = true;
+                ajuda.textContent = 'Não foi possível carregar as salas: ' + erro.message;
+            }
+        }
         
         // Mostrar página
         function mostrarPagina(pagina) {
@@ -528,6 +628,7 @@
             if (pagina === 'usuarios') carregarTabelaUsuarios();
             if (pagina === 'pacientes') carregarTabelaPacientes();
             if (pagina === 'dashboard') atualizarDashboard();
+            if (pagina === 'funcionarios') prepararFormularioFuncionario();
         }
         
         // Atualizar dashboard com dados reais
@@ -637,44 +738,80 @@
             e.target.value = v;
         });
         
+        document.getElementById('funcCargo')?.addEventListener('change', function() {
+            document.getElementById('funcConsultorio').value = '';
+            atualizarCamposMedico();
+        });
+        document.getElementById('funcUnidade')?.addEventListener('change', function() {
+            document.getElementById('funcConsultorio').value = '';
+            carregarConsultoriosFuncionario();
+        });
+
         // CADASTRAR FUNCIONÁRIO (salva no banco compartilhado)
-        document.getElementById('formFuncionario')?.addEventListener('submit', function(e) {
+        document.getElementById('formFuncionario')?.addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const nome = document.getElementById('funcNome').value;
-            const cpf = document.getElementById('funcCpf').value;
-            const email = document.getElementById('funcEmail').value;
-            const cargo = document.getElementById('funcCargo').value;
-            const senha = document.getElementById('funcSenha').value;
-            const registro = document.getElementById('funcRegistro').value;
-            const especialidade = document.getElementById('funcEspecialidade').value;
-            const ativo = document.getElementById('funcStatus').value === 'true';
+            const botao = this.querySelector('button[type="submit"]');
+            botao.disabled = true;
+            try {
+                const nome = document.getElementById('funcNome').value.trim();
+                const cpf = document.getElementById('funcCpf').value;
+                const email = document.getElementById('funcEmail').value.trim();
+                const cargo = document.getElementById('funcCargo').value;
+                const senha = document.getElementById('funcSenha').value;
+                const registro = document.getElementById('funcRegistro').value.trim();
+                const especialidade = document.getElementById('funcEspecialidade').value;
+                const unidade = document.getElementById('funcUnidade').value;
+                const consultorio = document.getElementById('funcConsultorio').value;
+                const ativo = document.getElementById('funcStatus').value === 'true';
             
-            if (!nome || !cpf || !cargo) {
-                mostrarToast('Preencha os campos obrigatórios!', 'error');
-                return;
+                if (!nome || !cpf || !cargo) {
+                    mostrarToast('Preencha os campos obrigatórios!', 'error');
+                    return;
+                }
+            
+                const tipoMap = {
+                    'Médico': 'medico', 'Enfermeiro': 'enfermeiro',
+                    'Recepcionista': 'recepcionista', 'Administrador': 'admin'
+                };
+            
+                const usuario = DB.cadastrarUsuario({
+                    nome, cpf, email, senha,
+                    tipo: tipoMap[cargo] || 'recepcionista',
+                    cargo: cargo,
+                    crm: cargo === 'Médico' ? registro : null,
+                    coren: cargo === 'Enfermeiro' ? registro : null,
+                    especialidade: especialidade,
+                    registroProfissional: registro,
+                    ativo: ativo
+                });
+            
+                if (cargo === 'Médico' && consultorio) {
+                    try {
+                        await EquipeConsultorioStore.salvarVinculo(unidade, usuario, consultorio);
+                    } catch (erroVinculo) {
+                        mostrarToast('Médico cadastrado, mas o consultório não foi salvo: ' + erroVinculo.message, 'error');
+                        carregarTabelaUsuarios();
+                        carregarTabelaUsuariosRecentes();
+                        return;
+                    }
+                }
+
+                const semConsultorio = cargo === 'Médico' && !consultorio;
+                const mensagem = semConsultorio
+                    ? 'Médico cadastrado sem consultório. Defina a sala em Mapa e rotas.'
+                    : cargo === 'Médico'
+                        ? '✅ Médico cadastrado com consultório vinculado!'
+                        : '✅ Funcionário cadastrado! Já pode fazer login.';
+                mostrarToast(mensagem, semConsultorio ? 'info' : 'success');
+                this.reset();
+                prepararFormularioFuncionario();
+                mostrarPagina('usuarios');
+            } catch (erro) {
+                mostrarToast('Não foi possível concluir o cadastro: ' + erro.message, 'error');
+            } finally {
+                botao.disabled = false;
             }
-            
-            // Mapear cargo para tipo
-            const tipoMap = {
-                'Médico': 'medico', 'Enfermeiro': 'enfermeiro',
-                'Recepcionista': 'recepcionista', 'Administrador': 'admin'
-            };
-            
-            DB.cadastrarUsuario({
-                nome, cpf, email, senha,
-                tipo: tipoMap[cargo] || 'recepcionista',
-                cargo: cargo,
-                crm: cargo === 'Médico' ? registro : null,
-                coren: cargo === 'Enfermeiro' ? registro : null,
-                especialidade: especialidade,
-                registroProfissional: registro,
-                ativo: ativo
-            });
-            
-            mostrarToast('✅ Funcionário cadastrado! Já pode fazer login.', 'success');
-            this.reset();
-            mostrarPagina('usuarios');
         });
 
         DB.on('persistencia_falhou', evento => {
