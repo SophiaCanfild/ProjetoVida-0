@@ -105,10 +105,13 @@ Telão → lê somente a versão publicada
 
 ## Armazenamento
 
-Nenhuma tabela nova é necessária. A publicação usa a tabela `configuracoes` já existente no Supabase:
+A publicação e os vínculos usam a tabela `configuracoes`. O instalador `supabase/schema.sql` já a cria. Em um banco existente que ainda não a possui, rode `supabase/migrations/20261025_equipe_consultorios.sql`; a migração é aditiva e pode ser repetida.
 
-- chave: `mapa_hospital_<unidade-em-slug>`;
-- valor: pacote JSON com versão, unidade, data e mapa;
+O SQL legado com `usuarios.id_usuario BIGINT`, `pacientes.id_paciente`, `medicos`, `triagens` e `fila_atendimento` não é o schema completo do aplicativo e não contém `configuracoes`. Ele precisa do instalador completo (com backup), que preserva as tabelas antigas como `*_legado`; a migração pequena não faz essa conversão. O trecho de SQL recebido também estava incompleto/fora de ordem e não deve ser executado sem corrigir sua sintaxe.
+
+- chave do mapa: `mapa_hospital_<unidade-em-slug>`;
+- chave da equipe: `equipe_consultorios_<unidade-em-slug>`;
+- valor: pacote JSON com versão, unidade, data e mapa, ou vínculos por CPF;
 - conflito/atualização: coluna `chave`.
 
 Arquivos envolvidos:

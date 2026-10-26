@@ -1134,6 +1134,9 @@ WITH esperado (tabela, coluna) AS (
         ('notificacoes', 'titulo'), ('notificacoes', 'texto'), ('notificacoes', 'link'),
         ('notificacoes', 'lida'), ('notificacoes', 'criado_em'),
 
+        ('configuracoes', 'id'), ('configuracoes', 'chave'), ('configuracoes', 'valor'),
+        ('configuracoes', 'descricao'), ('configuracoes', 'atualizado_em'),
+
         ('receitas', 'id'), ('receitas', 'consulta_id'), ('receitas', 'paciente_id'),
         ('receitas', 'cpf'), ('receitas', 'numero'), ('receitas', 'tipo'), ('receitas', 'vias'),
         ('receitas', 'itens'), ('receitas', 'orientacoes'), ('receitas', 'validade_dias'),

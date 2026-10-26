@@ -118,6 +118,9 @@ cd vida-mais
    - **Já tinha o banco instalado antes da receita médica / exames?** Rode também
      `supabase/migrations/20261025_receitas_exames.sql` (cria `receitas` e `exames_solicitados`).
      Detalhes em [RECEITA-E-EXAMES.md](RECEITA-E-EXAMES.md).
+   - **O banco já existe, mas não tem `configuracoes`?** Rode também
+     `supabase/migrations/20261025_equipe_consultorios.sql` para mapas publicados e vínculos de consultório.
+     A migração é aditiva; ela não converte o modelo antigo de IDs `BIGINT`.
 3. Vá em **Settings > API** → copie a **URL** e a **anon key**
 4. Edite `shared/js/config.js` **e a cópia `paciente-app/js/config.js`** (o app do paciente usa a
    cópia para poder funcionar offline — os dois arquivos precisam ter as mesmas credenciais):
