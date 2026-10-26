@@ -239,15 +239,6 @@ body::after {
 .tv-audio-btn:not(:disabled):active { transform: translateY(1px); }
 .tv-audio-btn:focus-visible { outline: 3px solid rgba(2, 132, 199, 0.3); outline-offset: 2px; }
 .tv-audio-btn:disabled { opacity: 0.42; cursor: not-allowed; }
-.tv-audio-btn.tv-audio-teste {
-  border-color: var(--azul);
-  background: var(--azul);
-  color: #fff;
-}
-.tv-audio-btn.tv-audio-teste:not(:disabled):hover {
-  border-color: #0369A1;
-  background: #0369A1;
-}
 .tv-audio[data-estado="muted"] #btn-silenciar-voz {
   border-color: #FCD34D;
   background: #FFFBEB;
@@ -266,7 +257,7 @@ body::after {
   border: 1px solid rgba(220, 238, 249, 0.9);
   border-radius: var(--raio);
   box-shadow: var(--sombra);
-  padding: clamp(14px, 2.2vh, 26px) clamp(20px, 3vw, 48px);
+  padding: clamp(10px, 1.5vh, 20px) clamp(20px, 3vw, 48px);
   min-height: 0;
   position: relative;
   overflow: hidden;
@@ -294,7 +285,7 @@ body::after {
   border: 1px solid #BAE6FD;
   padding: 9px 22px 9px 16px;
   border-radius: 40px;
-  margin-bottom: clamp(6px, 1.4vh, 14px);
+  margin-bottom: clamp(4px, 1vh, 10px);
 }
 .tv-destaque .rotulo-chamada .ponto {
   width: 9px; height: 9px; border-radius: 50%;
@@ -330,7 +321,7 @@ body::after {
 }
 
 .tv-destaque .senha-chamada {
-  font-size: clamp(3.4rem, min(9vw, 16vh), 8rem);
+  font-size: clamp(3.2rem, min(8.6vw, 13.5vh), 7.4rem);
   font-weight: 800; letter-spacing: 0.02em;
   line-height: 0.95;
   margin: 0 0 clamp(4px, 1vh, 10px);
@@ -358,8 +349,10 @@ body::after {
 }
 .tv-destaque .pista-chamada {
   display: inline-flex; align-items: center; gap: 9px;
-  margin-top: clamp(10px, 1.8vh, 18px);
-  padding: 7px 16px;
+  margin-top: clamp(6px, 1.1vh, 12px);
+  padding: 6px 14px;
+  max-width: 100%;
+  flex-shrink: 0;
   border-radius: 30px;
   background: #F1F9FF;
   border: 1px solid var(--borda);
@@ -424,7 +417,9 @@ body::after {
   grid-template-columns: 1.1fr 1.4fr;
   gap: 18px;
   min-height: 0;
-  max-height: 42vh;
+  /* 38vh (era 42vh): o card da chamada precisa de altura para caber
+     a pílula "por favor, dirija-se..." sem vazar pela borda */
+  max-height: 38vh;
 }
 .tv-painel {
   background: rgba(255, 255, 255, 0.92);
@@ -983,6 +978,15 @@ body::after {
 }
         
 /* Telas baixas (ex.: 1366x768): compacta a chamada sem perder legibilidade */
+@media (min-width: 901px) and (max-height: 900px) {
+  /* Telas de altura média: a senha e a pílula encolhem juntas para o
+     conteúdo caber dentro do card, sem sair pela borda de baixo. */
+  .tv-destaque .senha-chamada { font-size: clamp(3rem, min(8vw, 12vh), 6.4rem); }
+  .tv-destaque .nome-chamada { font-size: clamp(1.05rem, 1.7vw, 1.5rem); }
+  .tv-destaque .pista-chamada { margin-top: 6px; padding: 5px 13px; }
+  .tv-paineis { max-height: 36vh; }
+}
+
 @media (min-width: 901px) and (max-height: 780px) {
   .tv-destaque .chamada-grade { gap: 32px; }
   .tv-destaque .destino-box { padding: 14px 22px; }
@@ -993,6 +997,8 @@ body::after {
   .mapa-hospital svg, .rota-passos { max-height: 138px; }
   .orientacao-rota { gap: 5px; }
   .rota-passos li { margin-bottom: 5px; }
+  .tv-paineis { max-height: 33vh; }
+  .tv-destaque .senha-chamada { font-size: clamp(2.8rem, min(7.4vw, 11vh), 5.8rem); }
 }
 
 /* ============================================================
@@ -1009,7 +1015,6 @@ body::after {
   .tv-audio { width: 100%; max-width: 440px; }
   .tv-audio-acoes { width: 100%; }
   .tv-audio-btn { flex: 1; }
-  .tv-audio-btn.tv-audio-teste { flex: 1.35; }
   .tv-paineis { grid-template-columns: 1fr; max-height: none; }
   .tv-destaque { padding: 20px 16px; }
   .tv-destaque .chamada, .tv-destaque .chamada-grade { min-height: 0; }
@@ -1023,6 +1028,3 @@ body::after {
   .rota-topo { align-items: center; }
 }
 
-@media (max-width: 480px) {
-  .tv-audio-btn.tv-audio-teste { flex-basis: 100%; }
-}

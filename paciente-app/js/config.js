@@ -49,7 +49,12 @@ const TV_CONFIG = {
   VOZ_INTERVALO_MS: 1500,     /* pausa entre as repetições */
   VOZ_APOS_SOM_MS: 1000,      /* espera o bip terminar antes de falar */
   VOZ_VOLUME: 1,              /* 0 a 1 */
-  VOZ_VELOCIDADE: 0.95,       /* 1 = normal; <1 fala mais devagar */
+  VOZ_VELOCIDADE: 0.88,       /* 1 = normal; 0.88 = ritmo de anúncio */
+  VOZ_TONO: 0.9,              /* 1 = padrão; 0.9 = um pouco mais grave */
+  VOZ_PREAMBULO: 'Atenção',   /* fala antes da chamada; '' desliga */
+  VOZ_PAUSA_FRASES_MS: 320,   /* respiro entre as partes da frase */
+  VOZ_NOME: '',               /* força uma voz pelo nome (ex.: 'Luciana');
+                                 '' = escolhe a melhor pt-BR disponível */
   VOZ_DIGITO_A_DIGITO: false  /* false: "A cento e vinte e três"
                                  true : "A um dois três" */
 };

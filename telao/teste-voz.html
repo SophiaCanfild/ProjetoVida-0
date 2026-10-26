@@ -63,17 +63,29 @@
   </div>
 
   <div class="card">
-    <h2>3. Vozes instaladas neste sistema</h2>
+    <h2>3. Voz da chamada (jeito de hospital)</h2>
+    <p style="margin:0 0 12px;font-size:.92rem;color:#475569">
+      A chamada fala <strong>"Atenção."</strong> e depois as partes da frase,
+      uma de cada vez, com pausa entre elas — ritmo mais lento e tom um pouco
+      mais grave que o padrão do navegador.
+    </p>
+    <button id="btn-triagem">Ouvir chamada de triagem</button>
+    <button id="btn-consulta">Ouvir chamada de consulta</button>
+    <div style="margin-top:12px" class="dica" id="roteiro"></div>
+  </div>
+
+  <div class="card">
+    <h2>4. Vozes instaladas neste sistema</h2>
     <div id="vozes"><div class="linha">carregando…</div></div>
   </div>
 
   <div class="card">
-    <h2>Registro</h2>
+    <h2>5. Registro</h2>
     <div id="log"></div>
   </div>
 
   <div class="card">
-    <h2>Se nada tocar</h2>
+    <h2>6. Se nada tocar</h2>
     <p class="dica" style="margin:0">
       1. Clique em qualquer botão desta página antes de tudo — o navegador só libera áudio após uma interação.<br>
       2. No Chrome/Edge, abra o telão com <code>--autoplay-policy=no-user-gesture-required</code>.<br>
@@ -187,6 +199,32 @@
       if (ok) {
         log('Frase: ' + VozChamada.textoDaChamada(exemplo));
       }
+    });
+
+    var exemploTriagem = { senha: 'A123', tipo_chamada: 'triagem', guiche: '2' };
+
+    function mostrarRoteiro(exemplo) {
+      var partes = VozChamada.roteiroDaChamada(exemplo);
+      document.getElementById('roteiro').innerHTML =
+        '<strong>Como vai falar:</strong><br>' +
+        partes.map(function (p, i) {
+          return (i + 1) + '. ' + p.replace(/</g, '&lt;');
+        }).join('<br>');
+      log('Roteiro: ' + partes.join(' | '));
+    }
+
+    document.getElementById('btn-triagem').addEventListener('click', function () {
+      VozChamada.parar();
+      var ok = VozChamada.falarChamada(exemploTriagem);
+      log('Chamada de triagem: ' + (ok ? 'acionada' : 'NÃO executada'), ok ? 'ok' : 'erro');
+      mostrarRoteiro(exemploTriagem);
+    });
+
+    document.getElementById('btn-consulta').addEventListener('click', function () {
+      VozChamada.parar();
+      var ok = VozChamada.falarChamada(exemplo);
+      log('Chamada de consulta: ' + (ok ? 'acionada' : 'NÃO executada'), ok ? 'ok' : 'erro');
+      mostrarRoteiro(exemplo);
     });
 
     document.getElementById('btn-chamada').addEventListener('click', function () {
