@@ -450,7 +450,7 @@
     if (existente) {
       Object.assign(existente, dados, { cpf: cpfLimpo });
       gravar('usuarios', lista);
-      sbUpdate('usuarios', dados, { cpf: cpfLimpo });
+      sbUpdate('usuarios', Object.assign({}, dados, { cpf: cpfLimpo }), { cpf: cpfLimpo });
       DB.emit('usuario_atualizado', existente);
       return existente;
     }
@@ -485,7 +485,7 @@
     if (idx === -1) return null;
     Object.assign(lista[idx], dados, { cpf: cpfLimpo });
     gravar('usuarios', lista);
-    sbUpdate('usuarios', dados, { cpf: cpfLimpo });
+    sbUpdate('usuarios', Object.assign({}, dados, { cpf: cpfLimpo }), { cpf: cpfLimpo });
     DB.emit('usuario_atualizado', lista[idx]);
     return lista[idx];
   };

@@ -17,7 +17,7 @@
   .card h2 { font-size: .95rem; margin: 0 0 10px; color: #0369a1; }
   .linha { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px dashed #e2e8f0; font-size: .88rem; }
   .linha:last-child { border: 0; }
-  .pill { font-size: .7rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; text-transform: uppercase; margin-left: auto; white-space: nowrap; }
+  .pill { font-size: .7rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; text-transform: uppercase; margin-left: auto; white-space: normal; overflow-wrap: anywhere; min-width: 0; }
   .ok { background: #dcfce7; color: #15803d; }
   .erro { background: #fee2e2; color: #b91c1c; }
   .alerta { background: #fef3c7; color: #b45309; }
@@ -95,7 +95,7 @@
              '<span class="pill ' + estado + '">' + valor + '</span></div>';
     }
 
-    var VERSAO = 'vidaplus-paciente-v4';
+    var VERSAO = 'vidaplus-paciente-v13';
     var PRECACHE = [
       './', './index.html', './login.html', './fila.html', './consulta.html',
       './historico.html', './exames.html', './agendamentos.html',

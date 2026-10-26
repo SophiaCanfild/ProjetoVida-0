@@ -245,7 +245,7 @@ var OrientacaoHospitalTV = (function () {
         (ligacao.acessivel === false ? ' com-obstaculo' : '');
       return '<line class="' + classes + '" data-de="' + escapar(ligacao.de) +
         '" data-para="' + escapar(ligacao.para) + '" x1="' + numero(de.x) +
-        '" y1="' + numero(de.y) + '" x2="' + numero(para.x) + '" y2="' + numero(para.y) +
+        '" y1="' + numero(de.y) + '" x2="' + numero(para.x) + '" y2="' + numero(para.y) + '"' +
         (ativa ? ' marker-end="url(#seta-rota)"' : '') + '></line>';
     }
 

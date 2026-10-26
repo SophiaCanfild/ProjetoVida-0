@@ -154,7 +154,7 @@
         medicamentos_uso: document.getElementById('ed-meds').value.trim()
       };
       try {
-        await DB.atualizarPaciente({ ...paciente, ...novos });
+        await DB.atualizarPaciente(paciente.cpf, novos);
         UI.toast('Dados atualizados ✓', 'sucesso');
         document.getElementById('modo-edicao').classList.add('escondido');
         carregar();

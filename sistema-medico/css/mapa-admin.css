@@ -254,8 +254,8 @@
   .mapa-topbar, .mapa-admin-container { padding-left: 15px; padding-right: 15px; }
   .mapa-topbar-status, .mapa-acoes-topo { width: 100%; }
   .mapa-topbar-status { flex-wrap: wrap; }
-  .mapa-abas { width: 100%; overflow-x: auto; }
-  .mapa-aba { flex: 1 0 auto; padding: 9px 12px; }
+  .mapa-abas { width: 100%; flex-wrap: wrap; overflow-x: visible; }
+  .mapa-aba { flex: 1 1 auto; padding: 9px 10px; }
   .mapa-grade-destinos, .mapa-teste-grade, .mapa-publicacao-grade { grid-template-columns: 1fr; }
   .mapa-resumo-equipe { grid-template-columns: 1fr; }
   .mapa-resumo-item { padding: 12px 15px; }
