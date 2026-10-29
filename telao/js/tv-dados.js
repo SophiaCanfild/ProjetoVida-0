@@ -124,32 +124,9 @@ var TV = (function () {
     return getChamadasRemotas();
   }
 
-  function iniciarRealtime() {
-    if (typeof supabaseClient === 'undefined' || !supabaseClient || typeof supabaseClient.channel !== 'function') {
-      return;
-    }
-
-    try {
-      var channel = supabaseClient.channel('tv-chamadas-live');
-      channel.on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'consultas'
-      }, function () {
-        getChamadasRecentes().catch(function () {});
-      });
-
-      channel.subscribe(function (status) {
-        if (status === 'SUBSCRIBED') {
-          console.log('[Telão] Realtime das chamadas ativo');
-        }
-      });
-    } catch (e) {
-      console.warn('[Telão] Realtime do telão indisponível:', e.message);
-    }
-  }
-
-  iniciarRealtime();
+  // Não assinar postgres_changes em consultas: o payload do Realtime pode
+  // conter a linha clínica inteira, mesmo quando o callback não usa os dados.
+  // A página atualiza pela consulta de campos mínimos a cada três segundos.
 
   return {
     getChamadasRecentes: getChamadasRecentes,
