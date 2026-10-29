@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="../css/global.css" rel="stylesheet">
+    <link href="../css/global.css?v=rotas-20261028" rel="stylesheet">
     <style>
         .content-area {
             display: none;
@@ -169,11 +169,11 @@
                                     <i class="fas fa-route"></i>
                                 </div>
                                 <div>
-                                    <h3 style="margin-bottom: 4px;">Mapa e rotas do telão</h3>
-                                    <div class="text-muted">Configure pontos, caminhos, destinos e acessibilidade de cada unidade.</div>
+                                    <h3 style="margin-bottom: 4px;">Locais e orientações do telão</h3>
+                                    <div class="text-muted">Cadastre locais e consultórios, defina orientações e revise antes de publicar.</div>
                                 </div>
                             </div>
-                            <a href="mapa.html" class="btn btn-primary">Abrir editor visual <i class="fas fa-arrow-right"></i></a>
+                            <a href="mapa.html" class="btn btn-primary">Configurar locais e rotas <i class="fas fa-arrow-right"></i></a>
                         </div>
                     </div>
                     
@@ -448,7 +448,7 @@
                         <div class="card-body">
                             <div class="alert alert-info">
                                 <i class="fas fa-info-circle"></i>
-                                <span>Selecione a unidade dentro do editor para configurar pontos, caminhos, destinos e acessibilidade. O telão utiliza somente a versão publicada.</span>
+                                <span>Selecione a unidade e cadastre locais, orientações e acessibilidade. O mapeamento gráfico é opcional; o telão utiliza somente a versão publicada.</span>
                             </div>
                             <p style="margin: 16px 0; color: var(--cinza-600);">O rascunho pode ser editado e testado sem alterar as orientações que já estão no ar.</p>
                             <a href="mapa.html" class="btn btn-primary"><i class="fas fa-route"></i> Abrir Mapa e rotas</a>
@@ -500,11 +500,11 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../../shared/js/config.js"></script>
     <script src="../../telao/config/mapa-hospital.js"></script>
-    <script src="../../shared/js/mapa-store.js"></script>
-    <script src="../../shared/js/equipe-consultorios.js"></script>
-    <script src="../../shared/js/db.js"></script>
+    <script src="../../shared/js/mapa-store.js?v=rotas-20261028"></script>
+    <script src="../../shared/js/equipe-consultorios.js?v=rotas-20261028"></script>
+    <script src="../../shared/js/db.js?v=rotas-20261028"></script>
     <script src="../js/config.js"></script>
-    <script src="../js/medico-consultorios.js"></script>
+    <script src="../js/medico-consultorios.js?v=rotas-20261028"></script>
     <script>
         // Verificar acesso
         verificarAcesso('admin');
@@ -534,18 +534,22 @@
 
         let carregamentoFuncConsultorio = 0;
 
-        function prepararFormularioFuncionario() {
+        let listaUnidadesFuncionario = null;
+        async function prepararFormularioFuncionario() {
             const select = document.getElementById('funcUnidade');
             const anterior = select.value;
-            if (select.options.length <= 1) {
-                APP_CONFIG.UNIDADES.forEach(function(unidade) {
-                    const option = document.createElement('option');
-                    option.value = unidade;
-                    option.textContent = unidade;
-                    select.appendChild(option);
-                });
+            if (!listaUnidadesFuncionario) {
+                try { listaUnidadesFuncionario = await MapaHospitalStore.listarUnidades(); }
+                catch (e) { listaUnidadesFuncionario = APP_CONFIG.UNIDADES.filter(u => MapaHospitalStore.podeGerenciarUnidade(u)); }
             }
-            if (anterior && APP_CONFIG.UNIDADES.includes(anterior)) select.value = anterior;
+            select.innerHTML = '<option value="">Selecione...</option>';
+            listaUnidadesFuncionario.forEach(function(unidade) {
+                const option = document.createElement('option');
+                option.value = unidade;
+                option.textContent = unidade;
+                select.appendChild(option);
+            });
+            if (anterior && listaUnidadesFuncionario.includes(anterior)) select.value = anterior;
             atualizarCamposMedico();
         }
 
@@ -578,7 +582,9 @@
             select.disabled = true;
             ajuda.textContent = 'Buscando o mapa de ' + unidade + '...';
             try {
-                const mapa = await MapaHospitalStore.carregarPublicado(unidade);
+                const mapa = typeof MapaHospitalStore.carregarRascunho === 'function'
+                    ? await MapaHospitalStore.carregarRascunho(unidade)
+                    : await MapaHospitalStore.carregarPublicado(unidade);
                 if (token !== carregamentoFuncConsultorio) return;
                 const salas = MedicoConsultorios.listar(mapa);
                 select.innerHTML = '';
@@ -598,10 +604,10 @@
                 }
                 select.disabled = !salas.length;
                 ajuda.textContent = salas.length
-                    ? 'O vínculo será usado no painel do médico e nas chamadas do telão.'
+                    ? 'O vínculo será usado no painel do médico; a sala precisa estar publicada para ser usada nas chamadas.'
                     : 'Cadastre as salas em Mapa e rotas. Você pode salvar o médico e definir o vínculo depois.';
                 if (salas.length && mapa.configurado !== true) {
-                    ajuda.textContent += ' As salas exibidas ainda são do modelo demonstrativo.';
+                    ajuda.textContent += ' Há alterações ainda não publicadas: revise e publique em Mapa e rotas.';
                 }
             } catch (erro) {
                 if (token !== carregamentoFuncConsultorio) return;

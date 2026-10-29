@@ -119,31 +119,32 @@ var MedicoConsultorios = (function () {
     return encontrado ? texto(encontrado.consultorio) : '';
   }
 
-  function listar(mapa) {
-    if (!mapa || !mapa.destinos || !mapa.destinos.consultorios ||
-        !Array.isArray(mapa.nos)) return [];
-
-    return Object.keys(mapa.destinos.consultorios).map(function (numero) {
+  function listar(mapa, equipe) {
+    if (!mapa || !mapa.destinos || !mapa.destinos.consultorios || !Array.isArray(mapa.nos)) return [];
+    var salas = Object.keys(mapa.destinos.consultorios).map(function (numero) {
       var destinoId = mapa.destinos.consultorios[numero];
       var no = mapa.nos.find(function (item) { return item && item.id === destinoId; });
       if (!no) return null;
-      return {
-        numero: texto(numero),
-        destinoId: destinoId,
-        nome: texto(no.nome) || 'Consultório ' + numero,
-        bloco: texto(no.bloco),
-        andar: texto(no.andar),
-        no: no
-      };
-    }).filter(function (item) {
-      return item && item.numero;
-    }).sort(function (a, b) {
-      return a.numero.localeCompare(b.numero, 'pt-BR', { numeric: true });
-    });
+      return { numero: texto(numero), numero_sala: texto(no.numero_sala), destinoId: destinoId,
+        nome: texto(no.nome) || 'Consultório ' + numero, bloco: texto(no.bloco), andar: texto(no.andar), no: no };
+    }).filter(function (item) { return item && item.numero; });
+
+    /* Compatibilidade com unidades que já têm vínculos médicos no banco mas
+       ainda não publicaram um mapa: permite a chamada sem criar um local ou
+       trajeto fictício. O telão exibirá a mensagem neutra até a publicação. */
+    if (mapa._origem === 'nao_publicado' && equipe && equipe._origem === 'supabase') {
+      Object.keys(equipe.vinculos || {}).forEach(function (doc) {
+        var numero = texto(equipe.vinculos[doc] && equipe.vinculos[doc].consultorio);
+        if (!numero || numero.length > 10 || /^(?:local_|loc_)/.test(numero) || salas.some(function (s) { return s.numero === numero; })) return;
+        salas.push({ numero: numero, destinoId: null, nome: 'Consultório ' + numero,
+          bloco: '', andar: '', no: null, vinculo_sem_publicacao: true });
+      });
+    }
+    return salas.sort(function (a, b) { return a.numero.localeCompare(b.numero, 'pt-BR', { numeric: true }); });
   }
 
-  function escolhaInicial(mapa, usuario, unidade, vinculoCentral) {
-    var disponiveis = listar(mapa);
+  function escolhaInicial(mapa, usuario, unidade, vinculoCentral, equipe) {
+    var disponiveis = listar(mapa, equipe);
     function existe(numero) {
       return disponiveis.some(function (item) { return item.numero === texto(numero); });
     }
@@ -171,7 +172,7 @@ var MedicoConsultorios = (function () {
     return disponiveis.length === 1 ? disponiveis[0].numero : '';
   }
 
-  function validar(mapa, consultorio, unidade) {
+  function validar(mapa, consultorio, unidade, equipe) {
     var numero = texto(consultorio);
     if (!numero) {
       throw new Error('Selecione o consultório em que você atenderá o paciente.');
@@ -180,9 +181,9 @@ var MedicoConsultorios = (function () {
       throw new Error('Os consultórios desta unidade ainda não foram carregados. Tente novamente.');
     }
 
-    var destino = listar(mapa).find(function (item) { return item.numero === numero; });
+    var destino = listar(mapa, equipe).find(function (item) { return item.numero === numero; });
     if (!destino) {
-      throw new Error('O Consultório ' + numero + ' não está ligado a um ponto válido no mapa de ' +
+      throw new Error('O consultório selecionado não está disponível na versão publicada de ' +
         (unidade || unidadePadrao()) + '. Selecione outra sala ou solicite a configuração ao administrador.');
     }
     return destino;

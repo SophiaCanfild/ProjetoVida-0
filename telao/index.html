@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/tv.css?v=20261025">
+  <link rel="stylesheet" href="css/tv.css?v=rotas-20261028">
 </head>
 <body>
 
@@ -115,9 +115,10 @@
           <div class="orientacao-rota" id="orientacao-rota" hidden>
             <div class="rota-topo">
               <div class="rota-destino-wrap">
-                <span class="rota-rotulo">Seu destino</span>
+                <span class="rota-rotulo">Orientação de atendimento</span>
                 <strong id="rota-destino">—</strong>
                 <span id="rota-local">—</span>
+                <span id="rota-medico" class="rota-medico" hidden></span>
               </div>
               <div class="rota-badges">
                 <span class="rota-badge" id="rota-tempo" hidden></span>
@@ -125,9 +126,13 @@
               </div>
             </div>
 
-            <div class="mapa-e-passos">
-              <div class="mapa-hospital" id="mapa-hospital"></div>
-              <ol class="rota-passos" id="rota-passos"></ol>
+            <div class="mapa-e-passos sem-mapa-grafico" id="mapa-e-passos">
+              <div class="mapa-hospital" id="mapa-hospital" hidden></div>
+              <div class="rota-como-chegar-wrap" id="rota-como-chegar-wrap">
+                <div class="rota-como-chegar-titulo">Como chegar:</div>
+                <ol class="rota-passos" id="rota-passos"></ol>
+                <div class="rota-acessibilidade-obs" id="rota-acessibilidade-obs" hidden></div>
+              </div>
             </div>
 
             <div class="mapa-aviso-config" id="mapa-aviso-config" hidden>
@@ -148,14 +153,14 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../shared/js/config.js"></script>
-  <script src="../shared/js/db.js"></script>
   <script src="js/relogio.js"></script>
-  <script src="js/tv-dados.js"></script>
-  <script src="config/mapa-hospital.js?v=20261025"></script>
-  <script src="../shared/js/mapa-store.js?v=20261025"></script>
-  <script src="js/tv-mapa.js?v=20261025"></script>
+  <script src="js/tv-dados.js?v=rotas-20261028"></script>
+  <script src="config/mapa-hospital.js?v=20261029"></script>
+  <script src="../shared/js/mapa-store.js?v=rotas-20261028"></script>
+  <script src="../shared/js/rotas-unidade.js?v=rotas-20261028"></script>
+  <script src="js/tv-mapa.js?v=rotas-20261028"></script>
   <script src="js/som-chamada.js"></script>
-  <script src="js/voz-chamada.js"></script>
+  <script src="js/voz-chamada.js?v=rotas-20261028"></script>
   <script>
     /* O bip da chamada vive em js/som-chamada.js (NotificarTV),
        que reaproveita um único AudioContext. */
@@ -215,14 +220,15 @@
       chamadaEl.style.display = 'flex';
 
       const tipo = chamada.tipo_chamada || 'triagem';
-      const nome = chamada.nome_chamado || chamada.nome_paciente || 'Paciente';
+      // O telão usa somente a senha; não divulga nomes ou informações clínicas.
+      document.getElementById('chamada-nome').hidden = true;
 
       // Limpa classes de modo e aplica a do tipo
       destaque.classList.remove('modo-triagem', 'modo-consulta');
       destaque.classList.add(tipo === 'consulta' ? 'modo-consulta' : 'modo-triagem');
 
       document.getElementById('chamada-senha').textContent = chamada.senha;
-      document.getElementById('chamada-nome').textContent = nome;
+      document.getElementById('chamada-nome').textContent = '';
 
       const rotulo = document.getElementById('chamada-destino-rotulo');
       const valor = document.getElementById('chamada-destino-valor');
@@ -230,19 +236,19 @@
       const pista = document.getElementById('chamada-pista');
 
       if (tipo === 'consulta') {
-        // Triagem → médico: chamada PELO NOME + consultório + médico
-        rotulo.textContent = 'Consultório';
-        valor.textContent = chamada.consultorio || '—';
-        medicoEl.textContent = chamada.medico_nome || '';
-        pista.textContent = 'Por favor, dirija-se ao consultório indicado';
-        document.getElementById('chamada-nome').textContent = nome;
-        document.getElementById('chamada-senha').textContent = chamada.senha;
+        // Triagem → médico: senha, destino e profissional
+        rotulo.textContent = 'Destino';
+        valor.textContent = chamada.consultorio ? 'Consultório ' + chamada.consultorio : 'Consultório';
+        medicoEl.textContent = chamada.medico_nome ? 'Médico(a): ' + chamada.medico_nome : '';
+        pista.textContent = 'Dirija-se ao atendimento indicado';
+        document.getElementById('chamada-nome').textContent = '';
+        document.getElementById('chamada-senha').textContent = chamada.senha || '—';
       } else {
         // Recepção → triagem: chamada PELO CÓDIGO + "Triagem"
         rotulo.textContent = 'Destino';
         valor.textContent = 'Triagem';
         medicoEl.textContent = chamada.guiche ? 'Guichê ' + chamada.guiche : '';
-        pista.textContent = 'Por favor, dirija-se à triagem';
+        pista.textContent = 'Dirija-se ao atendimento';
       }
 
       if (typeof OrientacaoHospitalTV !== 'undefined') {
@@ -259,18 +265,23 @@
         el.innerHTML = '<div class="vazio-tv"><div class="icone">📢</div><h3>Nenhuma chamada ainda</h3></div>';
         return;
       }
-      el.innerHTML = recentes.map(c => {
-        const tipo = c.tipo_chamada || 'triagem';
-        const destino = tipo === 'consulta'
-          ? '<span class="guiche guiche-consulta">Consultório ' + (c.consultorio || '—') + '</span>'
-          : '<span class="guiche">Triagem</span>';
-        return `
-        <div class="item-recente">
-          <span class="senha">${c.senha}</span>
-          ${destino}
-          <span class="hora">${formatarHora(c.chamado_em)}</span>
-        </div>`;
-      }).join('');
+      el.innerHTML = '';
+      recentes.forEach(function(c) {
+        const item = document.createElement('div');
+        item.className = 'item-recente';
+        const senha = document.createElement('span');
+        senha.className = 'senha';
+        senha.textContent = c.senha || '—';
+        const destino = document.createElement('span');
+        destino.className = 'guiche' + (c.tipo_chamada === 'consulta' ? ' guiche-consulta' : '');
+        destino.textContent = typeof OrientacaoHospitalTV !== 'undefined'
+          ? OrientacaoHospitalTV.nomeDestino(c) : (c.tipo_chamada === 'consulta' ? 'Consultório' : 'Triagem');
+        const hora = document.createElement('span');
+        hora.className = 'hora';
+        hora.textContent = formatarHora(c.chamado_em);
+        item.append(senha, destino, hora);
+        el.appendChild(item);
+      });
     }
 
     /* ---------- Mapa publicado pelo Administrativo ----------
@@ -359,6 +370,14 @@
     carregarMapaPublicado().finally(atualizar);
     setInterval(atualizar, 3000);
     setInterval(carregarMapaPublicado, 60000);
+    // Quando uma orientação for maior que a área disponível, o telão percorre
+    // automaticamente o conteúdo completo, sem remover instruções.
+    setInterval(function() {
+      const caixa = document.getElementById('rota-como-chegar-wrap');
+      if (!caixa || caixa.hidden || caixa.scrollHeight <= caixa.clientHeight + 1) return;
+      const limite = caixa.scrollHeight - caixa.clientHeight;
+      caixa.scrollTop = caixa.scrollTop >= limite - 2 ? 0 : Math.min(limite, caixa.scrollTop + caixa.clientHeight * .7);
+    }, 8000);
 
     // Também escuta mudanças no localStorage (outras abas)
     window.addEventListener('storage', function(e) {

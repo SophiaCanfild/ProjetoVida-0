@@ -1,372 +1,246 @@
-/* ============================================================
-   VIDA+ TELÃO — Orientação hospitalar e cálculo de rotas
-   ------------------------------------------------------------
-   O mapa é um grafo configurável. A chamada informa apenas o
-   destino (triagem/consultório); este módulo encontra o caminho,
-   prioriza acessibilidade e desenha o esquema sem bibliotecas.
-   ============================================================ */
+/* VIDA+ — resolução de destino e orientação do telão.
+ * O modo textual não calcula trajetos. O grafo antigo é preservado somente
+ * quando sua versão foi publicada e há um caminho real com coordenadas.
+ */
 var OrientacaoHospitalTV = (function () {
   'use strict';
-
-  var ultimaChave = null;
   var mapaPublicado = null;
-
-  function unidadeAtual() {
-    if (typeof TV_CONFIG !== 'undefined' && TV_CONFIG.UNIDADE) {
-      return TV_CONFIG.UNIDADE;
-    }
-    if (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.UNIDADES) {
-      return APP_CONFIG.UNIDADES[0];
-    }
-    return '';
+  function texto(v) { return String(v == null ? '' : v).trim(); }
+  function escapar(v) {
+    return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
   }
-
-  function obterMapa(unidade) {
-    if (mapaPublicado) return mapaPublicado;
-    if (typeof MAPAS_HOSPITAL === 'undefined' || !MAPAS_HOSPITAL.unidades) {
-      return null;
-    }
-    return MAPAS_HOSPITAL.unidades[unidade || unidadeAtual()] || null;
-  }
-
-  // O telão injeta aqui a versão publicada pelo Administrativo.
-  // Passar null remove a injeção e restaura o mapa demonstrativo.
-  function definirMapa(mapa) {
-    if (mapa && !validarMapa(mapa)) {
-      mapaPublicado = null;
-      ultimaChave = null;
-      return false;
-    }
-    mapaPublicado = mapa || null;
-    ultimaChave = null;
-    return !!mapaPublicado;
-  }
-
+  function obterMapa() { return mapaPublicado; }
   function indiceDeNos(mapa) {
     var indice = Object.create(null);
-    (mapa && mapa.nos || []).forEach(function (no) {
-      if (no && no.id) indice[no.id] = no;
-    });
+    (mapa && mapa.nos || []).forEach(function (n) { if (n && n.id) indice[n.id] = n; });
     return indice;
   }
-
   function validarMapa(mapa) {
-    if (!mapa || !mapa.ponto_inicial || !Array.isArray(mapa.nos) ||
-        !Array.isArray(mapa.ligacoes) || !mapa.destinos) {
-      return false;
-    }
-
+    if (!mapa || !Array.isArray(mapa.nos) || !mapa.destinos || typeof mapa.destinos !== 'object') return false;
     var indice = indiceDeNos(mapa);
-    if (!indice[mapa.ponto_inicial]) return false;
-    if (Object.keys(indice).length !== mapa.nos.length) return false;
-
-    return mapa.ligacoes.every(function (ligacao) {
-      return ligacao && indice[ligacao.de] && indice[ligacao.para];
-    });
+    return Object.keys(indice).length === mapa.nos.length;
   }
-
+  function definirMapa(mapa) {
+    mapaPublicado = mapa && validarMapa(mapa) ? mapa : null;
+    return !!mapaPublicado;
+  }
   function resolverDestinoId(mapa, chamada) {
-    var indice = indiceDeNos(mapa);
-    if (chamada.destino_id && indice[chamada.destino_id]) {
-      return chamada.destino_id;
-    }
-
+    if (!mapa || !chamada) return null;
+    var indice = indiceDeNos(mapa), destinos = mapa.destinos || {};
+    if (chamada.destino_id && indice[chamada.destino_id]) return chamada.destino_id;
     if ((chamada.tipo_chamada || 'triagem') === 'consulta') {
-      var consultorio = String(chamada.consultorio || '').trim();
-      return mapa.destinos.consultorios &&
-        mapa.destinos.consultorios[consultorio] || null;
+      var chave = texto(chamada.consultorio);
+      var id = (destinos.consultorios || {})[chave];
+      return id && indice[id] ? id : null;
     }
-
-    if (chamada.guiche && mapa.destinos.guiches &&
-        mapa.destinos.guiches[String(chamada.guiche)]) {
-      return mapa.destinos.guiches[String(chamada.guiche)];
-    }
-    return mapa.destinos.triagem || null;
+    var guiche = texto(chamada.guiche);
+    var idGuiche = guiche && (destinos.guiches || {})[guiche];
+    if (idGuiche) return indice[idGuiche] ? idGuiche : null;
+    return destinos.triagem && indice[destinos.triagem] ? destinos.triagem : null;
   }
-
-  /* Dijkstra com pesos positivos. Em plantas hospitalares pequenas,
-     esta implementação simples é suficiente e fácil de auditar. */
-  function menorCaminho(mapa, destinoId, somenteAcessiveis) {
-    var inicio = mapa.ponto_inicial;
+  function coordenadasValidas(no) {
+    return no && no.x !== null && no.x !== undefined && no.x !== '' &&
+      no.y !== null && no.y !== undefined && no.y !== '' &&
+      Number.isFinite(Number(no.x)) && Number.isFinite(Number(no.y)) &&
+      Number(no.x) >= 15 && Number(no.x) <= 625 && Number(no.y) >= 25 && Number(no.y) <= 305;
+  }
+  function menorCaminho(mapa, inicio, destinoId, somenteAcessiveis) {
     var indice = indiceDeNos(mapa);
-    if (!indice[destinoId]) return null;
-    if (inicio === destinoId) return { ids: [inicio], ligacoes: [] };
-
-    var adjacentes = Object.create(null);
-    mapa.ligacoes.forEach(function (ligacao) {
-      if (somenteAcessiveis && ligacao.acessivel === false) return;
-      if (!adjacentes[ligacao.de]) adjacentes[ligacao.de] = [];
-      adjacentes[ligacao.de].push(ligacao);
+    if (!indice[inicio] || !indice[destinoId]) return null;
+    if (inicio === destinoId) return null; // um ponto isolado não é um percurso
+    var adj = Object.create(null);
+    (Array.isArray(mapa.ligacoes) ? mapa.ligacoes : []).forEach(function (l) {
+      if (!l || !indice[l.de] || !indice[l.para] || !coordenadasValidas(indice[l.de]) || !coordenadasValidas(indice[l.para]) || l.de === l.para ||
+          !(Number(l.peso) > 0) || !texto(l.instrucao)) return;
+      if (somenteAcessiveis && l.acessivel !== true) return;
+      (adj[l.de] || (adj[l.de] = [])).push(l);
     });
-
-    var distancia = Object.create(null);
-    var anterior = Object.create(null);
-    var visitados = Object.create(null);
-    mapa.nos.forEach(function (no) { distancia[no.id] = Infinity; });
-    distancia[inicio] = 0;
-
+    var dist = Object.create(null), anterior = Object.create(null), visitados = Object.create(null);
+    mapa.nos.forEach(function (n) { if (n && n.id) dist[n.id] = Infinity; });
+    dist[inicio] = 0;
     while (true) {
-      var atual = null;
-      var menor = Infinity;
-      mapa.nos.forEach(function (no) {
-        if (!visitados[no.id] && distancia[no.id] < menor) {
-          atual = no.id;
-          menor = distancia[no.id];
-        }
+      var atual = null, menor = Infinity;
+      mapa.nos.forEach(function (n) {
+        if (n && !visitados[n.id] && dist[n.id] < menor) { atual = n.id; menor = dist[n.id]; }
       });
-
       if (atual === null) return null;
       if (atual === destinoId) break;
       visitados[atual] = true;
-
-      (adjacentes[atual] || []).forEach(function (ligacao) {
-        var peso = Number(ligacao.peso);
-        if (!isFinite(peso) || peso <= 0) peso = 1;
-        var alternativa = distancia[atual] + peso;
-        if (alternativa < distancia[ligacao.para]) {
-          distancia[ligacao.para] = alternativa;
-          anterior[ligacao.para] = { de: atual, ligacao: ligacao };
-        }
+      (adj[atual] || []).forEach(function (l) {
+        var alternativa = dist[atual] + Number(l.peso);
+        if (alternativa < dist[l.para]) { dist[l.para] = alternativa; anterior[l.para] = { de: atual, ligacao: l }; }
       });
     }
-
-    var ids = [destinoId];
-    var ligacoes = [];
-    var cursor = destinoId;
+    var ids = [destinoId], ligacoes = [], cursor = destinoId;
     while (cursor !== inicio) {
       var passo = anterior[cursor];
       if (!passo) return null;
-      ligacoes.unshift(passo.ligacao);
-      ids.unshift(passo.de);
-      cursor = passo.de;
+      ligacoes.unshift(passo.ligacao); ids.unshift(passo.de); cursor = passo.de;
     }
     return { ids: ids, ligacoes: ligacoes };
   }
-
-  function calcularRota(chamada, mapaFornecido) {
-    if (!chamada) return null;
-    var mapa = mapaFornecido || obterMapa();
+  function calcularCaminhoGrafico(mapa, destinoId, inicio) {
     if (!validarMapa(mapa)) return null;
-
+    var origem = inicio || mapa.ponto_inicial;
+    var caminho = menorCaminho(mapa, origem, destinoId, true) || menorCaminho(mapa, origem, destinoId, false);
+    var indice = indiceDeNos(mapa);
+    return caminho && caminho.ids.every(function (id) { return coordenadasValidas(indice[id]); }) ? caminho : null;
+  }
+  function passos(textoBruto) {
+    if (typeof RotasUnidade !== 'undefined') return RotasUnidade.passos(textoBruto);
+    return texto(textoBruto) ? [texto(textoBruto)] : [];
+  }
+  function formatarLocalizacao(no) {
+    if (typeof RotasUnidade !== 'undefined') return RotasUnidade.localizacao(no);
+    return [texto(no && no.bloco), texto(no && no.andar)].filter(Boolean).join(' — ');
+  }
+  function resumirAcessibilidade(a) {
+    if (!a || typeof a !== 'object') return null;
+    var partes = [];
+    if (a.possui_escadas === 'sim' || a.possui_escadas === true) partes.push('Há escadas no percurso.');
+    if (a.alternativa_sem_escadas === 'sim' || a.alternativa_sem_escadas === true) partes.push('Há alternativa sem escadas, conforme informado pela unidade.');
+    else if (a.alternativa_sem_escadas === 'nao' || a.alternativa_sem_escadas === false) partes.push('Não há alternativa sem escadas informada.');
+    if (a.elevador_acessivel === 'sim' || a.elevador_acessivel === true) partes.push('Elevador acessível informado.');
+    var perfisTexto = { cadeirante: 'pessoas em cadeira de rodas', mobilidade_reduzida: 'pessoas com mobilidade reduzida',
+      maca: 'transporte em maca', deficiencia_visual: 'pessoas com deficiência visual', outro: 'outros perfis' };
+    var perfis = (Array.isArray(a.perfis_restritos) ? a.perfis_restritos : []).map(function (p) { return perfisTexto[p] || texto(p); }).filter(Boolean);
+    if (perfis.length) partes.push('Restrição informada para: ' + perfis.join(', ') + '.');
+    else if (a.restricoes_conhecidas === 'possui') partes.push('Há restrições conhecidas; consulte a equipe.');
+    if (texto(a.restricoes_detalhes)) partes.push(texto(a.restricoes_detalhes));
+    if (texto(a.observacoes)) partes.push(texto(a.observacoes));
+    if (!partes.length) return null;
+    return { rotulo: 'Acessibilidade informada pela unidade', observacao: partes.join(' '),
+      possuiRestricao: perfis.length > 0 || a.restricoes_conhecidas === 'possui' ||
+        a.possui_escadas === 'sim' && a.alternativa_sem_escadas === 'nao' };
+  }
+  function calcularRota(chamada, mapaFornecido) {
+    var mapa = mapaFornecido || obterMapa();
+    if (!chamada || !validarMapa(mapa)) return null;
     var destinoId = resolverDestinoId(mapa, chamada);
     if (!destinoId) return null;
-
-    // Primeiro tenta uma rota totalmente acessível; se não existir,
-    // usa a melhor rota disponível e informa que há obstáculos.
-    var caminho = menorCaminho(mapa, destinoId, true) ||
-      menorCaminho(mapa, destinoId, false);
-    if (!caminho) return null;
-
-    var indice = indiceDeNos(mapa);
-    var destino = indice[destinoId];
-    var instrucoes = caminho.ligacoes.map(function (ligacao) {
-      return String(ligacao.instrucao || '').trim();
-    }).filter(Boolean);
-
-    var temTodosOsTempos = caminho.ligacoes.length > 0 &&
-      caminho.ligacoes.every(function (ligacao) {
-        return Number(ligacao.tempo) > 0;
-      });
-    var segundos = temTodosOsTempos
-      ? caminho.ligacoes.reduce(function (total, ligacao) {
-          return total + Number(ligacao.tempo);
-        }, 0)
-      : 0;
-
-    var local = [destino.bloco, destino.andar].filter(Boolean).join(' • ');
-    var localVoz = [destino.bloco, destino.andar].filter(Boolean).join(', ');
-    var textoVoz = '';
-    if (mapa.configurado === true) {
-      var partesVoz = instrucoes.slice(0, 2);
-      if (instrucoes.length > 2) {
-        partesVoz.push('Depois, siga as placas para ' + destino.nome + '.');
-      }
-      textoVoz = (localVoz ? 'Destino: ' + localVoz + '. ' : '') +
-        partesVoz.join(' ');
+    var indice = indiceDeNos(mapa), destino = indice[destinoId];
+    var o = mapa.orientacoes && mapa.orientacoes[destinoId];
+    var textoOrientacao = o ? [texto(o.texto_orientacao || o.texto), texto(o.complemento_especifico)].filter(Boolean).join('\n') : '';
+    var instrucoes = passos(textoOrientacao);
+    if (!instrucoes.length && o && Array.isArray(o.passos)) instrucoes = o.passos.map(texto).filter(Boolean);
+    var inicio = o && o.ponto_inicial_id || mapa.ponto_inicial;
+    var caminho = calcularCaminhoGrafico(mapa, destinoId, inicio);
+    var legado = !Object.prototype.hasOwnProperty.call(mapa, 'orientacoes') && mapa.modo_simplificado !== true;
+    /* Versões publicadas do editor anterior podem continuar usando o grafo;
+       não se usa um grafo antigo para inventar uma orientação no novo modo. */
+    if (!instrucoes.length && legado && caminho) instrucoes = caminho.ligacoes.map(function (l) { return texto(l.instrucao); });
+    var info = o ? resumirAcessibilidade(o.acessibilidade) : null;
+    if (!info && legado && caminho && caminho.ligacoes.some(function (l) { return l.acessivel === false; })) {
+      info = { rotulo: 'Percurso com obstáculos informados', observacao: 'Consulte a equipe para obter auxílio.', possuiRestricao: true };
     }
-
+    var usarGrafico = !!caminho && ((legado && mapa.usar_mapa_grafico !== false) || (mapa.usar_mapa_grafico === true && !!mapa.grafico_validado_em));
+    var segundos = legado && caminho && caminho.ligacoes.every(function (l) { return Number(l.tempo) > 0; })
+      ? caminho.ligacoes.reduce(function (s, l) { return s + Number(l.tempo); }, 0) : 0;
+    var local = formatarLocalizacao(destino);
     return {
-      mapa: mapa,
-      configurado: mapa.configurado === true,
-      destinoId: destinoId,
-      destino: destino,
-      nos: caminho.ids.map(function (id) { return indice[id]; }),
-      ligacoes: caminho.ligacoes,
-      instrucoes: instrucoes,
-      local: local,
-      acessivel: caminho.ligacoes.every(function (ligacao) {
-        return ligacao.acessivel !== false;
-      }),
+      mapa: mapa, configurado: mapa.configurado === true, temOrientacao: instrucoes.length > 0,
+      usarMapaGrafico: usarGrafico, destinoId: destinoId, destino: destino, orientacao: o || null,
+      nos: caminho ? caminho.ids.map(function (id) { return indice[id]; }) : [destino],
+      ligacoes: caminho ? caminho.ligacoes : [], instrucoes: instrucoes, local: local,
+      acessibilidadeInfo: info, acessivel: info ? !info.possuiRestricao : null,
       minutos: segundos ? Math.max(1, Math.ceil(segundos / 60)) : null,
-      textoVoz: textoVoz.trim()
+      textoVoz: instrucoes.join(' ')
     };
   }
-
   function prepararChamadaParaVoz(chamada) {
     if (!chamada) return chamada;
-    var copia = Object.assign({}, chamada);
-    var rota = calcularRota(chamada);
-    if (rota && rota.configurado && rota.textoVoz) {
-      copia.orientacao_voz = rota.textoVoz;
+    var copia = Object.assign({}, chamada), rota = calcularRota(chamada);
+    if (rota && rota.configurado) {
+      copia.destino_nome = rota.destino.nome;
+      if (rota.temOrientacao) copia.orientacao_voz = rota.textoVoz;
     }
     return copia;
   }
-
-  function escapar(valor) {
-    return String(valor == null ? '' : valor).replace(/[&<>"']/g, function (caractere) {
-      return {
-        '&': '&amp;', '<': '&lt;', '>': '&gt;',
-        '"': '&quot;', "'": '&#39;'
-      }[caractere];
-    });
-  }
-
-  function numero(valor) {
-    var convertido = Number(valor);
-    return isFinite(convertido) ? convertido : 0;
-  }
-
+  function numero(v) { var n = Number(v); return Number.isFinite(n) ? n : 0; }
   function renderizarSvg(rota) {
-    var mapa = rota.mapa;
-    var indice = indiceDeNos(mapa);
-    var areas = (mapa.areas || []).map(function (area) {
-      return '<g class="mapa-area ' + escapar(area.tipo || '') + '">' +
-        '<rect x="' + numero(area.x) + '" y="' + numero(area.y) + '" width="' + numero(area.largura) +
-        '" height="' + numero(area.altura) + '" rx="16"></rect>' +
-        '<text x="' + (numero(area.x) + 12) + '" y="' + (numero(area.y) + 19) + '">' +
-        escapar(area.nome) + '</text></g>';
+    var mapa = rota.mapa, indice = indiceDeNos(mapa), ativas = rota.ligacoes || [];
+    var areas = (mapa.areas || []).map(function (a) {
+      return '<g class="mapa-area ' + escapar(a.tipo || '') + '"><rect x="' + numero(a.x) + '" y="' + numero(a.y) +
+        '" width="' + numero(a.largura) + '" height="' + numero(a.altura) + '" rx="16"></rect><text x="' +
+        (numero(a.x) + 12) + '" y="' + (numero(a.y) + 19) + '">' + escapar(a.nome) + '</text></g>';
     }).join('');
-
-    function desenharLigacao(ligacao, ativa) {
-      var de = indice[ligacao.de];
-      var para = indice[ligacao.para];
-      if (!de || !para) return '';
-      var classes = 'mapa-ligacao' + (ativa ? ' ativa' : '') +
-        (ligacao.acessivel === false ? ' com-obstaculo' : '');
-      return '<line class="' + classes + '" data-de="' + escapar(ligacao.de) +
-        '" data-para="' + escapar(ligacao.para) + '" x1="' + numero(de.x) +
-        '" y1="' + numero(de.y) + '" x2="' + numero(para.x) + '" y2="' + numero(para.y) + '"' +
+    function desenharLigacao(l, ativa) {
+      var de = indice[l.de], para = indice[l.para];
+      if (!coordenadasValidas(de) || !coordenadasValidas(para)) return '';
+      var classes = 'mapa-ligacao' + (ativa ? ' ativa' : '') + (l.acessivel === false ? ' com-obstaculo' : '');
+      return '<line class="' + classes + '" data-de="' + escapar(l.de) + '" data-para="' + escapar(l.para) +
+        '" x1="' + numero(de.x) + '" y1="' + numero(de.y) + '" x2="' + numero(para.x) + '" y2="' + numero(para.y) + '"' +
         (ativa ? ' marker-end="url(#seta-rota)"' : '') + '></line>';
     }
-
-    var base = mapa.ligacoes.filter(function (ligacao) {
-      return rota.ligacoes.indexOf(ligacao) === -1;
-    }).map(function (ligacao) { return desenharLigacao(ligacao, false); }).join('');
-    var ativas = rota.ligacoes.map(function (ligacao) {
-      return desenharLigacao(ligacao, true);
+    var linhas = (mapa.ligacoes || []).map(function (l) { return desenharLigacao(l, ativas.indexOf(l) !== -1); }).join('');
+    var nos = mapa.nos.filter(coordenadasValidas).map(function (n) {
+      return '<g class="mapa-no tipo-' + escapar(n.tipo || 'local') + (n.id === mapa.ponto_inicial ? ' inicio' : '') +
+        (n.id === rota.destinoId ? ' destino' : '') + '" data-no-id="' + escapar(n.id) + '"><circle cx="' + numero(n.x) +
+        '" cy="' + numero(n.y) + '" r="' + (n.id === rota.destinoId ? 12 : 9) + '"></circle><text x="' + numero(n.x) +
+        '" y="' + (numero(n.y) + 25) + '">' + escapar(n.nome) + '</text></g>';
     }).join('');
-
-    var nos = mapa.nos.map(function (no) {
-      var classes = 'mapa-no tipo-' + escapar(no.tipo || 'local') +
-        (no.id === mapa.ponto_inicial ? ' inicio' : '') +
-        (no.id === rota.destinoId ? ' destino' : '');
-      return '<g class="' + classes + '" data-no-id="' + escapar(no.id) + '">' +
-        '<circle cx="' + numero(no.x) + '" cy="' + numero(no.y) + '" r="' +
-        (no.id === rota.destinoId ? 12 : 9) + '"></circle>' +
-        '<text x="' + numero(no.x) + '" y="' + (numero(no.y) + 25) + '">' +
-        escapar(no.nome) + '</text></g>';
-    }).join('');
-
-    return '<svg viewBox="0 0 640 330" preserveAspectRatio="xMidYMid meet" role="img" ' +
-      'aria-label="Rota da recepção até ' + escapar(rota.destino.nome) + '">' +
-      '<defs><marker id="seta-rota" viewBox="0 0 10 10" refX="8" refY="5" ' +
-      'markerWidth="5" markerHeight="5" orient="auto-start-reverse">' +
-      '<path d="M 0 0 L 10 5 L 0 10 z"></path></marker></defs>' +
-      areas + base + ativas + nos + '</svg>';
+    return '<svg viewBox="0 0 640 330" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Planta esquemática para ' +
+      escapar(rota.destino && rota.destino.nome || 'a unidade') + '"><defs><marker id="seta-rota" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z"></path></marker></defs>' + areas + linhas + nos + '</svg>';
   }
-
-  function instrucoesResumidas(rota) {
-    if (rota.instrucoes.length <= 4) return rota.instrucoes;
-    return rota.instrucoes.slice(0, 3).concat([
-      rota.instrucoes[rota.instrucoes.length - 1]
-    ]);
+  function nomeDestino(chamada, mapa) {
+    var rota = calcularRota(chamada, mapa);
+    if (rota && rota.configurado && rota.destino) return texto(rota.destino.nome);
+    if ((chamada.tipo_chamada || 'triagem') === 'consulta') {
+      var sala = texto(chamada.consultorio);
+      return sala && !/^(?:local_|loc_)/.test(sala) ? 'Consultório ' + sala : 'Consultório indicado';
+    }
+    return chamada.guiche ? 'Triagem — guichê ' + texto(chamada.guiche) : 'Triagem';
   }
-
   function atualizar(chamada) {
     if (typeof document === 'undefined') return;
-    var chave = chamada
-      ? [unidadeAtual(), chamada.id, chamada.chamado_em, chamada.tipo_chamada,
-         chamada.consultorio, chamada.guiche].join(':')
-      : 'sem-chamada:' + unidadeAtual();
-    if (chave === ultimaChave) return;
-    ultimaChave = chave;
-
     function el(id) { return document.getElementById(id); }
-    var aviso = el('aviso-atual');
-    var painelRota = el('orientacao-rota');
-    if (!aviso || !painelRota) return;
-
-    var titulo = el('painel-orientacao-titulo');
-    var localDestaque = el('chamada-destino-local');
-
+    var aviso = el('aviso-atual'), painel = el('orientacao-rota');
+    if (!aviso || !painel) return;
     if (!chamada) {
-      painelRota.hidden = true;
-      aviso.hidden = false;
-      if (titulo) titulo.textContent = '💬 Avisos';
-      if (localDestaque) localDestaque.textContent = '';
+      painel.hidden = true; aviso.hidden = false;
+      if (el('painel-orientacao-titulo')) el('painel-orientacao-titulo').textContent = '💬 Avisos';
+      if (el('chamada-destino-local')) el('chamada-destino-local').textContent = '';
       return;
     }
-
-    aviso.hidden = true;
-    painelRota.hidden = false;
-    if (titulo) titulo.textContent = '🧭 Como chegar';
-
-    var rota = calcularRota(chamada);
-    var nomeDestino = (chamada.tipo_chamada || 'triagem') === 'consulta'
-      ? 'Consultório ' + (chamada.consultorio || 'indicado')
-      : 'Triagem';
-    if (rota) nomeDestino = rota.destino.nome;
-
-    el('rota-destino').textContent = nomeDestino;
-    el('rota-local').textContent = rota
-      ? (rota.local || 'Local indicado no mapa') + (rota.configurado ? '' : ' • exemplo')
-      : 'Destino ainda não mapeado';
-    if (localDestaque) {
-      localDestaque.textContent = rota
-        ? (rota.local || '') + (rota.configurado ? '' : ' • exemplo')
-        : '';
+    aviso.hidden = true; painel.hidden = false;
+    if (el('painel-orientacao-titulo')) el('painel-orientacao-titulo').textContent = '🧭 Como chegar';
+    var rota = calcularRota(chamada), publicada = !!(rota && rota.configurado), nome = nomeDestino(chamada);
+    if (el('chamada-destino-rotulo')) el('chamada-destino-rotulo').textContent = 'Destino';
+    if (el('chamada-destino-valor')) el('chamada-destino-valor').textContent = nome;
+    if (el('chamada-destino-local')) el('chamada-destino-local').textContent = publicada && rota.local ? rota.local : '';
+    el('rota-destino').textContent = nome;
+    el('rota-local').textContent = publicada && rota.local ? 'Localização: ' + rota.local : '';
+    // O profissional já aparece no destaque; evita repetir dados e reduz o corte das instruções.
+    if (el('rota-medico')) el('rota-medico').hidden = true;
+    var valida = publicada && rota.temOrientacao;
+    var info = valida && rota.acessibilidadeInfo;
+    var badge = el('rota-acessibilidade'), obs = el('rota-acessibilidade-obs'), tempo = el('rota-tempo');
+    if (badge) { badge.hidden = !info; if (info) { badge.textContent = info.rotulo; badge.classList.toggle('com-obstaculos', info.possuiRestricao); } }
+    if (obs) { obs.hidden = !info || !info.observacao; obs.textContent = info ? info.observacao : ''; }
+    if (tempo) { tempo.hidden = !(valida && rota.minutos); if (!tempo.hidden) tempo.textContent = '≈ ' + rota.minutos + ' min'; }
+    if (el('mapa-aviso-config')) el('mapa-aviso-config').hidden = true;
+    var sem = el('rota-sem-mapa'), passosEl = el('rota-passos'), mapaEl = el('mapa-hospital');
+    var wrap = el('rota-como-chegar-wrap'), grade = el('mapa-e-passos') || document.querySelector('.mapa-e-passos');
+    sem.hidden = valida;
+    sem.textContent = valida ? '' : 'Consulte a recepção para obter orientações.';
+    if (wrap) wrap.hidden = !valida;
+    passosEl.hidden = !valida;
+    var chavePassos = valida ? JSON.stringify(rota.instrucoes) : '';
+    if (passosEl.dataset.conteudo !== chavePassos) {
+      passosEl.innerHTML = '';
+      passosEl.dataset.conteudo = chavePassos;
+      if (wrap) wrap.scrollTop = 0;
+      if (valida) rota.instrucoes.forEach(function (passo) { var li = document.createElement('li'); li.textContent = passo; passosEl.appendChild(li); });
     }
-
-    var tempo = el('rota-tempo');
-    tempo.hidden = !(rota && rota.configurado && rota.minutos);
-    if (rota && rota.minutos) tempo.textContent = '≈ ' + rota.minutos + ' min';
-
-    var acessibilidade = el('rota-acessibilidade');
-    acessibilidade.hidden = !rota;
-    if (rota) {
-      acessibilidade.textContent = rota.acessivel ? 'Rota acessível' : 'Rota com obstáculos';
-      acessibilidade.classList.toggle('com-obstaculos', !rota.acessivel);
-    }
-
-    el('mapa-aviso-config').hidden = !rota || rota.configurado;
-    el('rota-sem-mapa').hidden = !!rota;
-    el('mapa-hospital').hidden = !rota;
-    el('rota-passos').hidden = !rota;
-
-    if (rota) {
-      el('mapa-hospital').innerHTML = renderizarSvg(rota);
-      var lista = el('rota-passos');
-      lista.innerHTML = '';
-      instrucoesResumidas(rota).forEach(function (instrucao) {
-        var item = document.createElement('li');
-        item.textContent = instrucao;
-        lista.appendChild(item);
-      });
-    } else {
-      el('mapa-hospital').innerHTML = '';
-      el('rota-passos').innerHTML = '';
-      el('rota-sem-mapa').textContent =
-        'A rota para este destino ainda não foi configurada. Por favor, procure a recepção.';
-    }
+    mapaEl.hidden = !(valida && rota.usarMapaGrafico);
+    mapaEl.innerHTML = mapaEl.hidden ? '' : renderizarSvg(rota);
+    if (grade) grade.classList.toggle('sem-mapa-grafico', mapaEl.hidden);
   }
-
-  return {
-    obterMapa: obterMapa,
-    definirMapa: definirMapa,
-    validarMapa: validarMapa,
-    calcularRota: calcularRota,
-    renderizarSvg: renderizarSvg,
-    prepararChamadaParaVoz: prepararChamadaParaVoz,
-    atualizar: atualizar
-  };
+  return { obterMapa: obterMapa, definirMapa: definirMapa, validarMapa: validarMapa,
+    resolverDestinoId: resolverDestinoId, calcularRota: calcularRota, calcularCaminhoGrafico: calcularCaminhoGrafico,
+    coordenadasValidas: coordenadasValidas, formatarLocalizacao: formatarLocalizacao,
+    extrairPassosDeTexto: passos, resumirAcessibilidade: resumirAcessibilidade,
+    renderizarSvg: renderizarSvg, nomeDestino: nomeDestino, prepararChamadaParaVoz: prepararChamadaParaVoz, atualizar: atualizar };
 })();

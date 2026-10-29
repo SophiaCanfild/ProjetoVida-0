@@ -136,7 +136,7 @@ const Notificacao = (function () {
           ultimaChamadaNotificada = identificacao;
 
           const destino = c.tipo_chamada === 'consulta'
-            ? 'Consultório ' + (c.consultorio || '—')
+            ? (/^(?:local_|loc_)/.test(c.consultorio || '') ? 'Consultório indicado' : 'Consultório ' + (c.consultorio || '—'))
             : 'Triagem' + (c.guiche ? ' — Guichê ' + c.guiche : '');
 
           dispararChamada({
