@@ -153,8 +153,16 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../shared/js/config.js"></script>
+  <script>
+    // Cada dispositivo pode apontar para sua unidade pela URL.
+    // Isto e apenas configuracao de exibicao, nao autorizacao de acesso.
+    (function() {
+      var unidade = (new URLSearchParams(window.location.search).get('unidade') || '').trim();
+      if (unidade) TV_CONFIG.UNIDADE = unidade;
+    })();
+  </script>
   <script src="js/relogio.js"></script>
-  <script src="js/tv-dados.js?v=rotas-20261028"></script>
+  <script src="js/tv-dados.js?v=rotas-20261028b"></script>
   <script src="config/mapa-hospital.js?v=20261029"></script>
   <script src="../shared/js/mapa-store.js?v=rotas-20261028"></script>
   <script src="../shared/js/rotas-unidade.js?v=rotas-20261028"></script>

@@ -44,8 +44,9 @@ const delay = ms => new Promise(r=>setTimeout(r,ms));
     await page.evaluateOnNewDocument((auth)=>{
       sessionStorage.setItem('usuarioLogado',JSON.stringify(auth));
       window.confirm=()=>true;
-      // No external Realtime dependency in this isolated test.
-      window.WebSocket=class { constructor(){ this.readyState=3; } close(){} send(){} addEventListener(){} removeEventListener(){} };
+      // Conta conexões para verificar que o telão não recebe linhas clínicas via Realtime.
+      window.__websocketsAbertos=0;
+      window.WebSocket=class { constructor(){ window.__websocketsAbertos++; this.readyState=3; } close(){} send(){} addEventListener(){} removeEventListener(){} };
     },opts.auth||{tipo:'admin',nome:'Administrador de teste'});
   }
   const context=await browser.createBrowserContext();globalCtx.push(context);
@@ -199,7 +200,28 @@ const delay = ms => new Promise(r=>setTimeout(r,ms));
   assert.equal(await tv.$eval('#mapa-hospital',e=>e.hidden),true);
   assert.equal(await tv.$eval('#chamada-nome',e=>e.hidden),true);
   assert.doesNotMatch(await tv.evaluate(()=>document.body.innerText),/NOME PRIVADO/);
-  step('chamada real simulada resolve a versão publicada no telão sem mapa ou dados clínicos');
+  assert.equal(await tv.evaluate(()=>window.__websocketsAbertos),0);
+  step('chamada real simulada resolve a versão publicada no telão sem mapa, dados clínicos ou Realtime de consultas');
+
+  // Uma segunda tela, configurada por URL, usa chamadas e publicação próprias.
+  const mapaUPA=JSON.parse(JSON.stringify(published));
+  mapaUPA.nos.find(n=>n.id===sala2.id).nome='Consultório UPA';
+  mapaUPA.orientacoes[sala2.id].texto_orientacao='Siga a sinalização confirmada pela UPA.';
+  db.configuracoes.push({chave:'mapa_hospital_upa_araucaria',valor:JSON.stringify({unidade:'UPA Araucária',mapa:mapaUPA}),atualizado_em:new Date().toISOString()});
+  db.consultas.push({id:'call-outra-unidade',senha:'B055',status:'chamado',chamado_em:new Date(Date.now()+1000).toISOString(),tipo_chamada:'consulta',consultorio:'2',unidade:'UPA Araucária'});
+  const tvUPA=await context.newPage();await prepare(tvUPA);
+  await tvUPA.goto(BASE + '/telao/index.html?unidade='+encodeURIComponent('UPA Araucária'),{waitUntil:'domcontentloaded'});
+  await tvUPA.waitForFunction(()=>document.querySelector('#chamada-senha').textContent==='B055',{timeout:15000});
+  await tvUPA.waitForFunction(()=>document.querySelector('#rota-destino').textContent==='Consultório UPA',{timeout:10000});
+  assert.equal(await tvUPA.$eval('#nome-unidade',e=>e.textContent),'UPA Araucária');
+  assert.match(await tvUPA.$eval('#rota-passos',e=>e.textContent),/sinalização confirmada pela UPA/);
+  assert.equal(await tvUPA.evaluate(()=>window.__websocketsAbertos),0);
+  await tv.evaluate(()=>atualizar());
+  assert.equal(await tv.$eval('#chamada-senha',e=>e.textContent),'Z042');
+  await tvUPA.close();
+  db.consultas.pop();
+  db.configuracoes=db.configuracoes.filter(r=>r.chave!=='mapa_hospital_upa_araucaria');
+  step('telões de unidades diferentes usam somente suas chamadas e publicações');
   // Conferir que abrir o modo avançado preserva os recursos, sem exigir ligacões.
   await page.click('#btn-abrir-mapeamento-avancado');
   assert.equal(await page.$eval('#painel-mapeamento-avancado',e=>e.hidden),false);

@@ -37,7 +37,9 @@ O telão lê apenas a versão publicada. Se não existir orientação publicada 
 
 Unidades legadas que já tenham um vínculo médico salvo no banco, mas ainda não tenham publicado mapa, podem continuar chamando pelo número desse vínculo; o telão apresenta a mensagem neutra até a publicação. Um local novo do rascunho não se transforma em rota publicada antes da confirmação.
 
-O telão consulta apenas os campos necessários das chamadas remotas, sem carregar a camada que sincroniza prontuários. Ele consulta chamadas periodicamente e verifica novas publicações a cada 60 segundos. Quando há falha de conexão, somente uma versão publicada previamente obtida do banco pode ser usada como cache; uma publicação local de demonstração não é tratada como oficial. Textos longos são percorridos automaticamente na área de orientação.
+O telão consulta apenas os campos necessários das chamadas remotas, sem carregar a camada que sincroniza prontuários. Ele consulta chamadas a cada três segundos e verifica novas publicações a cada 60 segundos. O telão não assina `postgres_changes` da tabela de consultas, pois o Realtime poderia entregar a linha clínica completa mesmo que apenas a senha fosse exibida. Quando há falha de conexão, somente uma versão publicada previamente obtida do banco pode ser usada como cache; uma publicação local de demonstração não é tratada como oficial. Textos longos são percorridos automaticamente na área de orientação.
+
+Por padrão, o telão usa a primeira unidade de `APP_CONFIG.UNIDADES`. Para configurar uma tela de outra unidade sem alterar o código, abra o endereço do telão com o parâmetro `unidade` contendo exatamente o nome usado no cadastro, por exemplo `telao/index.html?unidade=UPA%20Arauc%C3%A1ria`. Mantenha esse endereço salvo no dispositivo. Uma unidade inexistente não deve ser substituída silenciosamente por outra. **O parâmetro apenas seleciona a exibição; ele não é uma permissão nem substitui a autenticação/RLS por unidade.**
 
 ## Persistência e compatibilidade
 
