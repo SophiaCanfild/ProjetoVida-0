@@ -126,7 +126,13 @@ body::after {
   -webkit-text-fill-color: transparent; color: transparent;
   line-height: 1.1;
 }
-.tv-marca .nome-unidade { display: none; }
+.tv-marca .nome-unidade {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--texto-suave);
+  letter-spacing: 0.3px;
+}
 
 .tv-relogio { text-align: right; display: flex; align-items: center; justify-content: flex-end; gap: 14px; flex-shrink: 0; }
 .tv-relogio .hora {
@@ -746,6 +752,43 @@ body::after {
   align-items: stretch;
   gap: 12px;
 }
+.mapa-e-passos.sem-mapa-grafico {
+  grid-template-columns: 1fr;
+}
+.rota-como-chegar-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  background: #F8FDFF;
+  border: 1px solid var(--borda);
+  border-radius: 14px;
+  padding: 10px 14px;
+}
+.rota-como-chegar-titulo {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--azul-tinta);
+}
+.rota-medico {
+  display: block;
+  margin-top: 2px;
+  color: var(--azul);
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+.rota-acessibilidade-obs {
+  margin-top: 4px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  background: #F0F9FF;
+  border: 1px solid #BAE6FD;
+  color: var(--azul-tinta);
+  font-size: 0.65rem;
+  font-weight: 700;
+}
 .mapa-hospital {
   min-width: 0;
   min-height: 120px;
@@ -1028,3 +1071,23 @@ body::after {
   .rota-topo { align-items: center; }
 }
 
+
+/* Identificação pública por senha, também nas chamadas de consulta. */
+.tv-destaque.modo-consulta .senha-chamada {
+  font-size: clamp(3rem, min(8vw, 12vh), 6.4rem);
+  letter-spacing: .02em;
+  padding: 0;
+  background: linear-gradient(135deg, #0C4A6E 0%, #0369A1 48%, #15803D 112%);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+}
+.rota-passos { white-space: pre-wrap; }
+
+/* Dá prioridade à orientação; conteúdos longos rolam automaticamente no telão. */
+@media (min-width: 901px) {
+  .tv-paineis { flex: 0 0 39vh; max-height: 39vh; }
+  .tv-painel-orientacao .rota-destino-wrap { display: none; } /* já está no destaque */
+  .rota-como-chegar-wrap { min-height: 0; overflow: auto; scroll-behavior: smooth; }
+  .rota-passos { max-height: none; overflow: visible; font-size: clamp(.86rem, 1vw, 1.05rem); }
+}
+.rota-badge.acessivel { background: #eff8fd; border-color: #bae6fd; color: #075985; }

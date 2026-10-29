@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="../css/global.css" rel="stylesheet">
+    <link href="../css/global.css?v=rotas-20261028" rel="stylesheet">
     <style>
         .content-area { display: none; }
         .content-area.active { display: block; }
@@ -384,7 +384,7 @@
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../../shared/js/config.js"></script>
-    <script src="../../shared/js/db.js"></script>
+    <script src="../../shared/js/db.js?v=rotas-20261028"></script>
     <script src="../js/config.js"></script>
     <script>
         let pacienteSelecionado = null;
@@ -407,9 +407,14 @@
         document.addEventListener('DOMContentLoaded', function() {
             carregarListaAguardando();
             carregarHistorico();
+            if (DB.aguardarSincronizacao) DB.aguardarSincronizacao().then(function() {
+                carregarListaAguardando(); carregarHistorico();
+            });
         });
         
         // Escutar eventos em tempo real
+        DB.on('consulta_atualizada', () => { carregarListaAguardando(); carregarFilaTabela(); });
+        DB.on('paciente_atualizado', () => carregarListaAguardando());
         DB.on('atendimento_iniciado', () => carregarListaAguardando());
         DB.on('paciente_chamado', () => carregarListaAguardando());
         DB.on('triagem_realizada', () => { carregarListaAguardando(); carregarHistorico(); });
@@ -487,10 +492,13 @@
             document.getElementById('pacienteNome').textContent = pacienteSelecionado.nome + ' — Senha ' + consulta.senha;
         }
 
-        function chamarParaTriagem(consultaId) {
+        async function chamarParaTriagem(consultaId) {
             try {
                 DB.chamarPaciente(consultaId, { tipo: 'triagem' });
-                mostrarToast('Paciente chamado! A chamada foi enviada ao telão e ao app.', 'success');
+                const envio = await DB.aguardarEnvioChamada(consultaId);
+                if (!envio.ok) throw new Error('A chamada não foi confirmada no banco. Confira a fila e o telão antes de repetir.');
+                const avisoLocal = envio.local ? 'Chamada registrada somente neste navegador. Verifique a conexão com o banco.' : envio.aviso;
+                mostrarToast(avisoLocal || 'Paciente chamado! A chamada foi enviada ao telão e ao app.', avisoLocal ? 'warning' : 'success');
                 carregarListaAguardando();
             } catch (e) {
                 mostrarToast('Erro ao chamar paciente: ' + e.message, 'error');

@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="../css/global.css" rel="stylesheet">
+    <link href="../css/global.css?v=rotas-20261028" rel="stylesheet">
     <style>
         .content-area { display: none; }
         .content-area.active { display: block; }
@@ -754,11 +754,11 @@
         <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../../shared/js/config.js"></script>
     <script src="../../telao/config/mapa-hospital.js"></script>
-    <script src="../../shared/js/mapa-store.js"></script>
-    <script src="../../shared/js/equipe-consultorios.js"></script>
-    <script src="../../shared/js/db.js"></script>
+    <script src="../../shared/js/mapa-store.js?v=rotas-20261028"></script>
+    <script src="../../shared/js/equipe-consultorios.js?v=rotas-20261028"></script>
+    <script src="../../shared/js/db.js?v=rotas-20261028"></script>
     <script src="../js/config.js"></script>
-    <script src="../js/medico-consultorios.js"></script>
+    <script src="../js/medico-consultorios.js?v=rotas-20261028"></script>
     <script src="../js/prescricoes.js"></script>
     <script src="../js/medico-prescricoes.js"></script>
     <script>
@@ -778,6 +778,9 @@
         document.addEventListener('DOMContentLoaded', function() {
             carregarFilaEspera();
             carregarHistorico();
+            if (DB.aguardarSincronizacao) DB.aguardarSincronizacao().then(function() {
+                carregarFilaEspera(); carregarHistorico();
+            });
             iniciarPrescricoes();
             configurarConsultorios(unidadeConsultorios);
             document.getElementById('consultorioChamada').addEventListener('change', function() {
@@ -788,6 +791,8 @@
             });
         });
         
+        DB.on('consulta_atualizada', () => carregarFilaEspera());
+        DB.on('paciente_atualizado', () => carregarFilaEspera());
         DB.on('triagem_realizada', () => carregarFilaEspera());
         DB.on('paciente_chamado', () => carregarFilaEspera());
         DB.on('consulta_finalizada', () => { carregarFilaEspera(); carregarHistorico(); });
@@ -815,7 +820,7 @@
                 return;
             }
 
-            const disponiveis = MedicoConsultorios.listar(mapaConsultorios);
+            const disponiveis = MedicoConsultorios.listar(mapaConsultorios, equipeConsultorios);
             if (!disponiveis.length) {
                 ajuda.classList.add('erro');
                 ajuda.textContent = 'Nenhum consultório está mapeado para ' + unidadeConsultorios +
@@ -843,15 +848,18 @@
                 ? ' Vínculo definido pelo Administrativo.' : '';
             ajuda.textContent = destino.nome + (local ? ' — ' + local : '') + ' • ' + unidadeConsultorios +
                 '. O telão, o app e a voz usarão este destino.' + origem;
-            if (mapaConsultorios.configurado !== true) {
+            if (destino.vinculo_sem_publicacao) {
                 ajuda.classList.add('alerta');
-                ajuda.textContent += ' O trajeto ainda é demonstrativo até a publicação da planta validada.';
+                ajuda.textContent += ' Vínculo existente no banco, sem mapa publicado. O telão orientará o paciente a procurar a recepção.';
+            } else if (mapaConsultorios.configurado !== true) {
+                ajuda.classList.add('alerta');
+                ajuda.textContent += ' As orientações só ficam disponíveis após a publicação pelo administrativo.';
             }
         }
 
         function renderizarConsultorios() {
             const select = document.getElementById('consultorioChamada');
-            const disponiveis = MedicoConsultorios.listar(mapaConsultorios);
+            const disponiveis = MedicoConsultorios.listar(mapaConsultorios, equipeConsultorios);
             const usuario = getUsuarioLogado();
             select.innerHTML = '';
 
@@ -871,7 +879,7 @@
             const vinculoCentral = equipeConsultorios && typeof EquipeConsultorioStore !== 'undefined'
                 ? EquipeConsultorioStore.obterVinculo(equipeConsultorios, usuario) : null;
             select.value = MedicoConsultorios.escolhaInicial(
-                mapaConsultorios, usuario, unidadeConsultorios, vinculoCentral
+                mapaConsultorios, usuario, unidadeConsultorios, vinculoCentral, equipeConsultorios
             );
             select.disabled = !disponiveis.length;
             atualizarAjudaConsultorio();
@@ -957,17 +965,21 @@
                 if (!mapa) throw new Error('Não foi possível validar o consultório desta unidade. Tente novamente.');
 
                 const select = document.getElementById('consultorioChamada');
-                const destino = MedicoConsultorios.validar(mapa, select.value, unidade);
+                const destino = MedicoConsultorios.validar(mapa, select.value, unidade, equipeConsultorios);
                 MedicoConsultorios.salvarPreferencia(u, unidade, destino.numero);
 
                 DB.chamarPaciente(consultaId, {
                     tipo: 'consulta',
                     consultorio: destino.numero,
+                    destino_nome: destino.nome,
                     medico_nome: u.nome || 'Médico(a)',
                     medico_crm: u.crm || u.registroProfissional || u.registro_profissional || null
                 });
-                mostrarToast('📢 Paciente chamado para o Consultório ' + destino.numero +
-                    '. O telão e o app foram atualizados.', 'success');
+                const envio = await DB.aguardarEnvioChamada(consultaId);
+                if (!envio.ok) throw new Error('A chamada não foi confirmada no banco. Confira a fila e o telão antes de repetir.');
+                const avisoLocal = envio.local ? 'Chamada registrada somente neste navegador. Verifique a conexão com o banco.' : envio.aviso;
+                mostrarToast(avisoLocal || ('📢 Paciente chamado para ' + destino.nome +
+                    '. O telão e o app foram atualizados.'), avisoLocal ? 'warning' : 'success');
                 carregarFilaEspera();
             } catch(e) {
                 mostrarToast('Erro: ' + e.message, 'error');

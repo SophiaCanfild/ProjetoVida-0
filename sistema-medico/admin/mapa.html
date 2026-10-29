@@ -3,407 +3,1009 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mapa e rotas | Administrativo VIDA+</title>
-  <link rel="stylesheet" href="../css/global.css">
-  <link rel="stylesheet" href="../css/mapa-admin.css">
+  <title>Locais, Rotas e Orientações | Administrativo VIDA+</title>
+  <link rel="icon" type="image/png" href="../img/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="../css/global.css?v=rotas-20261028">
+  <link rel="stylesheet" href="../css/mapa-admin.css?v=rotas-20261028">
 </head>
 <body class="mapa-admin-body">
   <header class="mapa-topbar">
     <div>
-      <a href="index.html" class="mapa-voltar">← Voltar ao Administrativo</a>
-      <h1>Mapa e rotas</h1>
-      <p>Configure os percursos exibidos no telão no momento de cada chamada.</p>
+      <a href="index.html" class="mapa-voltar"><i class="fas fa-arrow-left"></i> Voltar ao Administrativo</a>
+      <h1>Locais, consultórios e orientações do telão</h1>
+      <p>Configure os destinos de atendimento, vincule médicos e defina como orientar os pacientes em cada unidade.</p>
     </div>
     <div class="mapa-topbar-status">
       <span id="mapa-modo-armazenamento" class="mapa-pill">Carregando…</span>
-      <button type="button" id="btn-exportar" class="btn btn-secondary">Exportar JSON</button>
+      <button type="button" id="btn-exportar" class="btn btn-secondary btn-sm"><i class="fas fa-download"></i> Exportar JSON</button>
     </div>
   </header>
 
   <main class="mapa-admin-container">
+    <!-- BARRA DE SELEÇÃO DE UNIDADE E AÇÕES GERAIS -->
     <section class="card mapa-config-bar" aria-label="Selecionar unidade">
       <div class="mapa-unidade-campo">
-        <label for="mapa-unidade">Unidade / hospital</label>
+        <label for="mapa-unidade"><i class="fas fa-hospital-alt"></i> Unidade de saúde</label>
         <select id="mapa-unidade"></select>
-        <small id="mapa-origem">O mapa publicado será usado apenas nesta unidade.</small>
+        <small id="mapa-origem">As alterações em rascunho não alteram o telão em produção até serem publicadas.</small>
       </div>
       <div class="mapa-acoes-topo">
-        <span id="mapa-status" class="badge badge-secondary">Carregando mapa…</span>
-        <button type="button" id="btn-descartar" class="btn btn-secondary">Descartar rascunho</button>
-        <button type="button" id="btn-salvar-rascunho" class="btn btn-secondary">Salvar rascunho</button>
-        <button type="button" id="btn-publicar-topo" class="btn btn-primary">Validar e publicar</button>
+        <span id="mapa-status" class="badge badge-secondary">Carregando…</span>
+        <button type="button" id="btn-descartar" class="btn btn-secondary"><i class="fas fa-undo"></i> Descartar rascunho</button>
+        <button type="button" id="btn-salvar-rascunho" class="btn btn-secondary"><i class="fas fa-save"></i> Salvar rascunho</button>
+        <button type="button" id="btn-publicar-topo" class="btn btn-primary"><i class="fas fa-check-circle"></i> Validar e publicar</button>
       </div>
     </section>
 
-    <div id="mapa-feedback" class="alert" role="status" hidden></div>
-
-    <div class="alert alert-warning mapa-aviso-demo">
-      <strong>Confirmação presencial obrigatória.</strong>
-      O exemplo inicial é ilustrativo. Antes de publicar, percorra as rotas na unidade, confira sentidos, andares,
-      tempos e acessibilidade, e marque a confirmação na aba <strong>Testar e publicar</strong>.
-      Rascunhos nunca alteram o telão.
+    <div id="mapa-feedback" class="alert" role="status" aria-live="polite" hidden></div>
+    <div class="mapa-seguranca-nota"><i class="fas fa-shield-alt" aria-hidden="true"></i>
+      <strong>Atenção à segurança:</strong> o login atual é demonstrativo e ainda não garante isolamento por unidade. Configure Supabase Auth e políticas RLS antes de usar dados reais.
     </div>
 
-    <nav class="mapa-abas" aria-label="Etapas do editor">
-      <button type="button" class="mapa-aba ativa" data-aba="equipe" aria-selected="true">1. Equipe e salas</button>
-      <button type="button" class="mapa-aba" data-aba="pontos" aria-selected="false">2. Planta avançada</button>
-      <button type="button" class="mapa-aba" data-aba="caminhos" aria-selected="false">3. Caminhos <span id="total-caminhos" class="mapa-contador">0</span></button>
-      <button type="button" class="mapa-aba" data-aba="destinos" aria-selected="false">4. Testar e publicar</button>
-    </nav>
+    <!-- NAVEGAÇÃO EM 3 ETAPAS PRINCIPAIS COM INDICADOR DE PROGRESSO -->
+    <section class="card mapa-progresso-card" aria-label="Progresso da configuração">
+      <div class="mapa-progresso-topo">
+        <span id="mapa-progresso-texto" class="mapa-progresso-label">Etapa 1 de 3 — Locais e consultórios</span>
+        <span id="mapa-progresso-resumo" class="mapa-progresso-detalhe">Você pode navegar entre as etapas a qualquer momento sem perder os dados preenchidos.</span>
+      </div>
+      <div class="mapa-progresso-trilha" aria-hidden="true">
+        <div id="mapa-progresso-barra" class="mapa-progresso-preenchimento" style="width: 33.33%;"></div>
+      </div>
+      <nav class="mapa-abas mapa-stepper" aria-label="Etapas de configuração">
+        <button type="button" class="mapa-aba ativa" data-aba="locais" aria-selected="true">
+          <span class="mapa-aba-num">1</span>
+          <span class="mapa-aba-info">
+            <strong>1. Locais e consultórios</strong>
+            <small>Salas de atendimento e equipe médica</small>
+          </span>
+        </button>
+        <button type="button" class="mapa-aba" data-aba="orientacoes" aria-selected="false">
+          <span class="mapa-aba-num">2</span>
+          <span class="mapa-aba-info">
+            <strong>2. Orientações</strong>
+            <small>Como chegar e acessibilidade</small>
+          </span>
+        </button>
+        <button type="button" class="mapa-aba" data-aba="revisao" aria-selected="false">
+          <span class="mapa-aba-num">3</span>
+          <span class="mapa-aba-info">
+            <strong>3. Revisar e publicar</strong>
+            <small>Pendências, prévia do telão e publicação</small>
+          </span>
+        </button>
+      </nav>
+    </section>
 
-    <!-- EQUIPE E CADASTRO RÁPIDO DE CONSULTÓRIOS -->
-    <section id="aba-equipe" class="mapa-aba-conteudo">
-      <div class="mapa-resumo-equipe" aria-label="Resumo da equipe">
-        <div class="mapa-resumo-item"><strong id="total-medicos-equipe">0</strong><span>médicos cadastrados</span></div>
-        <div class="mapa-resumo-item"><strong id="total-medicos-vinculados">0</strong><span>com consultório</span></div>
-        <div class="mapa-resumo-item"><strong id="total-consultorios-operacional">0</strong><span>consultórios no mapa</span></div>
+    <!-- ============================================================
+         ETAPA 1 — LOCAIS E CONSULTÓRIOS
+         ============================================================ -->
+    <section id="aba-locais" class="mapa-aba-conteudo">
+      <!-- Cartões de indicadores da Etapa 1 -->
+      <div class="mapa-indicadores-grid" aria-label="Indicadores de locais e consultórios">
+        <div class="mapa-indicador-card">
+          <div class="mapa-indicador-icone azul"><i class="fas fa-map-marker-alt"></i></div>
+          <div class="mapa-indicador-dados">
+            <strong id="ind-total-locais">0</strong>
+            <span>Total de locais cadastrados</span>
+          </div>
+        </div>
+        <div class="mapa-indicador-card">
+          <div class="mapa-indicador-icone verde"><i class="fas fa-door-open"></i></div>
+          <div class="mapa-indicador-dados">
+            <strong id="ind-total-consultorios">0</strong>
+            <span>Consultórios</span>
+          </div>
+        </div>
+        <div class="mapa-indicador-card">
+          <div class="mapa-indicador-icone alerta" id="ind-icone-sem-orientacao"><i class="fas fa-compass"></i></div>
+          <div class="mapa-indicador-dados">
+            <strong id="ind-destinos-sem-orientacao">0</strong>
+            <span>Destinos sem orientação</span>
+          </div>
+        </div>
+        <div class="mapa-indicador-card">
+          <div class="mapa-indicador-icone info"><i class="fas fa-clipboard-check"></i></div>
+          <div class="mapa-indicador-dados">
+            <strong id="ind-status-configuracao" class="mapa-indicador-status-texto">Em configuração</strong>
+            <span>Status da configuração</span>
+          </div>
+        </div>
       </div>
 
+      <!-- Tabela de Locais da Unidade -->
+      <section class="card mapa-secao-card">
+        <div class="card-header mapa-card-header">
+          <div>
+            <h2>Locais e consultórios da unidade</h2>
+            <p>Gerencie os locais de atendimento e pontos de referência sem precisar informar coordenadas ou códigos técnicos.</p>
+          </div>
+          <div class="mapa-header-controles">
+            <select id="filtro-tipo-local" class="mapa-filtro-select" aria-label="Filtrar por tipo de local">
+              <option value="">Todos os tipos</option>
+              <option value="consultorio">Consultórios</option>
+              <option value="atendimento">Destinos de atendimento</option>
+              <option value="apoio">Apoio e circulação</option>
+            </select>
+            <button type="button" id="btn-adicionar-local" class="btn btn-primary">
+              + Adicionar local
+            </button>
+          </div>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-container mapa-locais-tabela-wrap">
+            <table class="table mapa-locais-tabela">
+              <thead>
+                <tr>
+                  <th>Nome do local</th>
+                  <th>Tipo de local</th>
+                  <th>Bloco</th>
+                  <th>Andar</th>
+                  <th>Número da sala</th>
+                  <th>Status da orientação</th>
+                  <th class="text-right">Ações disponíveis</th>
+                </tr>
+              </thead>
+              <tbody id="lista-locais-unidade"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Associação de Médicos e Consultórios (preservado e integrado) -->
       <section class="card mapa-equipe-card">
         <div class="card-header mapa-card-header">
           <div>
             <h2>Médicos e consultórios</h2>
-            <p>Defina a sala principal de cada médico nesta unidade. Especialidade e CRM vêm do cadastro do usuário.</p>
+            <p>Vincule cada médico ao seu consultório de atendimento nesta unidade. As opções são carregadas diretamente dos consultórios cadastrados acima.</p>
           </div>
-          <a href="index.html?pagina=funcionarios" class="btn btn-primary btn-sm">+ Cadastrar médico</a>
+          <div class="mapa-equipe-topo-acoes">
+            <span class="mapa-mini-resumo"><strong id="total-medicos-equipe">0</strong> médicos • <strong id="total-medicos-vinculados">0</strong> vinculados (<strong id="total-consultorios-operacional">0</strong> consultórios)</span>
+            <a href="index.html?pagina=funcionarios" class="btn btn-outline btn-sm"><i class="fas fa-user-md"></i> + Cadastrar médico</a>
+          </div>
         </div>
         <div class="card-body">
           <div class="table-container mapa-equipe-tabela">
             <table class="table">
-              <thead><tr><th>Médico</th><th>Especialidade</th><th>CRM</th><th>Consultório principal</th><th>Ação</th></tr></thead>
+              <thead>
+                <tr>
+                  <th>Médico</th>
+                  <th>Especialidade</th>
+                  <th>CRM</th>
+                  <th>Consultório principal</th>
+                  <th>Ação</th>
+                </tr>
+              </thead>
               <tbody id="lista-equipe-medicos"></tbody>
             </table>
           </div>
-          <p class="mapa-texto-ajuda">O vínculo é salvo centralmente por CPF e unidade. Se a sala ainda existir apenas no rascunho, publique o mapa antes de usá-la nas chamadas.</p>
+          <p class="mapa-texto-ajuda">
+            O vínculo é persistido no banco de dados por CPF e unidade. Se um consultório mudar de nome ou localização, seus vínculos são mantidos automaticamente.
+          </p>
         </div>
       </section>
 
-      <section class="card">
-        <div class="card-header mapa-card-header">
-          <div>
-            <h2>Consultórios da unidade</h2>
-            <p>Cadastre a sala uma vez. O sistema cria o ponto, o destino e o caminho automaticamente.</p>
-          </div>
-          <button type="button" id="btn-novo-consultorio-rapido" class="btn btn-primary btn-sm">+ Novo consultório</button>
-        </div>
-        <div class="card-body">
-          <div id="lista-consultorios-operacional" class="mapa-cartoes-consultorios"></div>
-        </div>
-      </section>
-
-      <section id="card-form-consultorio" class="card mapa-form-consultorio" hidden>
-        <div class="card-header">
-          <h2 id="titulo-form-consultorio">Novo consultório</h2>
-          <p>Sem identificadores técnicos ou coordenadas: eles serão gerados automaticamente.</p>
-        </div>
-        <div class="card-body">
-          <form id="form-consultorio-rapido">
-            <input type="hidden" id="consultorio-original">
-            <div class="form-row">
-              <div class="form-group">
-                <label for="consultorio-numero">Número da sala *</label>
-                <input id="consultorio-numero" type="text" required placeholder="Ex.: 3">
-              </div>
-              <div class="form-group">
-                <label for="consultorio-nome">Nome exibido *</label>
-                <input id="consultorio-nome" type="text" required placeholder="Ex.: Consultório 3">
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label for="consultorio-bloco">Bloco / ala</label>
-                <input id="consultorio-bloco" type="text" placeholder="Ex.: Bloco B">
-              </div>
-              <div class="form-group">
-                <label for="consultorio-andar">Andar</label>
-                <input id="consultorio-andar" type="text" placeholder="Ex.: Térreo">
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label for="consultorio-origem">Caminho a partir de *</label>
-                <select id="consultorio-origem" required></select>
-              </div>
-              <div class="form-group">
-                <label for="consultorio-tempo">Tempo estimado (segundos) *</label>
-                <input id="consultorio-tempo" type="number" min="0" step="1" value="30" required>
-              </div>
-            </div>
-            <div class="form-group mapa-check-linha">
-              <label><input id="consultorio-acessivel" type="checkbox" checked> Caminho sem escadas ou obstáculos conhecidos</label>
-            </div>
-            <div class="form-group">
-              <label for="consultorio-instrucao">Orientação ao paciente</label>
-              <textarea id="consultorio-instrucao" rows="3" placeholder="Se ficar em branco, uma orientação objetiva será gerada."></textarea>
-            </div>
-            <div class="mapa-form-acoes">
-              <button type="submit" class="btn btn-primary">Salvar consultório</button>
-              <button type="button" id="btn-cancelar-consultorio" class="btn btn-secondary">Cancelar</button>
-            </div>
-          </form>
-        </div>
-      </section>
+      <div class="mapa-rodape-etapa">
+        <div></div>
+        <button type="button" class="btn btn-primary" data-ir-aba="orientacoes">
+          Continuar para 2. Orientações <i class="fas fa-arrow-right"></i>
+        </button>
+      </div>
     </section>
 
-    <!-- PLANTA AVANÇADA -->
-    <section id="aba-pontos" class="mapa-aba-conteudo" hidden>
-      <div class="mapa-grade-editor">
-        <section class="card mapa-canvas-card">
+    <!-- ============================================================
+         ETAPA 2 — ORIENTAÇÕES
+         ============================================================ -->
+    <section id="aba-orientacoes" class="mapa-aba-conteudo" hidden>
+      <div class="card mapa-orientacoes-intro">
+        <div class="card-body mapa-orientacoes-intro-body">
+          <div class="mapa-orientacoes-icone"><i class="fas fa-Signs-post fa-route"></i></div>
+          <div>
+            <h2>Orientações para os pacientes</h2>
+            <p>Defina como chegar aos locais de atendimento. O Vida+ utilizará essas informações para orientar os pacientes no telão.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="mapa-grade-orientacoes">
+        <!-- Coluna lateral: Lista rápida de destinos para seleção -->
+        <aside class="card mapa-lista-destinos-lateral">
+          <div class="card-header">
+            <h3>Destinos de atendimento</h3>
+            <p>Clique em um local para configurar ou editar sua orientação.</p>
+          </div>
+          <div class="card-body p-0">
+            <div id="lista-lateral-destinos" class="mapa-destinos-menu"></div>
+          </div>
+        </aside>
+
+        <!-- Coluna principal: Formulário de orientação -->
+        <section class="card mapa-form-orientacao-card">
           <div class="card-header mapa-card-header">
             <div>
-              <h2>Planta esquemática</h2>
-              <p>Clique em um ponto para editar ou arraste-o para reposicionar.</p>
+              <h3 id="titulo-orientacao-atual">Configurar orientação do destino</h3>
+              <p id="subtitulo-orientacao-atual">Selecione o destino e informe como o paciente deve se deslocar até o local.</p>
             </div>
-            <button type="button" id="btn-novo-ponto" class="btn btn-primary btn-sm">+ Novo ponto</button>
+            <span id="badge-status-orientacao-atual" class="badge badge-secondary">—</span>
           </div>
           <div class="card-body">
-            <div id="editor-mapa" class="editor-mapa" aria-label="Editor visual da planta"></div>
-            <div class="mapa-legenda">
-              <span><i class="legenda-inicio"></i> Início na recepção</span>
-              <span><i class="legenda-acessivel"></i> Caminho acessível</span>
-              <span><i class="legenda-obstaculo"></i> Escada/obstáculo</span>
-            </div>
-            <div class="mapa-canvas-rodape">
-              <small>As coordenadas também podem ser informadas nos campos ao lado, sem usar o mouse.</small>
-              <button type="button" id="btn-gerar-areas" class="btn btn-secondary btn-sm">Reorganizar fundos das áreas</button>
-            </div>
-          </div>
-        </section>
+            <form id="form-orientacao" novalidate>
+              <!-- Destino e Ponto Inicial -->
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="orientacao-destino">Destino *</label>
+                  <select id="orientacao-destino" required></select>
+                  <small id="orientacao-destino-detalhe">Local de atendimento para o qual o paciente será chamado.</small>
+                </div>
+                <div class="form-group">
+                  <label for="orientacao-ponto-inicial">Ponto inicial *</label>
+                  <select id="orientacao-ponto-inicial" required></select>
+                  <small>Local de onde o paciente parte (ex.: Recepção, Triagem, Sala de espera).</small>
+                </div>
+              </div>
 
-        <aside class="card mapa-inspector">
-          <div class="card-header">
-            <h2>Ponto selecionado</h2>
-            <p>Recepção, triagem, consultório, elevador ou passagem.</p>
-          </div>
-          <div class="card-body">
-            <form id="form-ponto">
-              <input type="hidden" id="ponto-id-original">
+              <!-- Localização do destino -->
               <div class="form-group">
-                <label for="ponto-id">Identificador único *</label>
-                <input id="ponto-id" type="text" required pattern="[A-Za-z0-9_-]+" placeholder="ex.: consultorio_3">
-                <small>Use letras, números, hífen ou sublinhado. Não pode se repetir.</small>
-              </div>
-              <div class="form-group">
-                <label for="ponto-nome">Nome exibido *</label>
-                <input id="ponto-nome" type="text" required placeholder="ex.: Consultório 3">
-              </div>
-              <div class="form-group">
-                <label for="ponto-tipo">Tipo de ponto</label>
-                <select id="ponto-tipo">
-                  <option value="local">Local / passagem</option>
-                  <option value="inicio">Recepção / início</option>
-                  <option value="corredor">Corredor</option>
-                  <option value="triagem">Triagem</option>
-                  <option value="consultorio">Consultório</option>
-                  <option value="guiche">Guichê</option>
-                  <option value="elevador">Elevador</option>
-                  <option value="escada">Escada</option>
+                <label for="orientacao-localizacao">Localização do destino *</label>
+                <select id="orientacao-localizacao" required>
+                  <option value="">Selecione a localização...</option>
+                  <option value="mesmo_andar">Mesmo andar</option>
+                  <option value="outro_andar">Outro andar</option>
+                  <option value="outro_bloco">Outro bloco</option>
+                  <option value="area_externa">Área externa</option>
+                  <option value="sem_divisao">Unidade sem divisão por andares</option>
                 </select>
+                <small id="orientacao-localizacao-ajuda">Preenchido com base nos dados reais cadastrados para o local, podendo ser ajustado se necessário.</small>
               </div>
-              <div class="form-row">
-                <div class="form-group">
-                  <label for="ponto-bloco">Bloco / ala</label>
-                  <input id="ponto-bloco" type="text" placeholder="Bloco A">
-                </div>
-                <div class="form-group">
-                  <label for="ponto-andar">Andar</label>
-                  <input id="ponto-andar" type="text" placeholder="Térreo">
+
+              <!-- Reutilização de orientações (Item 4) -->
+              <div class="mapa-reutilizar-box">
+                <label class="mapa-check-linha">
+                  <input type="checkbox" id="orientacao-reutilizar">
+                  <span><strong>Utilizar orientação de outro destino</strong> (para consultórios ou salas que compartilham o mesmo percurso)</span>
+                </label>
+                <div id="painel-reutilizar-orientacao" class="mapa-reutilizar-painel" hidden>
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label for="orientacao-base-destino">Escolher orientação já cadastrada *</label>
+                      <select id="orientacao-base-destino">
+                        <option value="">Selecione um destino com orientação configurada…</option>
+                      </select>
+                      <small>Os dados do percurso selecionado servirão como base editável para este destino.</small>
+                    </div>
+                    <div class="form-group">
+                      <label for="orientacao-complemento">Instruções específicas para este destino / consultório</label>
+                      <input type="text" id="orientacao-complemento" placeholder="Informe a referência específica confirmada para este destino">
+                      <small>Acrescente somente detalhes verificados pela unidade.</small>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div class="form-row">
-                <div class="form-group">
-                  <label for="ponto-x">Posição X</label>
-                  <input id="ponto-x" type="number" min="15" max="625" step="1" required>
+
+              <!-- Como chegar (Item 3) -->
+              <div class="form-group">
+                <div class="mapa-label-linha">
+                  <label>Como chegar *</label>
+                  <button type="button" id="btn-alternar-opcoes-como-chegar" class="btn btn-ghost btn-sm">
+                    <i class="fas fa-sliders-h"></i> <span id="texto-btn-opcoes-como-chegar">Mostrar todas as opções</span>
+                  </button>
                 </div>
-                <div class="form-group">
-                  <label for="ponto-y">Posição Y</label>
-                  <input id="ponto-y" type="number" min="25" max="305" step="1" required>
+                <small id="ajuda-compatibilidade-como-chegar" class="mapa-texto-ajuda mb-2">
+                  Selecione as instruções reais do percurso. Apenas opções compatíveis com a localização atual são destacadas por padrão.
+                </small>
+                <div id="grupo-como-chegar" class="mapa-opcoes-como-chegar">
+                  <label class="mapa-chip-opcao" data-opcao-chegar="seguir_corredor">
+                    <input type="checkbox" name="como_chegar" value="seguir_corredor">
+                    <span><i class="fas fa-arrows-alt-h"></i> Seguir pelo corredor</span>
+                  </label>
+                  <label class="mapa-chip-opcao" data-opcao-chegar="utilizar_elevador">
+                    <input type="checkbox" name="como_chegar" value="utilizar_elevador">
+                    <span><i class="fas fa-elevator"></i> Utilizar o elevador</span>
+                  </label>
+                  <label class="mapa-chip-opcao" data-opcao-chegar="utilizar_escada">
+                    <input type="checkbox" name="como_chegar" value="utilizar_escada">
+                    <span><i class="fas fa-stairs"></i> Utilizar a escada</span>
+                  </label>
+                  <label class="mapa-chip-opcao" data-opcao-chegar="seguir_placas">
+                    <input type="checkbox" name="como_chegar" value="seguir_placas">
+                    <span><i class="fas fa-signs-post"></i> Seguir as placas indicativas</span>
+                  </label>
+                  <label class="mapa-chip-opcao" data-opcao-chegar="passar_recepcao">
+                    <input type="checkbox" name="como_chegar" value="passar_recepcao">
+                    <span><i class="fas fa-concierge-bell"></i> Passar pela recepção</span>
+                  </label>
+                  <label class="mapa-chip-opcao" data-opcao-chegar="passagem_acessivel">
+                    <input type="checkbox" name="como_chegar" value="passagem_acessivel">
+                    <span><i class="fas fa-wheelchair"></i> Utilizar uma passagem acessível</span>
+                  </label>
+                  <label class="mapa-chip-opcao" data-opcao-chegar="solicitar_equipe">
+                    <input type="checkbox" name="como_chegar" value="solicitar_equipe">
+                    <span><i class="fas fa-Hands-helping fa-user-nurse"></i> Solicitar orientação à equipe</span>
+                  </label>
+                  <label class="mapa-chip-opcao" data-opcao-chegar="outra_instrucao">
+                    <input type="checkbox" name="como_chegar" value="outra_instrucao">
+                    <span><i class="fas fa-pen"></i> Informar outra instrução</span>
+                  </label>
                 </div>
               </div>
-              <div class="mapa-form-acoes">
-                <button type="submit" class="btn btn-primary">Salvar ponto</button>
-                <button type="button" id="btn-ponto-inicial" class="btn btn-secondary">Definir como início</button>
-                <button type="button" id="btn-excluir-ponto" class="btn btn-danger">Excluir</button>
+
+              <div id="grupo-outra-instrucao" class="form-group" hidden>
+                <label for="orientacao-outra-instrucao">Outra instrução confirmada pela unidade *</label>
+                <input type="text" id="orientacao-outra-instrucao" placeholder="Informe a referência ou instrução real da unidade">
+              </div>
+
+              <!-- Orientação para o paciente + Gerar sugestão -->
+              <div class="form-group mapa-orientacao-texto-grupo">
+                <div class="mapa-label-linha">
+                  <label for="orientacao-texto">Orientação para o paciente *</label>
+                  <button type="button" id="btn-gerar-sugestao" class="btn btn-secondary btn-sm">
+                    <i class="fas fa-magic"></i> Gerar sugestão de orientação
+                  </button>
+                </div>
+                <textarea id="orientacao-texto" rows="4" required
+                  placeholder="Descreva o percurso confirmado pela unidade a partir do ponto inicial."></textarea>
+                <small>
+                  Escreva ou gere uma sugestão baseada nos dados reais cadastrados. Você pode editar livremente antes de salvar.
+                </small>
+                <div id="orientacao-passos-previa-box" class="mapa-passos-previa-inline" hidden>
+                  <strong>Exibição em passos no telão:</strong>
+                  <ol id="orientacao-passos-previa-lista"></ol>
+                </div>
+              </div>
+
+              <!-- Informações de Acessibilidade (Item 5) -->
+              <div class="mapa-acessibilidade-box">
+                <div class="mapa-acessibilidade-cab">
+                  <h4><i class="fas fa-universal-access"></i> Informações de acessibilidade</h4>
+                  <p>As condições reais devem ser confirmadas pela unidade. O sistema não considera um percurso acessível automaticamente apenas porque existe elevador.</p>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="acess-elevador">Existe elevador acessível?</label>
+                    <select id="acess-elevador">
+                      <option value="nao_informado">Não informado</option>
+                      <option value="nao_aplicavel">Não se aplica</option>
+                      <option value="sim">Sim</option>
+                      <option value="nao">Não</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="acess-escadas">Existem escadas no percurso?</label>
+                    <select id="acess-escadas">
+                      <option value="nao_informado">Não informado</option>
+                      <option value="nao">Não</option>
+                      <option value="sim">Sim</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="acess-alternativa">Há uma alternativa sem escadas?</label>
+                    <select id="acess-alternativa">
+                      <option value="nao_informado">Ainda não confirmado pela unidade</option>
+                      <option value="sim">Sim</option>
+                      <option value="nao">Não há alternativa sem escadas</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="acess-restricoes">Existem restrições conhecidas?</label>
+                    <select id="acess-restricoes">
+                      <option value="nao_informado">Não informado</option>
+                      <option value="nenhuma">Nenhuma restrição conhecida</option>
+                      <option value="possui">Sim, registrar restrição de acessibilidade</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div id="grupo-perfis-restritos" class="form-group" hidden>
+                  <label>Percurso não adequado para os seguintes perfis (quando conhecido):</label>
+                  <div class="mapa-perfis-restritos-grid">
+                    <label class="mapa-check-linha">
+                      <input type="checkbox" name="acess_perfil" value="cadeirante">
+                      <span>Pessoa em cadeira de rodas</span>
+                    </label>
+                    <label class="mapa-check-linha">
+                      <input type="checkbox" name="acess_perfil" value="mobilidade_reduzida">
+                      <span>Mobilidade reduzida / andador ou muletas</span>
+                    </label>
+                    <label class="mapa-check-linha">
+                      <input type="checkbox" name="acess_perfil" value="maca">
+                      <span>Transporte em maca</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="form-group" id="grupo-restricoes-detalhes" hidden>
+                  <label for="acess-restricoes-detalhes">Detalhes das restrições conhecidas</label>
+                  <input type="text" id="acess-restricoes-detalhes" placeholder="Descreva a restrição e como solicitar auxílio">
+                </div>
+                <div class="form-group sem-margem">
+                  <label for="acess-observacoes">Observações adicionais de acessibilidade</label>
+                  <input type="text" id="acess-observacoes" placeholder="Ex.: Em caso de mobilidade reduzida, solicite apoio na recepção para acesso pela rampa.">
+                </div>
+              </div>
+
+              <!-- Ações do formulário de orientação -->
+              <div class="mapa-form-acoes mapa-acoes-orientacao">
+                <button type="submit" id="btn-salvar-orientacao" class="btn btn-primary">
+                  <i class="fas fa-save"></i> Salvar orientação
+                </button>
+                <button type="button" id="btn-visualizar-telao" class="btn btn-secondary">
+                  <i class="fas fa-tv"></i> Visualizar no telão
+                </button>
+                <button type="button" id="btn-cancelar-orientacao" class="btn btn-outline">
+                  Cancelar alterações
+                </button>
               </div>
             </form>
           </div>
-        </aside>
+        </section>
+      </div>
+
+      <div class="mapa-rodape-etapa">
+        <button type="button" class="btn btn-secondary" data-ir-aba="locais">
+          <i class="fas fa-arrow-left"></i> Voltar para 1. Locais e consultórios
+        </button>
+        <button type="button" class="btn btn-primary" data-ir-aba="revisao">
+          Continuar para 3. Revisar e publicar <i class="fas fa-arrow-right"></i>
+        </button>
       </div>
     </section>
 
-    <!-- CAMINHOS -->
-    <section id="aba-caminhos" class="mapa-aba-conteudo" hidden>
-      <div class="mapa-grade-caminhos">
+    <!-- ============================================================
+         ETAPA 3 — REVISAR E PUBLICAR
+         ============================================================ -->
+    <section id="aba-revisao" class="mapa-aba-conteudo" hidden>
+      <!-- Indicadores da Etapa 3 -->
+      <div class="mapa-indicadores-grid mapa-indicadores-5" aria-label="Indicadores de revisão e publicação">
+        <div class="mapa-indicador-card">
+          <div class="mapa-indicador-icone azul"><i class="fas fa-building"></i></div>
+          <div class="mapa-indicador-dados">
+            <strong id="rev-total-locais">0</strong>
+            <span>Total de locais cadastrados</span>
+          </div>
+        </div>
+        <div class="mapa-indicador-card">
+          <div class="mapa-indicador-icone verde"><i class="fas fa-check-double"></i></div>
+          <div class="mapa-indicador-dados">
+            <strong id="rev-destinos-configurados">0</strong>
+            <span>Destinos com orientação</span>
+          </div>
+        </div>
+        <div class="mapa-indicador-card">
+          <div class="mapa-indicador-icone alerta" id="rev-icone-pendentes"><i class="fas fa-exclamation-circle"></i></div>
+          <div class="mapa-indicador-dados">
+            <strong id="rev-destinos-pendentes">0</strong>
+            <span>Destinos pendentes</span>
+          </div>
+        </div>
+        <div class="mapa-indicador-card">
+          <div class="mapa-indicador-icone info"><i class="fas fa-broadcast-tower"></i></div>
+          <div class="mapa-indicador-dados">
+            <strong id="rev-status-publicacao" class="mapa-indicador-status-texto">Não publicado</strong>
+            <span>Status da publicação</span>
+          </div>
+        </div>
+        <div class="mapa-indicador-card">
+          <div class="mapa-indicador-icone neutro"><i class="fas fa-clock"></i></div>
+          <div class="mapa-indicador-dados">
+            <strong id="rev-data-publicacao" class="mapa-indicador-status-texto">—</strong>
+            <span>Última publicação</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="mapa-grade-revisao">
+        <!-- Lista de pendências com botão Corrigir -->
         <section class="card">
           <div class="card-header mapa-card-header">
             <div>
-              <h2>Ligações entre pontos</h2>
-              <p>Cadastre o sentido real do percurso. Para mão dupla, crie ida e volta.</p>
+              <h2>Pendências e requisitos obrigatórios</h2>
+              <p>Locais de apoio ou circulação (como recepção, corredores e elevadores) não exigem orientação de destino.</p>
             </div>
-            <button type="button" id="btn-nova-ligacao" class="btn btn-primary btn-sm">+ Nova ligação</button>
+            <button type="button" id="btn-revalidar-pendencias" class="btn btn-secondary btn-sm">
+              <i class="fas fa-sync-alt"></i> Revalidar
+            </button>
           </div>
-          <div class="table-container mapa-tabela-container">
-            <table class="table mapa-tabela">
-              <thead><tr><th>De</th><th>Para</th><th>Peso</th><th>Tempo</th><th>Acessível</th><th>Ações</th></tr></thead>
-              <tbody id="lista-caminhos"></tbody>
-            </table>
+          <div class="card-body">
+            <div id="lista-pendencias-revisao" class="mapa-lista-pendencias"></div>
+            <div id="lista-validacao" class="mapa-validacao mt-3" hidden></div>
           </div>
         </section>
 
-        <aside class="card mapa-inspector">
-          <div class="card-header">
-            <h2 id="titulo-form-ligacao">Nova ligação</h2>
-            <p>O motor usa o menor peso e prioriza percursos totalmente acessíveis.</p>
+        <!-- Prévia do Telão com Dados Reais -->
+        <section class="card" id="card-previa-telao">
+          <div class="card-header mapa-card-header">
+            <div>
+              <h2>Prévia do telão</h2>
+              <p>Simulação fiel utilizando os locais, médicos vinculados e orientações reais cadastrados.</p>
+            </div>
+            <div class="mapa-previa-seletor">
+              <label for="previa-destino-select" class="sr-only">Selecionar destino da prévia</label>
+              <select id="previa-destino-select" aria-label="Selecionar destino para visualizar no telão"></select>
+            </div>
           </div>
           <div class="card-body">
-            <form id="form-ligacao">
-              <input type="hidden" id="ligacao-indice" value="">
-              <div class="form-row">
-                <div class="form-group">
-                  <label for="ligacao-de">Ponto de origem *</label>
-                  <select id="ligacao-de" required></select>
-                </div>
-                <div class="form-group">
-                  <label for="ligacao-para">Ponto de destino *</label>
-                  <select id="ligacao-para" required></select>
-                </div>
+            <p id="previa-aviso-rascunho" class="mapa-texto-ajuda mb-2">Prévia do rascunho. A senha é apenas ilustrativa.</p>
+            <div id="previa-telao-widget" class="previa-tv-card">
+              <div class="previa-tv-topo">
+                <span class="previa-tv-marca" id="previa-tv-unidade">VIDA+ — UBS CENTRAL</span>
+                <span class="previa-tv-tag">CHAMADA NO TELÃO</span>
               </div>
-              <div class="form-row">
-                <div class="form-group">
-                  <label for="ligacao-peso">Peso da rota *</label>
-                  <input id="ligacao-peso" type="number" min="0.1" step="0.1" value="1" required>
-                  <small>Menor peso = caminho preferido.</small>
+              <div class="previa-tv-chamada">
+                <div class="previa-tv-senha" id="previa-tv-senha">SENHA 042</div>
+                <div class="previa-tv-instrucao-geral">DIRIJA-SE AO ATENDIMENTO</div>
+              </div>
+              <div class="previa-tv-detalhes">
+                <div class="previa-tv-linha">
+                  <strong>Destino:</strong> <span id="previa-tv-destino">—</span>
                 </div>
-                <div class="form-group">
-                  <label for="ligacao-tempo">Tempo em segundos *</label>
-                  <input id="ligacao-tempo" type="number" min="0" step="1" value="30" required>
+                <div class="previa-tv-linha">
+                  <strong>Localização:</strong> <span id="previa-tv-localizacao">—</span>
+                </div>
+                <div class="previa-tv-linha" id="previa-tv-linha-medico">
+                  <strong id="previa-tv-rotulo-medico">Médico(a):</strong> <span id="previa-tv-medico">—</span>
                 </div>
               </div>
-              <div class="form-group mapa-check-linha">
-                <label><input id="ligacao-acessivel" type="checkbox" checked> Sem escadas ou obstáculos conhecidos</label>
+              <div class="previa-tv-orientacao">
+                <div class="previa-tv-orientacao-titulo">Como chegar:</div>
+                <ol id="previa-tv-passos" class="previa-tv-passos"></ol>
+                <div id="previa-tv-sem-orientacao" class="previa-tv-neutra" hidden>
+                  Consulte a recepção para obter orientações.
+                </div>
+                <div id="previa-tv-acessibilidade" class="previa-tv-acessibilidade"></div>
               </div>
-              <div class="form-group">
-                <label for="ligacao-instrucao">Instrução para o paciente *</label>
-                <textarea id="ligacao-instrucao" rows="5" required placeholder="Saia da recepção, vire à direita e siga as placas para a Triagem."></textarea>
-                <small>Descreva referências reais e o sentido do deslocamento.</small>
-              </div>
-              <div class="mapa-form-acoes">
-                <button type="submit" class="btn btn-primary">Salvar ligação</button>
-                <button type="button" id="btn-cancelar-ligacao" class="btn btn-secondary">Limpar</button>
-              </div>
-            </form>
+            </div>
           </div>
-        </aside>
+        </section>
+      </div>
+
+      <!-- Publicação e Rascunho -->
+      <section class="card mapa-publicacao">
+        <div class="card-header">
+          <h2>Publicação para o telão</h2>
+          <p>Enquanto não publicada, qualquer alteração permanece salva como rascunho sem alterar o telão em produção.</p>
+        </div>
+        <div class="card-body mapa-publicacao-rodape">
+          <div class="mapa-publicacao-info">
+            <p>Ao clicar em <strong>Validar e publicar</strong>, o sistema verificará os locais, os destinos utilizados e as orientações obrigatórias, apresentando um resumo das alterações para sua confirmação.</p>
+          </div>
+          <div class="mapa-publicacao-botoes">
+            <button type="button" id="btn-salvar-rascunho-revisao" class="btn btn-secondary">
+              <i class="fas fa-save"></i> Salvar rascunho
+            </button>
+            <button type="button" id="btn-validar-publicar" class="btn btn-primary">
+              <i class="fas fa-check-circle"></i> Validar e publicar
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <div class="mapa-rodape-etapa">
+        <button type="button" class="btn btn-secondary" data-ir-aba="orientacoes">
+          <i class="fas fa-arrow-left"></i> Voltar para 2. Orientações
+        </button>
+        <div></div>
       </div>
     </section>
 
-    <!-- DESTINOS, TESTE E PUBLICAÇÃO -->
-    <section id="aba-destinos" class="mapa-aba-conteudo" hidden>
-      <div class="mapa-grade-destinos">
-        <section class="card">
-          <div class="card-header"><h2>Destinos das chamadas</h2><p>Ligue os dados do atendimento aos pontos da planta.</p></div>
-          <div class="card-body">
-            <div class="form-group">
-              <label for="mapa-nome">Nome do mapa</label>
-              <input id="mapa-nome" type="text" placeholder="Planta da unidade">
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label for="mapa-ponto-inicial">Ponto inicial das rotas *</label>
-                <select id="mapa-ponto-inicial"></select>
-              </div>
-              <div class="form-group">
-                <label for="destino-triagem">Destino da triagem *</label>
-                <select id="destino-triagem"></select>
-              </div>
-            </div>
-            <button type="button" id="btn-salvar-destinos-basicos" class="btn btn-primary">Salvar configuração</button>
+    <!-- ============================================================
+         SEÇÃO OPCIONAL — CONFIGURAÇÕES AVANÇADAS DE NAVEGAÇÃO (ITEM 8)
+         ============================================================ -->
+    <section class="card mapa-avancado-card" aria-label="Configurações avançadas de navegação">
+      <div class="card-body mapa-avancado-banner">
+        <div class="mapa-avancado-texto">
+          <div class="mapa-avancado-icone"><i class="fas fa-drafting-compass"></i></div>
+          <div>
+            <h2>Configurações avançadas de navegação</h2>
+            <p>Para unidades que precisam de mapas internos e percursos gráficos, configure a planta e as rotas avançadas.</p>
           </div>
-        </section>
-
-        <section class="card">
-          <div class="card-header mapa-card-header"><h2>Consultórios — edição avançada</h2><button type="button" id="btn-add-consultorio" class="btn btn-secondary btn-sm">+ Destino manual</button></div>
-          <div class="card-body">
-            <div id="lista-destinos-consultorios" class="mapa-lista-destinos"></div>
-            <p class="mapa-texto-ajuda">No dia a dia, use <strong>Equipe e salas</strong>. Esta seção permite ajustar manualmente números e pontos, se necessário.</p>
-          </div>
-        </section>
-
-        <section class="card">
-          <div class="card-header mapa-card-header"><h2>Guichês de triagem (opcional)</h2><button type="button" id="btn-add-guiche" class="btn btn-secondary btn-sm">+ Guichê</button></div>
-          <div class="card-body">
-            <div id="lista-destinos-guiches" class="mapa-lista-destinos"></div>
-            <p class="mapa-texto-ajuda">Quando houver um guichê mapeado, ele terá prioridade sobre o destino geral da triagem.</p>
-          </div>
-        </section>
-
-        <section class="card">
-          <div class="card-header"><h2>Testar uma rota</h2><p>O teste usa o rascunho atual e não interfere no telão.</p></div>
-          <div class="card-body">
-            <div class="form-row">
-              <div class="form-group">
-                <label for="teste-tipo">Tipo de chamada</label>
-                <select id="teste-tipo"><option value="triagem">Triagem</option><option value="consulta">Consulta</option></select>
-              </div>
-              <div class="form-group" id="grupo-teste-consultorio" hidden>
-                <label for="teste-consultorio">Consultório</label>
-                <select id="teste-consultorio"></select>
-              </div>
-              <div class="form-group" id="grupo-teste-guiche">
-                <label for="teste-guiche">Guichê (opcional)</label>
-                <select id="teste-guiche"><option value="">Destino geral da triagem</option></select>
-              </div>
-            </div>
-            <button type="button" id="btn-testar-rota" class="btn btn-primary">Calcular rota do rascunho</button>
-          </div>
-        </section>
+        </div>
+        <button type="button" id="btn-abrir-mapeamento-avancado" class="btn btn-outline" aria-expanded="false">
+          <i class="fas fa-map"></i> <span id="texto-btn-mapeamento-avancado">Abrir mapeamento avançado</span>
+        </button>
       </div>
 
-      <section id="teste-resultado" class="card mapa-teste-resultado" hidden>
-        <div class="card-header"><h2 id="teste-titulo">Prévia da rota</h2><p id="teste-resumo"></p></div>
-        <div class="card-body mapa-teste-grade">
-          <div id="teste-mapa" class="editor-mapa mapa-preview"></div>
-          <div>
-            <h3>Passo a passo</h3>
-            <ol id="teste-passos" class="mapa-passos"></ol>
+      <div id="painel-mapeamento-avancado" class="mapa-avancado-painel" hidden>
+        <div class="mapa-avancado-opcoes-barra">
+          <label class="mapa-check-linha">
+            <input type="checkbox" id="chk-usar-mapa-grafico">
+            <span><strong>Exibir planta gráfica no telão</strong> (somente quando os pontos, coordenadas e ligações do percurso estiverem completos e validados)</span>
+          </label>
+          <div class="mapa-sub-abas">
+            <button type="button" class="btn btn-secondary btn-sm ativa" data-subaba-avancada="planta">Planta e coordenadas</button>
+            <button type="button" class="btn btn-secondary btn-sm" data-subaba-avancada="ligacoes">Ligações entre pontos (<span id="total-caminhos">0</span>)</button>
+            <button type="button" class="btn btn-secondary btn-sm" data-subaba-avancada="destinos-avancados">Vínculos técnicos e teste gráfico</button>
           </div>
         </div>
-      </section>
 
-      <section class="card mapa-publicacao">
-        <div class="card-header"><h2>Validação e publicação</h2><p>A publicação substitui no telão apenas o mapa desta unidade.</p></div>
-        <div class="card-body mapa-publicacao-grade">
-          <div>
-            <div id="lista-validacao" class="mapa-validacao">
-              <p>Execute a validação para conferir pontos, ligações e destinos.</p>
-            </div>
-            <button type="button" id="btn-validar" class="btn btn-secondary">Validar todos os percursos</button>
-          </div>
-          <div class="mapa-confirmacao">
-            <label class="mapa-check-destaque">
-              <input id="confirmacao-validacao" type="checkbox">
-              <span><strong>Confirmo a validação presencial.</strong> Conferi na unidade os percursos, sentidos, andares, acessibilidade e tempos desta versão.</span>
-            </label>
-            <button type="button" id="btn-publicar" class="btn btn-primary">Publicar no telão</button>
-            <small>A direção por voz só será incluída nos anúncios depois desta publicação.</small>
+        <!-- SUB-ABA AVANÇADA 1: PLANTA E COORDENADAS -->
+        <div id="subaba-planta" class="mapa-subaba-conteudo">
+          <div class="mapa-grade-editor">
+            <section class="card mapa-canvas-card">
+              <div class="card-header mapa-card-header">
+                <div>
+                  <h2>Planta esquemática</h2>
+                  <p>Clique em um ponto para editar suas coordenadas ou arraste-o para reposicionar no mapa gráfico.</p>
+                </div>
+                <button type="button" id="btn-novo-ponto" class="btn btn-primary btn-sm">+ Novo ponto gráfico</button>
+              </div>
+              <div class="card-body">
+                <div id="editor-mapa" class="editor-mapa" aria-label="Editor visual da planta"></div>
+                <div class="mapa-legenda">
+                  <span><i class="legenda-inicio"></i> Início na recepção</span>
+                  <span><i class="legenda-acessivel"></i> Caminho acessível</span>
+                  <span><i class="legenda-obstaculo"></i> Escada/obstáculo</span>
+                </div>
+                <div class="mapa-canvas-rodape">
+                  <small>As coordenadas também podem ser informadas nos campos ao lado, sem usar o mouse.</small>
+                  <button type="button" id="btn-gerar-areas" class="btn btn-secondary btn-sm">Reorganizar fundos das áreas</button>
+                </div>
+              </div>
+            </section>
+
+            <aside class="card mapa-inspector">
+              <div class="card-header">
+                <h2>Ponto selecionado (Avançado)</h2>
+                <p>Ajuste coordenadas X/Y e identificador técnico para o desenho SVG.</p>
+              </div>
+              <div class="card-body">
+                <div class="form-group">
+                  <label for="selecionar-ponto-avancado">Selecionar local cadastrado</label>
+                  <select id="selecionar-ponto-avancado"></select>
+                  <small>Locais sem coordenadas só aparecem no desenho após serem posicionados aqui.</small>
+                </div>
+                <form id="form-ponto">
+                  <input type="hidden" id="ponto-id-original">
+                  <div class="form-group">
+                    <label for="ponto-id">Identificador único *</label>
+                    <input id="ponto-id" type="text" required pattern="[A-Za-z0-9_-]+" placeholder="ex.: consultorio_3">
+                    <small>Use letras, números, hífen ou sublinhado.</small>
+                  </div>
+                  <div class="form-group">
+                    <label for="ponto-nome">Nome exibido *</label>
+                    <input id="ponto-nome" type="text" required placeholder="ex.: Consultório 3">
+                  </div>
+                  <div class="form-group">
+                    <label for="ponto-tipo">Tipo de ponto</label>
+                    <select id="ponto-tipo">
+                      <option value="local">Local / passagem</option>
+                      <option value="inicio">Recepção / início</option>
+                      <option value="corredor">Corredor</option>
+                      <option value="triagem">Triagem</option>
+                      <option value="consultorio">Consultório</option>
+                      <option value="guiche">Guichê</option>
+                      <option value="elevador">Elevador</option>
+                      <option value="escada">Escada</option>
+                    </select>
+                  </div>
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label for="ponto-bloco">Bloco / ala</label>
+                      <input id="ponto-bloco" type="text" placeholder="Bloco A">
+                    </div>
+                    <div class="form-group">
+                      <label for="ponto-andar">Andar</label>
+                      <input id="ponto-andar" type="text" placeholder="Térreo">
+                    </div>
+                  </div>
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label for="ponto-x">Posição X</label>
+                      <input id="ponto-x" type="number" min="15" max="625" step="1" required>
+                    </div>
+                    <div class="form-group">
+                      <label for="ponto-y">Posição Y</label>
+                      <input id="ponto-y" type="number" min="25" max="305" step="1" required>
+                    </div>
+                  </div>
+                  <div class="mapa-form-acoes">
+                    <button type="submit" class="btn btn-primary">Salvar ponto</button>
+                    <button type="button" id="btn-ponto-inicial" class="btn btn-secondary">Definir como início</button>
+                    <button type="button" id="btn-excluir-ponto" class="btn btn-danger">Excluir</button>
+                  </div>
+                </form>
+              </div>
+            </aside>
           </div>
         </div>
-      </section>
+
+        <!-- SUB-ABA AVANÇADA 2: LIGAÇÕES ENTRE PONTOS -->
+        <div id="subaba-ligacoes" class="mapa-subaba-conteudo" hidden>
+          <div class="mapa-grade-caminhos">
+            <section class="card">
+              <div class="card-header mapa-card-header">
+                <div>
+                  <h2>Ligações entre pontos (Grafo)</h2>
+                  <p>Usadas para desenhar o caminho gráfico quando o mapeamento avançado está ativado.</p>
+                </div>
+                <button type="button" id="btn-nova-ligacao" class="btn btn-primary btn-sm">+ Nova ligação</button>
+              </div>
+              <div class="table-container mapa-tabela-container">
+                <table class="table mapa-tabela">
+                  <thead><tr><th>De</th><th>Para</th><th>Peso</th><th>Tempo</th><th>Acessível</th><th>Ações</th></tr></thead>
+                  <tbody id="lista-caminhos"></tbody>
+                </table>
+              </div>
+            </section>
+
+            <aside class="card mapa-inspector">
+              <div class="card-header">
+                <h2 id="titulo-form-ligacao">Nova ligação</h2>
+                <p>O motor gráfico usa o menor peso e prioriza trechos sem obstáculos.</p>
+              </div>
+              <div class="card-body">
+                <form id="form-ligacao">
+                  <input type="hidden" id="ligacao-indice" value="">
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label for="ligacao-de">Ponto de origem *</label>
+                      <select id="ligacao-de" required></select>
+                    </div>
+                    <div class="form-group">
+                      <label for="ligacao-para">Ponto de destino *</label>
+                      <select id="ligacao-para" required></select>
+                    </div>
+                  </div>
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label for="ligacao-peso">Peso da rota *</label>
+                      <input id="ligacao-peso" type="number" min="0.1" step="0.1" value="1" required>
+                    </div>
+                    <div class="form-group">
+                      <label for="ligacao-tempo">Tempo em segundos *</label>
+                      <input id="ligacao-tempo" type="number" min="0" step="1" value="30" required>
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label for="ligacao-acessivel">Trecho sem escadas ou obstáculos?</label>
+                    <select id="ligacao-acessivel"><option value="nao_informado">Não informado</option><option value="sim">Sim, confirmado</option><option value="nao">Não</option></select>
+                  </div>
+                  <div class="form-group">
+                    <label for="ligacao-instrucao">Instrução do trecho *</label>
+                    <textarea id="ligacao-instrucao" rows="4" required placeholder="Descreva este trecho conforme verificado na unidade."></textarea>
+                  </div>
+                  <div class="mapa-form-acoes">
+                    <button type="submit" class="btn btn-primary">Salvar ligação</button>
+                    <button type="button" id="btn-cancelar-ligacao" class="btn btn-secondary">Limpar</button>
+                  </div>
+                </form>
+              </div>
+            </aside>
+          </div>
+        </div>
+
+        <!-- SUB-ABA AVANÇADA 3: DESTINOS AVANÇADOS E TESTE GRÁFICO -->
+        <div id="subaba-destinos-avancados" class="mapa-subaba-conteudo" hidden>
+          <div class="mapa-grade-destinos">
+            <section class="card">
+              <div class="card-header"><h2>Parâmetros gerais do grafo</h2></div>
+              <div class="card-body">
+                <div class="form-group">
+                  <label for="mapa-nome">Nome do mapa</label>
+                  <input id="mapa-nome" type="text" placeholder="Planta da unidade">
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="mapa-ponto-inicial">Ponto inicial padrão *</label>
+                    <select id="mapa-ponto-inicial"></select>
+                  </div>
+                  <div class="form-group">
+                    <label for="destino-triagem">Destino geral da triagem *</label>
+                    <select id="destino-triagem"></select>
+                  </div>
+                </div>
+                <button type="button" id="btn-salvar-destinos-basicos" class="btn btn-primary">Salvar parâmetros</button>
+              </div>
+            </section>
+
+            <section class="card">
+              <div class="card-header mapa-card-header">
+                <h2>Consultórios — vínculo técnico</h2>
+                <button type="button" id="btn-add-consultorio" class="btn btn-secondary btn-sm">+ Destino manual</button>
+              </div>
+              <div class="card-body">
+                <div id="lista-destinos-consultorios" class="mapa-lista-destinos"></div>
+              </div>
+            </section>
+
+            <section class="card">
+              <div class="card-header mapa-card-header">
+                <h2>Guichês de triagem (opcional)</h2>
+                <button type="button" id="btn-add-guiche" class="btn btn-secondary btn-sm">+ Guichê</button>
+              </div>
+              <div class="card-body">
+                <div id="lista-destinos-guiches" class="mapa-lista-destinos"></div>
+              </div>
+            </section>
+
+            <section class="card">
+              <div class="card-header"><h2>Testar cálculo de rota gráfica</h2></div>
+              <div class="card-body">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="teste-tipo">Tipo de chamada</label>
+                    <select id="teste-tipo"><option value="triagem">Triagem</option><option value="consulta">Consulta</option></select>
+                  </div>
+                  <div class="form-group" id="grupo-teste-consultorio" hidden>
+                    <label for="teste-consultorio">Consultório</label>
+                    <select id="teste-consultorio"></select>
+                  </div>
+                  <div class="form-group" id="grupo-teste-guiche">
+                    <label for="teste-guiche">Guichê (opcional)</label>
+                    <select id="teste-guiche"><option value="">Destino geral da triagem</option></select>
+                  </div>
+                </div>
+                <button type="button" id="btn-testar-rota" class="btn btn-primary">Simular rota gráfica</button>
+              </div>
+            </section>
+          </div>
+
+          <section id="teste-resultado" class="card mapa-teste-resultado" hidden>
+            <div class="card-header"><h2 id="teste-titulo">Prévia gráfica</h2><p id="teste-resumo"></p></div>
+            <div class="card-body mapa-teste-grade">
+              <div id="teste-mapa" class="editor-mapa mapa-preview"></div>
+              <div>
+                <h3>Passo a passo</h3>
+                <ol id="teste-passos" class="mapa-passos"></ol>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
     </section>
   </main>
 
-  <noscript><div class="alert alert-danger">Ative o JavaScript para usar o editor de mapas.</div></noscript>
+  <!-- ============================================================
+       MODAL — ADICIONAR / EDITAR LOCAL (ETAPA 1)
+       ============================================================ -->
+  <div id="modal-local" class="mapa-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="titulo-modal-local" hidden>
+    <div class="mapa-modal-box">
+      <div class="mapa-modal-cab">
+        <div>
+          <h2 id="titulo-modal-local">Adicionar local</h2>
+          <p>Preencha os dados do local. Identificadores internos são gerados automaticamente.</p>
+        </div>
+        <button type="button" id="btn-fechar-modal-local" class="btn btn-ghost btn-sm" aria-label="Fechar">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <form id="form-local">
+        <div class="mapa-modal-corpo">
+          <div id="modal-local-feedback" class="alert" role="alert" hidden></div>
+          <input type="hidden" id="local-id-edicao" value="">
+          <input type="hidden" id="local-numero-original" value="">
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="local-nome">Nome do local *</label>
+              <input type="text" id="local-nome" required placeholder="Ex.: Consultório 3, Sala de Vacinação, Recepção">
+            </div>
+            <div class="form-group">
+              <label for="local-tipo">Tipo de local *</label>
+              <select id="local-tipo" required>
+                <option value="consultorio">Consultório</option>
+                <option value="recepcao">Recepção</option>
+                <option value="triagem">Triagem</option>
+                <option value="sala_vacinacao">Sala de vacinação</option>
+                <option value="sala_procedimentos">Sala de procedimentos</option>
+                <option value="laboratorio">Laboratório</option>
+                <option value="farmacia">Farmácia</option>
+                <option value="elevador">Elevador</option>
+                <option value="escada">Escada</option>
+                <option value="corredor">Corredor</option>
+                <option value="outro">Outro (personalizado)</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="grupo-tipo-personalizado" class="form-group" hidden>
+            <label for="local-tipo-personalizado">Especificar tipo de local personalizado *</label>
+            <input type="text" id="local-tipo-personalizado" placeholder="Ex.: Sala de Espera, Raio-X, Ultrassonografia, Guichê">
+          </div>
+
+          <div class="form-row form-row-3">
+            <div class="form-group" id="grupo-local-bloco">
+              <label for="local-bloco">Bloco (quando aplicável)</label>
+              <input type="text" id="local-bloco" list="dl-blocos" placeholder="Ex.: Bloco A, Bloco B">
+              <label class="mapa-check-linha local-check"><input type="checkbox" id="local-sem-bloco"> <span>Não há divisão por blocos</span></label>
+              <datalist id="dl-blocos">
+                <option value="Bloco A"></option>
+                <option value="Bloco B"></option>
+                <option value="Bloco C"></option>
+                <option value="Bloco Único"></option>
+              </datalist>
+            </div>
+            <div class="form-group" id="grupo-local-andar">
+              <label for="local-andar">Andar</label>
+              <input type="text" id="local-andar" list="dl-andares" placeholder="Ex.: Térreo, 1º andar">
+              <label class="mapa-check-linha local-check"><input type="checkbox" id="local-sem-andar"> <span>Não há divisão por andares</span></label>
+              <datalist id="dl-andares">
+                <option value="Térreo"></option>
+                <option value="1º andar"></option>
+                <option value="2º andar"></option>
+                <option value="3º andar"></option>
+                <option value="Subsolo"></option>
+              </datalist>
+            </div>
+            <div class="form-group" id="grupo-local-sala">
+              <label for="local-numero-sala">Número da sala (quando aplicável)</label>
+              <input type="text" id="local-numero-sala" placeholder="Ex.: 1, 2, 3, 102">
+            </div>
+          </div>
+
+          <div class="form-group mapa-check-linha" id="grupo-local-triagem-principal" hidden>
+            <label>
+              <input type="checkbox" id="local-triagem-principal">
+              <span>Usar como destino principal das chamadas de triagem</span>
+            </label>
+          </div>
+
+          <div class="form-group mapa-check-linha">
+            <label>
+              <input type="checkbox" id="local-recebe-pacientes" checked>
+              <span>Este local é um destino de atendimento de pacientes (exige orientação para o telão)</span>
+            </label>
+          </div>
+
+          <div class="form-group sem-margem">
+            <label for="local-observacoes">Observações opcionais</label>
+            <textarea id="local-observacoes" rows="2" placeholder="Informações complementares sobre este local (opcional)"></textarea>
+          </div>
+        </div>
+        <div class="mapa-modal-rodape">
+          <button type="button" id="btn-cancelar-local" class="btn btn-secondary">Cancelar</button>
+          <button type="submit" id="btn-salvar-local" class="btn btn-primary"><i class="fas fa-check"></i> Salvar local</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       MODAL — CONFIRMAÇÃO E RESUMO DE PUBLICAÇÃO (ETAPA 3)
+       ============================================================ -->
+  <div id="modal-publicacao" class="mapa-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="titulo-modal-publicacao" hidden>
+    <div class="mapa-modal-box">
+      <div class="mapa-modal-cab">
+        <div>
+          <h2 id="titulo-modal-publicacao"><i class="fas fa-check-circle" style="color: var(--verde-600);"></i> Confirmar publicação no telão</h2>
+          <p>Revise o resumo das alterações antes de atualizar a versão utilizada pelo telão desta unidade.</p>
+        </div>
+        <button type="button" id="btn-fechar-modal-publicacao" class="btn btn-ghost btn-sm" aria-label="Fechar">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="mapa-modal-corpo">
+        <div id="modal-publicacao-feedback" class="alert" role="alert" hidden></div>
+        <div id="resumo-alteracoes-publicacao" class="mapa-resumo-publicacao-box"></div>
+        <label class="mapa-check-destaque mt-3">
+          <input id="confirmacao-validacao" type="checkbox">
+          <span><strong>Confirmo a revisão das orientações.</strong> Conferi os locais, destinos de atendimento, orientações aos pacientes e informações de acessibilidade desta unidade.</span>
+        </label>
+      </div>
+      <div class="mapa-modal-rodape">
+        <button type="button" id="btn-cancelar-publicacao" class="btn btn-secondary">Voltar à revisão</button>
+        <button type="button" id="btn-publicar" class="btn btn-success"><i class="fas fa-broadcast-tower"></i> Confirmar e publicar</button>
+      </div>
+    </div>
+  </div>
+
+  <noscript><div class="alert alert-danger">Ative o JavaScript para usar o módulo de rotas e orientações.</div></noscript>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../../shared/js/config.js"></script>
-  <script src="../../shared/js/db.js"></script>
+  <script src="../../shared/js/db.js?v=rotas-20261028"></script>
   <script src="../js/config.js"></script>
   <script src="../../telao/config/mapa-hospital.js"></script>
-  <script src="../../shared/js/mapa-store.js"></script>
-  <script src="../../shared/js/equipe-consultorios.js"></script>
-  <script src="../../telao/js/tv-mapa.js"></script>
-  <script src="../js/medico-consultorios.js"></script>
-  <script src="../js/mapa-admin.js"></script>
+  <script src="../../shared/js/mapa-store.js?v=rotas-20261028"></script>
+  <script src="../../shared/js/equipe-consultorios.js?v=rotas-20261028"></script>
+  <script src="../../shared/js/rotas-unidade.js?v=rotas-20261028"></script>
+  <script src="../../telao/js/tv-mapa.js?v=rotas-20261028"></script>
+  <script src="../js/medico-consultorios.js?v=rotas-20261028"></script>
+  <script src="../js/mapa-avancado.js?v=rotas-20261028"></script>
+  <script src="../js/mapa-admin.js?v=rotas-20261028"></script>
   <script>
     if (typeof verificarAcesso === 'function' && verificarAcesso('admin')) {
       EditorMapaAdmin.iniciar();

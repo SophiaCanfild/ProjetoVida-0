@@ -36,6 +36,8 @@
   const DB = {};
   // Promessas de INSERT de pacientes ainda em andamento (evita corrida de FK).
   const insercoesPacientesPendentes = new Map();
+  // Resultado das chamadas em curso, para a interface aguardar confirmação do banco.
+  const chamadasPendentes = new Map();
   // Contador de versão por tabela: detecta gravação local durante um sync.
   const versoesTabela = {};
   // Resolve quando a primeira sincronização com o Supabase termina
@@ -224,8 +226,8 @@
     return sbInsert(tabela, dados);
   }
 
-  async function sbUpdate(tabela, dados, filtro) {
-    if (!temClienteSupabase()) return { ok: true, data: null };
+  async function sbUpdate(tabela, dados, filtro, confirmarLinha) {
+    if (!temClienteSupabase()) return { ok: true, data: null, local: true };
     try {
       let query = supabaseClient.from(tabela).update(paraSupabase(tabela, dados));
       const filtroFinal = paraSupabase(tabela, filtro || {});
@@ -237,10 +239,16 @@
         }
       });
 
+      if (confirmarLinha && typeof query.select === 'function') query = query.select('id');
       const { error, data } = await query;
       if (error) {
         reportarFalhaPersistencia(tabela, 'update', error);
         return { ok: false, error };
+      }
+      if (confirmarLinha && (!Array.isArray(data) || data.length !== 1)) {
+        const negado = new Error('Nenhum atendimento foi atualizado no banco; confira a permissão e a conexão.');
+        reportarFalhaPersistencia(tabela, 'update', negado);
+        return { ok: false, error: negado };
       }
       return { ok: true, data };
     } catch (error) {
@@ -454,7 +462,7 @@
     if (existente) {
       Object.assign(existente, dados, { cpf: cpfLimpo });
       gravar('usuarios', lista);
-      sbUpdate('usuarios', dados, { cpf: cpfLimpo });
+      sbUpdate('usuarios', Object.assign({}, dados, { cpf: cpfLimpo }), { cpf: cpfLimpo });
       DB.emit('usuario_atualizado', existente);
       return existente;
     }
@@ -489,7 +497,7 @@
     if (idx === -1) return null;
     Object.assign(lista[idx], dados, { cpf: cpfLimpo });
     gravar('usuarios', lista);
-    sbUpdate('usuarios', dados, { cpf: cpfLimpo });
+    sbUpdate('usuarios', Object.assign({}, dados, { cpf: cpfLimpo }), { cpf: cpfLimpo });
     DB.emit('usuario_atualizado', lista[idx]);
     return lista[idx];
   };
@@ -723,6 +731,11 @@
       throw new Error('Selecione um consultório antes de chamar o paciente para a consulta.');
     }
 
+    const anterior = {
+      status: c.status, chamado_em: c.chamado_em, tipo_chamada: c.tipo_chamada,
+      guiche: c.guiche, consultorio: c.consultorio, nome_chamado: c.nome_chamado,
+      medico_nome: c.medico_nome, medico_crm: c.medico_crm
+    };
     c.status = 'chamado';
     c.chamado_em = agora();
     c.tipo_chamada = tipoChamada;
@@ -740,26 +753,49 @@
     }
 
     gravar('consultas', lista);
-    sbUpdate('consultas', {
+    const instanteChamada = c.chamado_em;
+    const envio = sbUpdate('consultas', {
       status: c.status, chamado_em: c.chamado_em, tipo_chamada: c.tipo_chamada,
       guiche: c.guiche, consultorio: c.consultorio, nome_chamado: c.nome_chamado,
       medico_nome: c.medico_nome, medico_crm: c.medico_crm
-    }, { id: consultaId });
-
-    const destino = c.tipo_chamada === 'consulta'
-      ? 'Consultório ' + (c.consultorio || '—')
-      : 'Triagem' + (c.guiche ? ' — Guichê ' + c.guiche : '');
-
-    DB.criarNotificacao({
-      cpf: c.cpf,
-      tipo: 'chamada',
-      titulo: '🔔 Você foi chamado!',
-      texto: 'Dirija-se ao ' + destino + '. Senha: ' + c.senha,
-      link: 'fila.html'
+    }, { id: consultaId }, true).then(function (resultado) {
+      if (!resultado.ok) {
+        // Reverte somente se ninguém tiver alterado o atendimento enquanto a gravação ocorria.
+        const atuais = DB.getConsultas();
+        const atual = atuais.find(x => x.id === consultaId);
+        if (atual && atual.status === 'chamado' && atual.chamado_em === instanteChamada) {
+          Object.assign(atual, anterior);
+          gravar('consultas', atuais);
+          DB.emit('consulta_atualizada', atual);
+        }
+        return resultado;
+      }
+      const destino = c.tipo_chamada === 'consulta'
+        ? ((opcoes && opcoes.destino_nome) || (/^(?:local_|loc_)/.test(c.consultorio || '') ? 'consultório indicado' : 'Consultório ' + (c.consultorio || '—')))
+        : 'Triagem' + (c.guiche ? ' — Guichê ' + c.guiche : '');
+      try {
+        DB.criarNotificacao({
+          cpf: c.cpf, tipo: 'chamada', titulo: '🔔 Você foi chamado!',
+          texto: 'Dirija-se ao ' + destino + '. Senha: ' + c.senha, link: 'fila.html'
+        });
+      } catch (erroNotificacao) {
+        resultado.aviso = 'A chamada foi salva, mas a notificação do paciente não pôde ser criada.';
+        console.warn('[Vida+] ' + resultado.aviso, erroNotificacao);
+      }
+      try { DB.emit('paciente_chamado', c); }
+      catch (erroEvento) { console.warn('[Vida+] Falha ao atualizar um ouvinte da chamada:', erroEvento); }
+      return resultado;
     });
-
-    DB.emit('paciente_chamado', c);
+    chamadasPendentes.set(consultaId, envio);
+    envio.then(function () {
+      setTimeout(function () { if (chamadasPendentes.get(consultaId) === envio) chamadasPendentes.delete(consultaId); }, 0);
+    });
     return c;
+  };
+
+  // Permite ao módulo que disparou a chamada informar o resultado real.
+  DB.aguardarEnvioChamada = function (consultaId) {
+    return chamadasPendentes.get(consultaId) || Promise.resolve({ ok: true });
   };
 
   // MÉDICO: Iniciar consulta

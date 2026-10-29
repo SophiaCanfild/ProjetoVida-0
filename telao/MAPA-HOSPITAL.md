@@ -1,231 +1,76 @@
-# Mapa hospitalar e rotas no telão
+# Locais, orientações e mapa do telão
 
-## Visão geral
+## Fluxo simplificado
 
-O recurso transforma a planta de cada unidade em um **grafo de navegação**:
+Acesse **Administrativo → Mapa e rotas** e selecione a unidade. O editor usa os mesmos pontos e destinos do mapa existente, mas a configuração textual não exige coordenadas nem ligações.
 
-```text
-Chamada da recepção ou do consultório
-  → unidade + tipo_chamada + consultorio/guiche
-  → mapa PUBLICADO da unidade
-  → cálculo da rota a partir da recepção
-  → mapa + passo a passo + bloco/andar no telão
-  → direções por voz somente em mapa validado e publicado
-```
+1. **Locais e consultórios:** cadastre nome, tipo, bloco, andar e número da sala, quando aplicável. Marque separadamente quando não há divisão por blocos ou por andares. Os tipos de circulação não precisam de orientação, a menos que sejam usados como destino de atendimento. O cadastro de médicos permanece único; a associação por CPF e unidade é feita na mesma tela ou no cadastro do profissional.
+2. **Orientações:** selecione destino e ponto inicial, descreva as instruções confirmadas pela unidade e registre as informações de acessibilidade conhecidas. A sugestão usa somente os locais e as instruções selecionadas; confira-a e edite-a. É possível copiar explicitamente o texto de outra orientação e adicionar um complemento específico, sem presumir que duas salas compartilhem o percurso.
+3. **Revisar e publicar:** corrija as pendências, confira a prévia e confirme presencialmente os dados. O rascunho e a publicação são registros separados; a edição não altera o telão. O botão **Corrigir** leva ao campo correspondente.
 
-O Administrativo possui um editor visual. Não é necessário editar JavaScript para alterar pontos, percursos ou destinos das unidades disponíveis.
+A prévia usa uma senha ilustrativa. Nomes, localizações, orientações e vínculos apresentados vêm da configuração carregada. A tela de orientação indica quando a prévia inclui alterações ainda não salvas.
 
-Não há nomes, CPFs ou outros dados de pacientes no mapa. A configuração contém somente locais, caminhos, tempos e instruções.
+### Cuidados ao alterar locais
 
-## Configurar pelo Administrativo
+O ID do local e a chave usada nas chamadas são preservados ao alterar nome, número ou localização. Isso mantém os vínculos médicos existentes. Se o local, um ponto inicial ou a orientação usada como base mudar, as orientações relacionadas ficam **pendentes de revisão** antes de uma nova publicação. Não é possível remover um consultório com vínculo médico ou chamada ativa conhecida sem antes reatribuir o profissional e concluir a chamada.
 
-Acesse **Administrativo → Unidades → Mapa e rotas**. Também há um atalho **Mapa e rotas** no menu lateral.
+A triagem principal corresponde às chamadas de triagem existentes no sistema. Na configuração básica, escolha qual local de triagem receberá essas chamadas. Os consultórios são associados à chave gravada em `consultas.consultorio`; essa coluna aceita até dez caracteres. Para consultórios sem número, é gerada uma chave interna curta, sem exibi-la como número da sala.
 
-1. Selecione a unidade/hospital.
-2. Em **1. Pontos e planta**:
-   - clique em um ponto para editar nome, tipo, bloco, andar e coordenadas;
-   - arraste pontos para reposicioná-los;
-   - use **Novo ponto** para cadastrar recepção, triagem, consultório, guichê, corredor, elevador ou escada;
-   - defina o ponto inicial, normalmente a recepção/sala de espera;
-   - se necessário, use **Reorganizar fundos das áreas** para gerar os fundos por bloco e andar.
-3. Em **2. Caminhos**, cadastre as ligações:
-   - origem e destino;
-   - peso da rota;
-   - tempo em segundos;
-   - se o trecho é livre de escadas/obstáculos;
-   - instrução objetiva para o paciente.
-4. As ligações têm sentido. Para um corredor de mão dupla, cadastre ida e volta com instruções adequadas a cada sentido.
-5. Em **3. Destinos e teste**, configure:
-   - ponto inicial das rotas;
-   - destino geral da triagem;
-   - números dos consultórios e seus pontos;
-   - guichês específicos, quando utilizados.
-6. Use **Calcular rota do rascunho** para conferir o desenho, o passo a passo, o tempo e a acessibilidade.
-7. Execute **Validar todos os percursos** e corrija qualquer erro indicado.
-8. Percorra fisicamente as rotas com a equipe da unidade e marque a confirmação presencial.
-9. Clique em **Publicar no telão**.
+## Configuração avançada opcional
 
-**Exportar JSON** gera uma cópia do rascunho para backup ou auditoria.
+**Configurações avançadas de navegação → Abrir mapeamento avançado** mantém o editor de pontos, coordenadas, ligações, destinos e testes gráficos. Um local cadastrado no modo básico não recebe coordenadas automaticamente: selecione-o no editor avançado para posicioná-lo. As ligações continuam direcionais e devem representar percursos reais.
 
-## Vínculo entre médico, paciente e consultório
+Para exibir o desenho no telão, ative a opção de planta gráfica. A publicação verifica se cada destino usado tem um percurso com coordenadas e ligações válidas a partir do ponto inicial da orientação, e exige a confirmação da unidade. Sem dados suficientes, o sistema não desenha um caminho. O modo textual funciona com a opção gráfica desligada. Publicações legadas do grafo continuam sendo lidas quando há um caminho válido.
 
-O painel médico possui o campo **Consultório para as chamadas**, acima da fila de espera. O fluxo é:
+Informações de acessibilidade são declarações da unidade, não uma certificação ou um cálculo automático da rota mais acessível. A existência de elevador, por si só, não estabelece que todo o percurso seja acessível.
+
+## Integração com atendimento e telão
 
 ```text
-Médico logado + unidade da consulta
-  → consultório padrão ou sala escolhida pelo médico
-  → validação do número em destinos.consultorios do mapa
-  → chamada grava paciente + médico + CRM + consultório
-  → telão, aplicativo, mapa e voz recebem o mesmo destino
+consulta.unidade + tipo_chamada + consultorio/guiche
+  → mapa_hospital_<unidade> publicado no Supabase
+  → ID estável do local + orientação publicada
+  → nome, localização, instruções e profissional no telão
 ```
 
-Os médicos de demonstração possuem estes padrões em `APP_CONFIG.MEDICOS`:
+O telão lê apenas a versão publicada. Se não existir orientação publicada ou o destino não estiver mapeado, exibe **“Consulte a recepção para obter orientações”**, sem mostrar o mapa ilustrativo nem criar instruções. A chamada pública é identificada por senha; não há nome de paciente nem informações clínicas na apresentação ou na fala. O nome do profissional da chamada é mantido.
 
-```js
-{ consultorio: "1", cpf: "12345678901", crm: "CRM/PR 12345", nome: "Dr. Alexandre Medicina" }
-{ consultorio: "2", cpf: "23456789012", crm: "CRM/PR 67890", nome: "Dra. Carla Dermatologia" }
-```
+Unidades legadas que já tenham um vínculo médico salvo no banco, mas ainda não tenham publicado mapa, podem continuar chamando pelo número desse vínculo; o telão apresenta a mensagem neutra até a publicação. Um local novo do rascunho não se transforma em rota publicada antes da confirmação.
 
-- O usuário é reconhecido preferencialmente por **CPF ou CRM**; o nome é apenas fallback.
-- O médico pode trocar a sala antes de chamar. A escolha fica salva no navegador, separada por médico e unidade.
-- A preferência local não altera o cadastro do usuário nem publica mudanças no mapa.
-- Um médico sem padrão configurado deve selecionar uma sala. O Administrativo pode definir ou remover o vínculo permanente em **Mapa e rotas → Equipe e salas**; os padrões de `APP_CONFIG.MEDICOS` continuam sendo apenas o fallback de demonstração.
-- A lista de salas vem do mapa da **unidade do atendimento**. Uma sala sem ponto válido, ou uma unidade sem consultórios mapeados, impede a chamada até que o problema seja corrigido.
-- Se o Administrativo publicar uma sala nova, ela fica disponível na próxima carga do painel médico. Se uma sala for removida, uma preferência antiga para ela é ignorada ao recarregar o mapa.
-- A chamada do tipo `consulta` também é validada no banco compartilhado e não pode ser gravada sem consultório. Chamadas de triagem continuam usando guichê e não exigem consultório.
+O telão consulta apenas os campos necessários das chamadas remotas, sem carregar a camada que sincroniza prontuários. Ele consulta chamadas periodicamente e verifica novas publicações a cada 60 segundos. Quando há falha de conexão, somente uma versão publicada previamente obtida do banco pode ser usada como cache; uma publicação local de demonstração não é tratada como oficial. Textos longos são percorridos automaticamente na área de orientação.
 
-Esse vínculo não escala médicos nem distribui pacientes automaticamente: o médico continua escolhendo o paciente da fila. O sistema garante que a chamada selecionada indique a sala correta.
+## Persistência e compatibilidade
 
-## Equipe e salas no Administrativo
+Para um banco que já possui a estrutura compatível, não são necessárias novas tabelas, colunas ou alterações de dados. Utiliza-se `public.configuracoes`, que já é criada por `supabase/schema.sql`. O arquivo `supabase/diagnostico-rotas.sql` contém consultas **somente de leitura** para conferir colunas, índice, RLS e políticas do banco de destino; ele não faz nenhuma alteração e não comprova a segurança do sistema. Não execute o schema completo ou uma migração demonstrativa em um banco existente sem backup e revisão das políticas.
 
-A primeira aba do editor reúne os médicos, especialidade, CRM, situação do cadastro e consultório principal de cada um na unidade selecionada. O cadastro de um novo médico também permite escolher a unidade e a sala, ou deixar o vínculo para depois.
+As chaves utilizadas são:
 
-O cadastro rápido de consultório pede apenas dados operacionais (número, nome, bloco/andar, origem, tempo e acessibilidade). Em uma única ação ele cria o ponto, o destino e uma ligação no **rascunho**, sem exigir identificadores técnicos ou coordenadas. A planta e as ligações avançadas continuam disponíveis para ajustes especiais.
+- `mapa_hospital_<slug-da-unidade>`: pacote JSON da versão publicada;
+- `mapa_rascunho_<slug-da-unidade>`: pacote JSON do rascunho compartilhado;
+- `equipe_consultorios_<slug-da-unidade>`: vínculos existentes por CPF e unidade.
 
-- O vínculo médico–sala é salvo por **CPF e unidade** em `configuracoes`, com cache local para demonstração.
-- O vínculo pode ser salvo antes da publicação, mas uma sala que existe só no rascunho ainda não deve ser usada em chamadas; a interface avisa quando é necessário publicar.
-- Para excluir ou renumerar uma sala com médicos vinculados, primeiro reatribua esses profissionais. Isso evita deixar chamadas apontando para um destino inexistente.
-- A leitura remota é refeita antes de cada alteração do vínculo. Se ela falhar, a gravação é bloqueada para não sobrescrever a equipe com dados desatualizados.
-- Nenhuma alteração de consultório, ponto ou percurso no editor altera o telão até **Validar**, confirmar a conferência presencial e **Publicar**.
+O pacote mantém `nos`, `ligacoes`, `areas` e `destinos` existentes e acrescenta `orientacoes` por ID do local. Campos de localização, tipo, sala e acessibilidade também permanecem no JSON da unidade. Não se altera ou remove um relacionamento do banco. A chave é normalizada como no módulo anterior; colisões entre nomes normalizados são recusadas quando detectadas.
 
-## Rascunho x publicação
+Salvar e publicar exigem confirmação de escrita no Supabase. Antes da gravação, uma cópia temporária do rascunho é mantida no navegador para recuperação; ela **não** é apresentada como gravação oficial. Se a escrita falhar, revise a conexão/permissão e tente salvar novamente. Há comparação da versão remota para evitar que uma sessão obsoleta sobrescreva uma alteração de outra sessão. Se a publicação ocorrer mas a limpeza posterior do rascunho falhar, o usuário recebe um aviso distinto.
 
-```text
-Editor → rascunho local → testes → validação técnica + presencial → publicação
-                                                              ├─ Supabase
-                                                              └─ cache local
-Telão → lê somente a versão publicada
-```
+O vínculo de equipe também é gravado no banco com verificação de versão. Chamadas de médico/enfermagem aguardam o resultado da atualização no banco; em caso de falha, o estado local é revertido quando não houve uma alteração posterior, e a notificação de chamada não é disparada.
 
-- Salvar rascunho **não altera o telão**.
-- O rascunho fica no navegador do administrador e é preservado se a publicação remota falhar.
-- Descartar rascunho recarrega a última versão publicada; se ainda não houver publicação, recarrega o modelo.
-- Qualquer alteração no rascunho invalida a confirmação presencial e exige nova validação antes da próxima publicação.
-- Publicar marca o mapa como `configurado: true`. Não é recomendável alterar esse sinalizador manualmente para contornar a validação.
+## Segurança: pendência obrigatória antes de produção
 
-## Armazenamento
+**A instalação atual não garante autorização por unidade no servidor.** O login do projeto usa `sessionStorage` e a política demonstrativa `demo configuracoes` em `supabase/schema.sql` permite operações para `anon` e `authenticated` com `USING (TRUE)`. Outras tabelas, inclusive dados de saúde, também possuem políticas demonstrativas. Restringir opções na interface **não** impede chamadas diretas à API e não é uma medida de segurança. Não utilize dados reais enquanto isso não for corrigido.
 
-A publicação e os vínculos usam a tabela `configuracoes`. O instalador `supabase/schema.sql` já a cria. Em um banco existente que ainda não a possui, rode `supabase/migrations/20261025_equipe_consultorios.sql`; a migração é aditiva e pode ser repetida.
+Para implantação segura, é necessário planejar e executar, no Supabase de destino:
 
-O SQL legado com `usuarios.id_usuario BIGINT`, `pacientes.id_paciente`, `medicos`, `triagens` e `fila_atendimento` não é o schema completo do aplicativo e não contém `configuracoes`. Ele precisa do instalador completo (com backup), que preserva as tabelas antigas como `*_legado`; a migração pequena não faz essa conversão. O trecho de SQL recebido também estava incompleto/fora de ordem e não deve ser executado sem corrigir sua sintaxe.
+1. Migrar usuários para **Supabase Auth** e vincular a identidade autenticada aos perfis e unidades autorizadas no servidor.
+2. Substituir as políticas demonstrativas por RLS que autorize leitura e escrita de rascunhos, publicações e equipe conforme `auth.uid()`, perfil e unidade. Verificar que nenhuma política permissiva adicional reabra o acesso.
+3. Identificar e autorizar o telão e demais dispositivos apenas para leitura das publicações da própria unidade, sem usar chave de serviço no navegador.
+4. Aplicar controles equivalentes às tabelas clínicas e aos demais módulos, testar acesso cruzado com usuários e unidades diferentes e revisar LGPD antes de liberar a operação.
 
-- chave do mapa: `mapa_hospital_<unidade-em-slug>`;
-- chave da equipe: `equipe_consultorios_<unidade-em-slug>`;
-- valor: pacote JSON com versão, unidade, data e mapa, ou vínculos por CPF;
-- conflito/atualização: coluna `chave`.
+Essas mudanças exigem provisionamento de identidades e dispositivos existentes. Não foram aplicadas automaticamente: ativar RLS restritiva sem migrar os logins e o telão interromperia os módulos atuais. A chave `anon` é pública por definição; ela não deve ser tratada como credencial privilegiada, e nenhuma chave privada foi adicionada ao front-end.
 
-Arquivos envolvidos:
+## Testes
 
-- `sistema-medico/admin/mapa.html`: editor visual;
-- `sistema-medico/js/mapa-admin.js`: ações, validação e prévia;
-- `sistema-medico/css/mapa-admin.css`: apresentação do editor;
-- `shared/js/mapa-store.js`: rascunho, cache e publicação;
-- `shared/js/equipe-consultorios.js`: vínculos administrativos por CPF/unidade;
-- `sistema-medico/js/medico-consultorios.js`: vínculo do médico, preferência por unidade e validação da sala;
-- `sistema-medico/medico/index.html`: seleção do consultório e chamada do paciente;
-- `telao/config/mapa-hospital.js`: modelo demonstrativo e fallback;
-- `telao/js/tv-mapa.js`: validação, Dijkstra, acessibilidade, voz e SVG;
-- `telao/js/voz-chamada.js`: anúncio, controles de áudio e orientação validada;
-- `telao/index.html` e `telao/css/tv.css`: apresentação no telão.
+- `node --test tests/rotas-unidade.test.js`: regras de sugestão, validação, grafo legado, acessibilidade, rascunho, falha e concorrência com banco simulado.
+- `tests/rotas-browser.cjs`: fluxo em Chromium com respostas Supabase simuladas, incluindo médico, rascunho em outra sessão, publicação, chamada no telão, falha de rede e layout. Veja `tests/README.md`.
 
-### Supabase indisponível / demonstração
-
-Sem cliente Supabase, rascunho e publicação usam `localStorage`. Nesse modo, a publicação vale para o navegador/dispositivo onde foi feita. Para que vários telões recebam o mesmo mapa, configure o Supabase.
-
-Quando o Supabase está configurado, mas a escrita falha, o editor **não apresenta a operação como publicada**: ele mantém o rascunho e conserva a última versão publicada. Na leitura, uma indisponibilidade temporária permite usar o último cache válido; sem cache, permanece o modelo ilustrativo.
-
-> As políticas SQL distribuídas com este projeto são demonstrativas. Em produção, restrinja a escrita em `configuracoes` a administradores autenticados e mantenha para o telão somente a leitura necessária.
-
-## Atualização do telão
-
-O telão carrega o mapa publicado antes da primeira renderização, verifica novas versões a cada 60 segundos e também responde a uma publicação feita em outra aba do mesmo navegador. Não é necessário recarregar a página.
-
-Se o mapa publicado for inválido ou o destino não estiver mapeado, o sistema não inventa um percurso. O telão orienta o paciente a procurar a recepção.
-
-## Regras de rota e acessibilidade
-
-O motor existente usa Dijkstra com pesos positivos:
-
-1. tenta primeiro um percurso em que **todas** as ligações são acessíveis;
-2. somente se não houver alternativa, usa a melhor rota disponível;
-3. nesse segundo caso, sinaliza **Rota com obstáculos**.
-
-O tempo é a soma dos segundos das ligações e aparece arredondado para cima em minutos. Se algum tempo estiver ausente, o telão não exibe uma estimativa inventada.
-
-## Enquanto o mapa for ilustrativo
-
-Enquanto não houver publicação validada:
-
-- o mapa aparece identificado como **exemplo/ilustrativo**;
-- o tempo estimado fica oculto;
-- as direções **não são lidas em voz alta**.
-
-A fala continua anunciando a chamada normalmente; apenas o percurso não é acrescentado.
-
-## Conferência presencial obrigatória
-
-Antes de publicar:
-
-1. Teste triagem, todos os consultórios e todos os guichês usados pela unidade.
-2. Percorra fisicamente cada rota com a equipe do hospital.
-3. Verifique elevadores, escadas, portas de acesso restrito, bloqueios e rotas acessíveis.
-4. Confirme se “à esquerda/direita” está no sentido do paciente.
-5. Compare os tempos informados com o deslocamento real, sem pressa.
-6. Faça uma chamada fictícia e confira mapa e fala no telão.
-7. Repita a validação após obras, mudança de consultórios ou bloqueio de corredores.
-
-O mapa é esquemático e não substitui placas, treinamento da equipe ou avaliação de acessibilidade da unidade.
-
-## Referência técnica do JSON
-
-O editor manipula o mesmo formato aceito pelo motor:
-
-```js
-{
-  configurado: false,
-  nome: "Mapa da unidade",
-  ponto_inicial: "recepcao",
-  areas: [],
-  nos: [
-    {
-      id: "recepcao",
-      nome: "Recepção",
-      tipo: "inicio",
-      x: 70,
-      y: 250,
-      andar: "Térreo",
-      bloco: "Bloco A"
-    }
-  ],
-  ligacoes: [
-    {
-      de: "recepcao",
-      para: "corredor_principal",
-      peso: 1,
-      tempo: 15,
-      acessivel: true,
-      instrucao: "Saia da recepção e siga pelo corredor principal."
-    }
-  ],
-  destinos: {
-    triagem: "triagem",
-    consultorios: { "1": "consultorio_1" },
-    guiches: { "1": "guiche_1" }
-  }
-}
-```
-
-- Os IDs dos pontos devem ser únicos.
-- As coordenadas usam o esquema SVG de 640 × 330.
-- As chaves de `consultorios` e `guiches` precisam corresponder aos valores gravados nas chamadas.
-- `areas` é visual e não interfere no cálculo.
-- Uma chamada também pode informar `destino_id`, desde que ele exista entre os pontos.
-
-Para inspecionar uma rota no console:
-
-```js
-OrientacaoHospitalTV.calcularRota({
-  tipo_chamada: "consulta",
-  consultorio: "1"
-});
-```
+Os testes automatizados **não** alteram o banco real e não comprovam RLS, WebSocket Realtime ou a configuração física da unidade. Teste o fluxo e as permissões no ambiente de homologação após a migração de autenticação.

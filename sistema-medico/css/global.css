@@ -898,3 +898,37 @@ select.form-input {
 ::-webkit-scrollbar-thumb:hover {
     background: var(--cinza-400);
 }
+
+
+/* ============================================
+   CELULARES — ajuste de responsividade (auditoria 26/10/2026)
+   Abaixo de 768px a sidebar vira uma barra horizontal de icones
+   e o conteúdo ocupa a largura toda, sem cortes.
+   ============================================ */
+@media (max-width: 767px) {
+    .layout { flex-direction: column; height: auto; min-height: 100vh; }
+    .sidebar { width: 100%; flex-direction: row; align-items: center; border-right: 0; border-bottom: 1px solid var(--cinza-200); }
+    .sidebar-header { padding: 8px 12px; border-bottom: 0; border-right: 1px solid var(--cinza-200); }
+    .sidebar-logo .text, .sidebar-logo .subtitle,
+    .sidebar .menu-section-title, .sidebar .user-info { display: none; }
+    .sidebar-logo .icon { width: 34px; height: 34px; }
+    .sidebar-menu { display: flex; flex: 1; align-items: center; flex-direction: row; overflow-x: auto; overflow-y: hidden; padding: 6px; gap: 4px; }
+    .menu-section { display: contents; }
+    .menu-item { flex: 0 0 auto; justify-content: flex-start; gap: 6px; padding: 9px 11px; border-radius: 9px; }
+    .menu-item span { display: inline; }
+    .menu-item .badge { display: inline-flex; }
+    .sidebar-footer { border-top: 0; border-left: 1px solid var(--cinza-200); padding: 6px 8px; }
+    .sidebar-footer .btn { margin: 0; padding: 8px 10px; font-size: .75rem; }
+    .sidebar-footer .btn i { font-size: .9rem; margin: 0 !important; }
+    .main-content { overflow: visible; }
+    .content-area { overflow-y: visible; }
+    .topbar { height: auto; min-height: 56px; padding: 10px 14px; flex-wrap: wrap; gap: 8px; }
+    .page-title { font-size: 1.1rem; }
+    .p-6 { padding: 14px !important; }
+    .content-area [style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
+    .card { min-width: 0; }
+    .form-row, .form-row-3, .form-row-4 { grid-template-columns: 1fr !important; }
+    .table-container { overflow-x: auto; }
+    .btn { white-space: normal; }
+    .alert { flex-wrap: wrap; }
+}

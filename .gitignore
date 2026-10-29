@@ -1,0 +1,3 @@
+# Artefatos locais de auditoria / dependencias de teste
+.audit-tools/
+node_modules/

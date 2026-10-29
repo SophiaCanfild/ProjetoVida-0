@@ -15,7 +15,7 @@
    Frases faladas:
      triagem  → "Atenção. Senha A cento e vinte e três.
                  Dirija-se à triagem, guichê 2."
-     consulta → "Atenção. Paciente Maria da Silva.
+     consulta → "Atenção. Senha A cento e vinte e três.
                  Dirija-se ao consultório 3.
                  Com Dr. Carlos Pereira."
 
@@ -202,17 +202,18 @@ var VozChamada = (function () {
     var partes = [];
 
     if (tipo === 'consulta') {
-      /* Chamada pelo nome (é o que já aparece na tela) */
-      var nome = simNao(chamada.nome_chamado || chamada.nome_paciente);
+      /* Apenas a senha identifica o paciente em ambiente público. */
       var consultorio = simNao(chamada.consultorio);
+      var destinoNome = simNao(chamada.destino_nome);
       var medico = simNao(chamada.medico_nome);
 
-      partes.push(nome ? 'Paciente ' + nome + '.' : 'Próximo paciente.');
-      partes.push(consultorio
-        ? 'Dirija-se ao consultório ' + consultorio + '.'
-        : 'Dirija-se ao consultório indicado.');
+      partes.push(senha ? 'Senha ' + senha + '.' : 'Próximo paciente.');
+      partes.push(destinoNome
+        ? 'Dirija-se a ' + destinoNome + '.'
+        : (consultorio && !/^(?:local_|loc_)/.test(consultorio)
+          ? 'Dirija-se ao consultório ' + consultorio + '.'
+          : 'Dirija-se ao consultório indicado.'));
       if (medico) partes.push('Com ' + medico + '.');
-      if (senha) partes.push('Senha ' + senha + '.');
       return acrescentarOrientacao(partes, chamada);
     }
 

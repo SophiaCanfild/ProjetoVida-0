@@ -83,7 +83,7 @@ vida-mais/
 │   ├── agendamentos.html         ← Agendamentos
 │   ├── js/config.js              ← cópia de shared/js/config.js (escopo do SW)
 │   ├── js/db.js                  ← cópia de shared/js/db.js (escopo do SW)
-│   ├── service-worker.js         ← cache offline (CACHE_VERSION v13)
+│   ├── service-worker.js         ← cache offline (CACHE_VERSION v14)
 │   ├── status-offline.html       ← 🩺 Diagnóstico do modo offline
 │   └── manifest.json             ← PWA manifest
 │
@@ -214,7 +214,7 @@ Abra `http://localhost:8000` no navegador — é o portal com todos os acessos. 
 - Instalável como app (PWA)
 - Login pelo CPF cadastrado pela recepção (sem atalho de "paciente demo")
 - **Funciona offline**: as telas, o CSS e os scripts ficam guardados no aparelho
-  (service worker `vidaplus-paciente-v13`); os dados vêm da última sincronização local
+  (service worker `vidaplus-paciente-v14`); os dados vêm da última sincronização local
 
 #### 📴 Não abre sem internet? Use `paciente-app/status-offline.html`
 
@@ -232,12 +232,12 @@ Abra essa página **no aparelho onde a PWA está instalada**. Ela mostra:
 
 ### 📺 Telão
 - Display para sala de espera
-- Mostra senha, nome e destino do paciente
+- Mostra senha, destino e profissional, sem expor o nome do paciente
 - Anuncia a chamada por voz, com pausa, silêncio e teste fictício
-- Mapa hospitalar por unidade, com rota acessível, bloco, andar e passo a passo no momento da chamada
-- Editor visual em **Administrativo → Unidades → Mapa e rotas**, com rascunho, prévia, validação e publicação separada
-- Publicação do mapa em `configuracoes` no Supabase e fallback local para demonstração — [guia do mapa](telao/MAPA-HOSPITAL.md)
-- Atualização automática via Supabase Realtime
+- Orientações publicadas por unidade, com bloco, andar e informações de acessibilidade registradas pela equipe
+- Editor em **Administrativo → Mapa e rotas**, com locais, orientações, prévia e publicação; a planta gráfica é opcional
+- Publicação e rascunho separados em `configuracoes` no Supabase; veja o [guia e os requisitos de segurança](telao/MAPA-HOSPITAL.md)
+- Consulta periódica e suporte ao Supabase Realtime quando habilitado
 - Chamadas gravadas em `consultas` e avisos do paciente em `notificacoes`
 - **Voz:** toda chamada nova é falada em voz alta (Web Speech API do navegador —
   sem arquivos de áudio e sem serviço externo, funciona offline)
@@ -249,7 +249,7 @@ Exemplos do que é falado:
 | Tipo | Frase |
 |:---|:---|
 | Recepção → triagem | *“Senha A cento e vinte e três. Dirija-se à triagem, guichê 2.”* |
-| Triagem → consultório | *“Paciente Maria da Silva. Dirija-se ao consultório 1. Com Dr. Alexandre Medicina. Senha C 457.”* |
+| Triagem → consultório | *“Senha C 457. Dirija-se ao consultório 1. Com Dr. Alexandre Medicina.”* |
 
 Ajustes em `TV_CONFIG`, no `shared/js/config.js` (e na cópia `paciente-app/js/config.js`):
 
