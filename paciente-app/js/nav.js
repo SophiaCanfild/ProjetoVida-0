@@ -10,42 +10,42 @@
 const Nav = {
 
   /* Vai para a home certa conforme o estado de login:
-     - deslogado  → portal principal (../index.html)
+     - deslogado  → tela de login do app (login.html)
      - logado     → fila (se tiver atendimento ativo)
                   → home (se não tiver) */
   irParaHome() {
     if (typeof DB === 'undefined' || !DB || typeof DB.getSessao !== 'function') {
-      location.href = '../index.html';
+      location.href = 'login.html';
       return;
     }
 
     const cpf = DB.getSessao();
-    if (!cpf) { location.href = '../index.html'; return; }
+    if (!cpf) { location.href = 'login.html'; return; }
     Promise.resolve(DB.getMinhaFila(cpf))
       .then(r => { location.href = r && r.ativa ? 'fila.html' : 'index.html'; })
       .catch(() => { location.href = 'index.html'; });
   },
 
-  /* Sair da conta com confirmação → volta para o portal */
+  /* Sair da conta com confirmação → volta para o login do app */
   sair() {
     if (typeof UI === 'undefined' || !UI || typeof UI.modalConfirmar !== 'function') {
       if (typeof DB !== 'undefined' && DB && typeof DB.clearSessao === 'function') {
         DB.clearSessao();
       }
-      location.href = '../index.html';
+      location.href = 'login.html';
       return;
     }
 
     UI.modalConfirmar({
       titulo: 'Sair da conta?',
-      texto: 'Você voltará para o portal principal.',
+      texto: 'Você vai precisar do CPF para entrar de novo.',
       botao: 'Sair', perigo: true,
       onConfirmar: () => {
         if (typeof DB !== 'undefined' && DB && typeof DB.clearSessao === 'function') {
           DB.clearSessao();
         }
         localStorage.removeItem('vidamais_ultimo_status');
-        location.href = '../index.html';
+        location.href = 'login.html';
       }
     });
   },
