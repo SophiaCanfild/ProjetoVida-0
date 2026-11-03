@@ -43,8 +43,6 @@
         <li><span class="vantagem-ic"></span> Histórico de consultas</li>
       </ul>
 
-      <a class="btn btn-contorno btn-bloco" href="../index.html" style="text-align:center;">← Voltar ao Portal Vida+</a>
-
     </div>
 
     <!-- Logado -->
@@ -87,7 +85,6 @@
       </a>
 
       <button class="btn btn-perigo btn-bloco" id="btn-sair-home">Sair da conta</button>
-      <a class="btn btn-contorno btn-bloco" href="../index.html" style="text-align:center;">← Voltar ao Portal Vida+</a>
     </div>
 
   </div>
@@ -171,9 +168,9 @@
       document.getElementById('btn-sair-home').onclick = () => {
         UI.modalConfirmar({
           titulo: 'Sair da conta?',
-          texto: 'Você voltará ao portal principal do Vida+.',
+          texto: 'Você vai precisar do CPF para entrar de novo.',
           botao: 'Sair', perigo: true,
-          onConfirmar: () => { DB.clearSessao(); location.href = '../index.html'; }
+          onConfirmar: () => { DB.clearSessao(); location.href = 'login.html'; }
         });
       };
     }

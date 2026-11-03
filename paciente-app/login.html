@@ -33,7 +33,6 @@
     </div>
     <button class="btn btn-primario" id="entrar">Entrar</button>
 
-    <button class="btn btn-contorno btn-bloco" id="voltar">← Voltar ao Portal Vida+</button>
   </div>
 
   <div class="rodape">Projeto TCC • Sistema de Saúde</div>
@@ -49,8 +48,6 @@
       
     const inputCpf = document.getElementById('cpf');
     UI.mascararCPF(inputCpf);
-
-    document.getElementById('voltar').onclick = () => location.href = '../index.html';
 
     document.getElementById('entrar').onclick = async () => {
       const cpf = inputCpf.value.replace(/\D/g, '');
