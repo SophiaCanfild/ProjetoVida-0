@@ -213,7 +213,10 @@ const delay = ms => new Promise(r=>setTimeout(r,ms));
   await tvUPA.goto(BASE + '/telao/index.html?unidade='+encodeURIComponent('UPA Araucária'),{waitUntil:'domcontentloaded'});
   await tvUPA.waitForFunction(()=>document.querySelector('#chamada-senha').textContent==='B055',{timeout:15000});
   await tvUPA.waitForFunction(()=>document.querySelector('#rota-destino').textContent==='Consultório UPA',{timeout:10000});
-  assert.equal(await tvUPA.$eval('#nome-unidade',e=>e.textContent),'UPA Araucária');
+  // A unidade continua selecionável pela URL, mas o nome da unidade não aparece no telão.
+  assert.equal(await tvUPA.evaluate(()=>TV_CONFIG.UNIDADE),'UPA Araucária');
+  assert.equal(await tvUPA.evaluate(()=>document.getElementById('nome-unidade')),null);
+  assert.doesNotMatch(await tvUPA.evaluate(()=>document.body.innerText),/UBS Central Araucária|UPA Araucária/);
   assert.match(await tvUPA.$eval('#rota-passos',e=>e.textContent),/sinalização confirmada pela UPA/);
   assert.equal(await tvUPA.evaluate(()=>window.__websocketsAbertos),0);
   await tv.evaluate(()=>atualizar());

@@ -22,7 +22,6 @@
         </div>
         <div>
           <div class="nome-sistema">Vida+</div>
-          <div class="nome-unidade" id="nome-unidade">Vida+</div>
         </div>
       </div>
       <!-- Controles do anúncio por voz (não alteram a fila) -->
@@ -193,9 +192,6 @@
       idxAviso++;
     }
 
-    if (typeof TV_CONFIG !== 'undefined' && TV_CONFIG.UNIDADE) {
-      document.getElementById('nome-unidade').textContent = TV_CONFIG.UNIDADE;
-    }
     iniciarRelogio(
       document.getElementById('relogio-hora'),
       document.getElementById('relogio-data')
