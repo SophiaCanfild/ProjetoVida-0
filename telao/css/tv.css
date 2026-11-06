@@ -126,13 +126,6 @@ body::after {
   -webkit-text-fill-color: transparent; color: transparent;
   line-height: 1.1;
 }
-.tv-marca .nome-unidade {
-  display: block;
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--texto-suave);
-  letter-spacing: 0.3px;
-}
 
 .tv-relogio { text-align: right; display: flex; align-items: center; justify-content: flex-end; gap: 14px; flex-shrink: 0; }
 .tv-relogio .hora {
