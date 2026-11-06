@@ -56,6 +56,69 @@
         .vital-card i { font-size: 1.5rem; margin-bottom: 8px; }
         .vital-card .label { font-size: 0.75rem; color: var(--cinza-500); text-transform: uppercase; margin-bottom: 8px; }
         .vital-card input { text-align: center; font-weight: 600; margin-top: 8px; }
+
+        /* ---------- Sugestão de risco pelos sinais vitais ---------- */
+        .sugestao-risco {
+            border: 2px solid var(--cinza-200);
+            background: var(--cinza-50);
+            border-radius: var(--radius-md);
+            padding: 14px 16px;
+            margin-bottom: 20px;
+            transition: border-color .2s, background .2s;
+        }
+        .sugestao-risco[data-nivel="vermelho"] { border-color: var(--manchester-vermelho); background: #FEF2F2; }
+        .sugestao-risco[data-nivel="laranja"]  { border-color: var(--manchester-laranja);  background: #FFF7ED; }
+        .sugestao-risco[data-nivel="amarelo"]  { border-color: var(--manchester-amarelo);  background: #FEFCE8; }
+        .sugestao-risco[data-nivel="verde"]    { border-color: var(--manchester-verde);    background: #F0FDF4; }
+        .sugestao-risco[data-nivel="azul"]     { border-color: var(--manchester-azul);     background: #EFF6FF; }
+
+        .sugestao-cabeca { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .sugestao-pill {
+            display: inline-flex; align-items: center; gap: 7px;
+            padding: 8px 14px; border-radius: 999px;
+            font-size: .8125rem; font-weight: 700; line-height: 1.1;
+            background: var(--branco); color: var(--cinza-600);
+            border: 1px solid var(--cinza-300);
+        }
+        .sugestao-pill .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; opacity: .9; flex: none; }
+        .sugestao-risco[data-nivel="vermelho"] .sugestao-pill { background: var(--manchester-vermelho); color: #fff; border-color: transparent; }
+        .sugestao-risco[data-nivel="laranja"]  .sugestao-pill { background: var(--manchester-laranja);  color: #fff; border-color: transparent; }
+        .sugestao-risco[data-nivel="amarelo"]  .sugestao-pill { background: var(--manchester-amarelo);  color: #1F2937; border-color: transparent; }
+        .sugestao-risco[data-nivel="verde"]    .sugestao-pill { background: var(--manchester-verde);    color: #fff; border-color: transparent; }
+        .sugestao-risco[data-nivel="azul"]     .sugestao-pill { background: var(--manchester-azul);     color: #fff; border-color: transparent; }
+
+        .sugestao-info { flex: 1 1 200px; min-width: 0; }
+        .sugestao-titulo {
+            font-size: .6875rem; font-weight: 800; letter-spacing: .05em;
+            text-transform: uppercase; color: var(--cinza-500);
+        }
+        .sugestao-detalhe { font-size: .875rem; color: var(--cinza-700); margin-top: 2px; }
+        .sugestao-cabeca .btn:disabled { opacity: .45; cursor: not-allowed; }
+
+        .sugestao-motivos { list-style: none; margin: 10px 0 0; padding: 0; display: none; }
+        .sugestao-motivos.tem { display: block; }
+        .sugestao-motivos li {
+            position: relative; padding: 3px 0 3px 18px;
+            font-size: .8125rem; color: var(--cinza-700); line-height: 1.35;
+        }
+        .sugestao-motivos li::before {
+            content: ''; position: absolute; left: 4px; top: 10px;
+            width: 6px; height: 6px; border-radius: 50%; background: var(--cinza-400);
+        }
+        .sugestao-motivos li[data-nivel="vermelho"]::before { background: var(--manchester-vermelho); }
+        .sugestao-motivos li[data-nivel="laranja"]::before  { background: var(--manchester-laranja); }
+        .sugestao-motivos li[data-nivel="amarelo"]::before  { background: var(--manchester-amarelo); }
+        .sugestao-motivos li[data-nivel="verde"]::before    { background: var(--manchester-verde); }
+        .sugestao-motivos li.aviso::before { background: transparent; border: 1px solid var(--alerta); }
+        .sugestao-motivos li.aviso { color: var(--alerta); font-weight: 600; }
+
+        .sugestao-rodape {
+            margin-top: 10px; padding-top: 8px;
+            border-top: 1px solid var(--cinza-200);
+            font-size: .75rem; color: var(--cinza-500); line-height: 1.45;
+        }
+        .sugestao-comparacao:not(:empty) { display: block; margin-top: 6px; font-weight: 700; color: var(--alerta); }
+        .sugestao-comparacao.ok:not(:empty) { color: var(--verde-600); }
     </style>
 </head>
 <body>
@@ -204,30 +267,48 @@
                                     <!-- Classificação de Risco -->
                                     <h5 class="mb-3"><i class="fas fa-exclamation-triangle me-1" style="color: var(--alerta);"></i> Classificação de Risco (Manchester)</h5>
                                     <div class="classificacao-grid mb-4">
-                                        <div class="classificacao-btn btn-vermelho" onclick="selecionarClassificacao('vermelho')">
+                                        <div class="classificacao-btn btn-vermelho" data-risco="vermelho" onclick="selecionarClassificacao('vermelho')">
                                             <div style="font-size: 1.5rem; font-weight: 700;">1</div>
                                             <div style="font-size: 0.6875rem; font-weight: 600;">EMERGÊNCIA</div>
                                             <div style="font-size: 0.625rem; opacity: 0.8;">Imediato</div>
                                         </div>
-                                        <div class="classificacao-btn btn-laranja" onclick="selecionarClassificacao('laranja')">
+                                        <div class="classificacao-btn btn-laranja" data-risco="laranja" onclick="selecionarClassificacao('laranja')">
                                             <div style="font-size: 1.5rem; font-weight: 700;">2</div>
                                             <div style="font-size: 0.6875rem; font-weight: 600;">MUITO URGENTE</div>
                                             <div style="font-size: 0.625rem; opacity: 0.8;">10 min</div>
                                         </div>
-                                        <div class="classificacao-btn btn-amarelo" onclick="selecionarClassificacao('amarelo')">
+                                        <div class="classificacao-btn btn-amarelo" data-risco="amarelo" onclick="selecionarClassificacao('amarelo')">
                                             <div style="font-size: 1.5rem; font-weight: 700;">3</div>
                                             <div style="font-size: 0.6875rem; font-weight: 600;">URGENTE</div>
                                             <div style="font-size: 0.625rem; opacity: 0.8;">60 min</div>
                                         </div>
-                                        <div class="classificacao-btn btn-verde" onclick="selecionarClassificacao('verde')">
+                                        <div class="classificacao-btn btn-verde" data-risco="verde" onclick="selecionarClassificacao('verde')">
                                             <div style="font-size: 1.5rem; font-weight: 700;">4</div>
                                             <div style="font-size: 0.6875rem; font-weight: 600;">POUCO URGENTE</div>
                                             <div style="font-size: 0.625rem; opacity: 0.8;">120 min</div>
                                         </div>
-                                        <div class="classificacao-btn btn-azul" onclick="selecionarClassificacao('azul')">
+                                        <div class="classificacao-btn btn-azul" data-risco="azul" onclick="selecionarClassificacao('azul')">
                                             <div style="font-size: 1.5rem; font-weight: 700;">5</div>
                                             <div style="font-size: 0.6875rem; font-weight: 600;">NÃO URGENTE</div>
                                             <div style="font-size: 0.625rem; opacity: 0.8;">240 min</div>
+                                        </div>
+                                    </div>
+                                    <div class="sugestao-risco" id="sugestaoRisco" data-nivel="">
+                                        <div class="sugestao-cabeca">
+                                            <div class="sugestao-pill" id="sugestaoPill"><span class="dot"></span> Aguardando dados</div>
+                                            <div class="sugestao-info">
+                                                <div class="sugestao-titulo"><i class="fas fa-stethoscope me-1"></i> Sugestão pelos sinais vitais</div>
+                                                <div class="sugestao-detalhe" id="sugestaoDetalhe">Preencha os sinais vitais para ver a sugestão de risco.</div>
+                                            </div>
+                                            <button type="button" class="btn btn-primary btn-sm" id="btnAplicarSugestao" disabled>
+                                                <i class="fas fa-check-double"></i> Usar sugestão
+                                            </button>
+                                        </div>
+                                        <ul class="sugestao-motivos" id="sugestaoMotivos"></ul>
+                                        <div class="sugestao-rodape">
+                                            <span id="sugestaoFaltando"></span>
+                                            Apoio à decisão, com limites de referência para <strong>adultos</strong> (pressão, temperatura, saturação, pulso e dor). Não considera queixa, idade nem comorbidades — <strong>a classificação final é da enfermeira</strong>.
+                                            <span class="sugestao-comparacao" id="sugestaoComparacao"></span>
                                         </div>
                                     </div>
                                     <input type="hidden" id="classificacao">
@@ -407,6 +488,20 @@
         document.addEventListener('DOMContentLoaded', function() {
             carregarListaAguardando();
             carregarHistorico();
+
+            // Sugestão de risco: recalcula a cada digitação dos sinais vitais
+            ['pressao', 'temperatura', 'saturacao', 'pulso', 'dor'].forEach(function (id) {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener('input', atualizarSugestao);
+            });
+            const btnSugestao = document.getElementById('btnAplicarSugestao');
+            if (btnSugestao) {
+                btnSugestao.addEventListener('click', function () {
+                    if (sugestaoAtual && sugestaoAtual.nivel) selecionarClassificacao(sugestaoAtual.nivel);
+                });
+            }
+            atualizarSugestao();
+
             if (DB.aguardarSincronizacao) DB.aguardarSincronizacao().then(function() {
                 carregarListaAguardando(); carregarHistorico();
             });
@@ -482,6 +577,19 @@
             const consulta = DB.getConsultaPorId(consultaId);
             if (!consulta) return;
             
+            // Trocar de paciente não pode herdar os sinais vitais do anterior
+            const trocouPaciente = !consultaSelecionada || consultaSelecionada.id !== consulta.id;
+            if (trocouPaciente) {
+                limparSinaisVitais();
+                document.getElementById('queixa').value = '';
+                document.getElementById('observacoes').value = '';
+                const tempoEl = document.getElementById('tempoSintomas');
+                if (tempoEl) tempoEl.value = '';
+                classificacaoSelecionada = null;
+                document.getElementById('classificacao').value = '';
+                document.querySelectorAll('.classificacao-btn').forEach(btn => btn.classList.remove('selected'));
+            }
+
             consultaSelecionada = consulta;
             pacienteSelecionado = DB.getPacientePorId(consulta.paciente_id);
             
@@ -490,6 +598,7 @@
             document.getElementById('semPaciente').classList.add('hidden');
             document.getElementById('comPaciente').classList.remove('hidden');
             document.getElementById('pacienteNome').textContent = pacienteSelecionado.nome + ' — Senha ' + consulta.senha;
+            atualizarSugestao();
         }
 
         async function chamarParaTriagem(consultaId) {
@@ -505,13 +614,219 @@
             }
         }
         
-        // Selecionar classificação
-        function selecionarClassificacao(tipo) {
+        // Selecionar classificação (o elemento é opcional: assim a função
+        // também serve para o botão "Usar sugestão", fora de um clique)
+        function selecionarClassificacao(tipo, elemento) {
             classificacaoSelecionada = tipo;
             document.getElementById('classificacao').value = tipo;
-            
+
+            const alvo = elemento || document.querySelector('.classificacao-btn[data-risco="' + tipo + '"]');
             document.querySelectorAll('.classificacao-btn').forEach(btn => btn.classList.remove('selected'));
-            event.target.closest('.classificacao-btn').classList.add('selected');
+            if (alvo) alvo.classList.add('selected');
+
+            atualizarComparacao();
+        }
+
+        // ============================================================
+        // SUGESTÃO DE RISCO PELOS SINAIS VITAIS
+        // Apoio à decisão: encontra o gatilho mais grave nos sinais
+        // vitais e sugere a cor correspondente. NUNCA seleciona sozinho
+        // — a classificação final é sempre da enfermeira.
+        // Limites de referência para ADULTOS.
+        // ============================================================
+        const NIVEIS_RISCO = {
+            vermelho: { ordem: 1, nome: 'Emergência',     tempo: 'Imediato' },
+            laranja:  { ordem: 2, nome: 'Muito urgente',  tempo: '10 min'   },
+            amarelo:  { ordem: 3, nome: 'Urgente',        tempo: '60 min'   },
+            verde:    { ordem: 4, nome: 'Pouco urgente',  tempo: '120 min'  },
+            azul:     { ordem: 5, nome: 'Não urgente',    tempo: '240 min'  }
+        };
+
+        let sugestaoAtual = null;
+
+        // "120/80", "120x80", "120-80", "120 80" -> { pas, pad }
+        function lerPressao(texto) {
+            const m = String(texto || '').match(/(\d{2,3})\s*(?:\/|x|X|,|-|\s)\s*(\d{2,3})/);
+            if (!m) return null;
+            const pas = parseInt(m[1], 10);
+            const pad = parseInt(m[2], 10);
+            if (isNaN(pas) || isNaN(pad)) return null;
+            if (pas < 50 || pas > 300 || pad < 20 || pad > 200) return null;
+            return { pas: pas, pad: pad };
+        }
+
+        function numeroOuNulo(valor) {
+            const n = parseFloat(String(valor == null ? '' : valor).replace(',', '.'));
+            return isFinite(n) ? n : null;
+        }
+
+        // Função pura: sinais vitais -> sugestão + motivos
+        function sugerirClassificacao(v) {
+            const gatilhos = [];
+            const faltando = [];
+            const add = (nivel, texto) => gatilhos.push({ nivel: nivel, texto: texto });
+
+            // Saturação de O2
+            if (v.saturacao == null) faltando.push('saturação');
+            else if (v.saturacao < 85) add('vermelho', 'Saturação ' + v.saturacao + '% — hipoxemia grave (abaixo de 85%)');
+            else if (v.saturacao < 90) add('laranja', 'Saturação ' + v.saturacao + '% — abaixo de 90%');
+            else if (v.saturacao < 95) add('amarelo', 'Saturação ' + v.saturacao + '% — abaixo de 95%');
+
+            // Pressão arterial
+            if (!v.pressao) faltando.push('pressão');
+            else {
+                const pas = v.pressao.pas, pad = v.pressao.pad;
+                if (pas < 80) add('vermelho', 'Pressão ' + pas + '/' + pad + ' — sistólica abaixo de 80 mmHg');
+                else if (pas < 90) add('laranja', 'Pressão ' + pas + '/' + pad + ' — sistólica abaixo de 90 mmHg');
+                if (pas >= 180 || pad >= 110) add('laranja', 'Pressão ' + pas + '/' + pad + ' — crise hipertensiva (180/110 ou mais)');
+                else if (pas >= 140 || pad >= 90) add('amarelo', 'Pressão ' + pas + '/' + pad + ' — pressão elevada');
+            }
+
+            // Temperatura
+            if (v.temperatura == null) faltando.push('temperatura');
+            else {
+                const t = v.temperatura.toFixed(1).replace('.', ',');
+                if (v.temperatura >= 41) add('vermelho', 'Temperatura ' + t + ' °C — hiperpirexia (41 °C ou mais)');
+                else if (v.temperatura >= 40) add('laranja', 'Temperatura ' + t + ' °C — febre muito alta (40 °C ou mais)');
+                else if (v.temperatura >= 39) add('amarelo', 'Temperatura ' + t + ' °C — febre alta (39 °C ou mais)');
+                else if (v.temperatura >= 37.8) add('verde', 'Temperatura ' + t + ' °C — febre baixa');
+                else if (v.temperatura < 35) add('laranja', 'Temperatura ' + t + ' °C — hipotermia (abaixo de 35 °C)');
+                else if (v.temperatura < 36) add('amarelo', 'Temperatura ' + t + ' °C — abaixo do normal');
+            }
+
+            // Pulso
+            if (v.pulso == null) faltando.push('pulso');
+            else if (v.pulso < 40) add('vermelho', 'Pulso ' + v.pulso + ' bpm — bradicardia grave (abaixo de 40)');
+            else if (v.pulso < 50) add('laranja', 'Pulso ' + v.pulso + ' bpm — abaixo de 50 bpm');
+            else if (v.pulso < 60) add('verde', 'Pulso ' + v.pulso + ' bpm — levemente abaixo do normal');
+            else if (v.pulso >= 150) add('vermelho', 'Pulso ' + v.pulso + ' bpm — taquicardia grave (150 ou mais)');
+            else if (v.pulso >= 130) add('laranja', 'Pulso ' + v.pulso + ' bpm — acima de 130 bpm');
+            else if (v.pulso >= 110) add('amarelo', 'Pulso ' + v.pulso + ' bpm — acima de 110 bpm');
+            else if (v.pulso > 100) add('verde', 'Pulso ' + v.pulso + ' bpm — levemente elevado');
+
+            // Dor
+            if (v.dor != null && v.dor >= 8) add('amarelo', 'Dor ' + v.dor + '/10 — dor intensa');
+
+            // Combinação: febre alta + sinal de má perfusão
+            const febreAlta = v.temperatura != null && v.temperatura >= 39;
+            const maPerfusao = (v.pulso != null && v.pulso >= 110) || (v.pressao && v.pressao.pas < 100);
+            if (febreAlta && maPerfusao) {
+                add('laranja', 'Febre alta com pulso acelerado ou pressão baixa — suspeita de infecção grave');
+            }
+
+            // Sugestão = gatilho mais grave encontrado
+            let nivel = null;
+            gatilhos.forEach(function (g) {
+                if (!nivel || NIVEIS_RISCO[g.nivel].ordem < NIVEIS_RISCO[nivel].ordem) nivel = g.nivel;
+            });
+            gatilhos.sort((a, b) => NIVEIS_RISCO[a.nivel].ordem - NIVEIS_RISCO[b.nivel].ordem);
+
+            return { nivel: nivel, gatilhos: gatilhos, faltando: faltando };
+        }
+
+        function lerSinaisVitaisDoFormulario() {
+            const dorEl = document.getElementById('dor');
+            const paEl = document.getElementById('pressao');
+            const paTexto = paEl ? String(paEl.value || '').trim() : '';
+            return {
+                pressao: lerPressao(paTexto),
+                pressaoTexto: paTexto,
+                temperatura: numeroOuNulo(document.getElementById('temperatura').value),
+                saturacao: numeroOuNulo(document.getElementById('saturacao').value),
+                pulso: numeroOuNulo(document.getElementById('pulso').value),
+                dor: dorEl ? (parseInt(dorEl.value, 10) || 0) : null
+            };
+        }
+
+        // Redesenha o painel de sugestão a cada digitação
+        function atualizarSugestao() {
+            const painel = document.getElementById('sugestaoRisco');
+            if (!painel) return;
+
+            const pill     = document.getElementById('sugestaoPill');
+            const detalhe  = document.getElementById('sugestaoDetalhe');
+            const lista    = document.getElementById('sugestaoMotivos');
+            const botao    = document.getElementById('btnAplicarSugestao');
+            const faltandoEl = document.getElementById('sugestaoFaltando');
+
+            const v = lerSinaisVitaisDoFormulario();
+            const temDado = !!(v.pressao || v.temperatura != null || v.saturacao != null || v.pulso != null);
+            const r = sugerirClassificacao(v);
+            sugestaoAtual = r;
+
+            // Avisos de leitura
+            const avisos = [];
+            if (v.pressaoTexto && !v.pressao) {
+                avisos.push('Pressão não reconhecida — use o formato 120/80.');
+            }
+
+            if (!temDado) {
+                painel.dataset.nivel = '';
+                pill.innerHTML = '<span class="dot"></span> Aguardando dados';
+                detalhe.textContent = 'Preencha os sinais vitais para ver a sugestão de risco.';
+                lista.className = 'sugestao-motivos';
+                lista.innerHTML = avisos.map(a => '<li class="aviso">' + a + '</li>').join('');
+                if (avisos.length) lista.className = 'sugestao-motivos tem';
+                botao.disabled = true;
+                faltandoEl.textContent = '';
+                atualizarComparacao();
+                return;
+            }
+
+            if (!r.nivel) {
+                painel.dataset.nivel = '';
+                pill.innerHTML = '<span class="dot"></span> Sem alerta';
+                detalhe.textContent = 'Sinais vitais sem alteração — classifique pela queixa principal.';
+            } else {
+                const info = NIVEIS_RISCO[r.nivel];
+                painel.dataset.nivel = r.nivel;
+                pill.innerHTML = '<span class="dot"></span> ' + info.nome + ' · ' + info.tempo;
+                detalhe.textContent = r.gatilhos.length === 1
+                    ? 'Um sinal alterado aponta para ' + info.nome.toLowerCase() + '.'
+                    : r.gatilhos.length + ' sinais alterados — vale o mais grave: ' + info.nome.toLowerCase() + '.';
+            }
+
+            const itens = r.gatilhos.map(g => '<li data-nivel="' + g.nivel + '">' + g.texto + '</li>')
+                .concat(avisos.map(a => '<li class="aviso">' + a + '</li>'));
+            lista.innerHTML = itens.join('');
+            lista.className = itens.length ? 'sugestao-motivos tem' : 'sugestao-motivos';
+
+            botao.disabled = !r.nivel;
+
+            faltandoEl.textContent = r.faltando.length
+                ? 'Sem dado de ' + r.faltando.join(', ') + '. '
+                : '';
+
+            atualizarComparacao();
+        }
+
+        // Mostra se a escolha da enfermeira combina com a sugestão (nunca bloqueia)
+        function atualizarComparacao() {
+            const el = document.getElementById('sugestaoComparacao');
+            if (!el) return;
+            el.textContent = '';
+            el.className = 'sugestao-comparacao';
+
+            if (!sugestaoAtual || !sugestaoAtual.nivel || !classificacaoSelecionada) return;
+
+            if (classificacaoSelecionada === sugestaoAtual.nivel) {
+                el.textContent = 'A classificação escolhida coincide com a sugestão.';
+                el.classList.add('ok');
+                return;
+            }
+            el.textContent = 'Você escolheu ' + NIVEIS_RISCO[classificacaoSelecionada].nome +
+                ', a sugestão era ' + NIVEIS_RISCO[sugestaoAtual.nivel].nome +
+                '. Vale o seu julgamento — se for o caso, registre o motivo nas observações.';
+        }
+
+        // Limpa os sinais vitais (usado ao trocar de paciente e ao finalizar)
+        function limparSinaisVitais() {
+            ['pressao', 'temperatura', 'saturacao', 'pulso', 'peso', 'altura'].forEach(function (id) {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+            const dor = document.getElementById('dor');
+            if (dor) dor.value = '0';
         }
         
         // Finalizar triagem (salva no banco compartilhado → enfermeira vê no app)
@@ -555,17 +870,16 @@
             document.getElementById('semPaciente').classList.remove('hidden');
             document.getElementById('comPaciente').classList.add('hidden');
             document.getElementById('queixa').value = '';
-            document.getElementById('pressao').value = '';
-            document.getElementById('temperatura').value = '';
-            document.getElementById('saturacao').value = '';
-            document.getElementById('pulso').value = '';
-            document.getElementById('peso').value = '';
-            document.getElementById('altura').value = '';
             document.getElementById('observacoes').value = '';
+            limparSinaisVitais();
+            const tempoApos = document.getElementById('tempoSintomas');
+            if (tempoApos) tempoApos.value = '';
             document.querySelectorAll('.classificacao-btn').forEach(btn => btn.classList.remove('selected'));
+            document.getElementById('classificacao').value = '';
             pacienteSelecionado = null;
             consultaSelecionada = null;
             classificacaoSelecionada = null;
+            atualizarSugestao();
             
             carregarListaAguardando();
         }
