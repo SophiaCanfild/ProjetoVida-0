@@ -138,13 +138,20 @@ body::after {
   padding: 8px 20px;
   box-shadow: var(--sombra-suave);
 }
+/* Data por extenso: dia da semana, dia, mês e ano. */
 .tv-relogio .data {
-  font-size: 0.9rem; color: var(--verde-tinta); font-weight: 700;
+  font-size: 1.1rem; color: var(--verde-tinta); font-weight: 700;
   background: var(--verde-suave);
   border-radius: 30px;
-  padding: 8px 18px;
+  padding: 8px 20px;
   text-transform: capitalize;
-  max-width: 220px;
+  max-width: 15.3em;
+}
+/* No modo TV a data acompanha a largura da tela, para ser lida de longe, e
+   fica em uma linha. O limite só quebra o texto se a fonte de reserva for
+   mais larga, sem empurrar os controles de voz. */
+@media (min-width: 1181px) {
+  .tv-relogio .data { font-size: min(1.5vw, 1.75rem); max-width: 35vw; }
 }
 
 /* ============ Controles da chamada por voz ============ */
@@ -720,10 +727,10 @@ body::after {
   align-items: center;
   border: 1px solid #BAE6FD;
   border-radius: 20px;
-  padding: 4px 8px;
+  padding: 4px 12px;
   background: var(--azul-suave);
   color: var(--azul-tinta);
-  font-size: 0.61rem;
+  font-size: clamp(0.85rem, 1.05vw, 1.1rem);
   font-weight: 800;
   white-space: nowrap;
 }
@@ -774,13 +781,15 @@ body::after {
 }
 .rota-acessibilidade-obs {
   margin-top: 4px;
-  padding: 5px 8px;
+  padding: 6px 10px;
   border-radius: 8px;
   background: #F0F9FF;
   border: 1px solid #BAE6FD;
   color: var(--azul-tinta);
-  font-size: 0.65rem;
+  /* Mesmo tamanho dos passos de "Como chegar" no modo TV. */
+  font-size: clamp(0.86rem, 1vw, 1.05rem);
   font-weight: 700;
+  line-height: 1.3;
 }
 .mapa-hospital {
   min-width: 0;
@@ -1033,6 +1042,9 @@ body::after {
   .mapa-hospital svg, .rota-passos { max-height: 138px; }
   .orientacao-rota { gap: 5px; }
   .rota-passos li { margin-bottom: 5px; }
+  /* Compensa a fonte maior da acessibilidade para os passos continuarem cabendo. */
+  .rota-como-chegar-wrap { padding-top: 7px; padding-bottom: 7px; gap: 4px; }
+  .rota-acessibilidade-obs { margin-top: 2px; padding-top: 4px; padding-bottom: 4px; }
   .tv-paineis { max-height: 33vh; }
   .tv-destaque .senha-chamada { font-size: clamp(2.8rem, min(7.4vw, 11vh), 5.8rem); }
 }
@@ -1062,6 +1074,11 @@ body::after {
   .mapa-hospital svg { max-height: 220px; }
   .rota-passos { max-height: none; overflow: visible; }
   .rota-topo { align-items: center; }
+  /* Em telas estreitas, o selo de acessibilidade desce para baixo do destino
+     e quebra a linha em vez de sair do painel. */
+  .rota-topo { flex-wrap: wrap; gap: 6px 12px; }
+  .rota-badges { flex-shrink: 1; max-width: 100%; }
+  .rota-badge { white-space: normal; }
 }
 
 
