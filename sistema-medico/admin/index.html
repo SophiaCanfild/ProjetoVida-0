@@ -70,10 +70,6 @@
                         <i class="fas fa-route"></i>
                         <span>Mapa e rotas</span>
                     </a>
-                    <div class="menu-item" data-page="config" onclick="mostrarPagina('config')">
-                        <i class="fas fa-cog"></i>
-                        <span>Configurações</span>
-                    </div>
                 </div>
                 
                 <div class="menu-section">
@@ -457,25 +453,6 @@
                 </div>
             </div>
             
-            <!-- Página: Configurações -->
-            <div class="content-area" id="pageConfig">
-                <div class="p-6">
-                    <h2 class="mb-4"><i class="fas fa-cog me-2" style="color: var(--cinza-500);"></i> Configurações do Sistema</h2>
-                    
-                    <div class="card">
-                        <div class="card-header">
-                            <h3>Parâmetros Gerais</h3>
-                        </div>
-                        <div class="card-body">
-                            <div class="alert alert-info">
-                                <i class="fas fa-info-circle"></i>
-                                <span>Funcionalidade em desenvolvimento.</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
             <!-- Página: Relatórios -->
             <div class="content-area" id="pageRelatorios">
                 <div class="p-6">
@@ -624,7 +601,7 @@
             
             const titulos = {
                 dashboard: 'Dashboard', usuarios: 'Gerenciar Usuários', funcionarios: 'Novo Funcionário',
-                pacientes: 'Pacientes', unidades: 'Unidades', config: 'Configurações', relatorios: 'Relatórios'
+                pacientes: 'Pacientes', unidades: 'Unidades', relatorios: 'Relatórios'
             };
             document.getElementById('pageTitle').textContent = titulos[pagina] || pagina;
             
