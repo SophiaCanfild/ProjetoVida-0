@@ -62,18 +62,10 @@
                         <i class="fas fa-user-injured"></i>
                         <span>Pacientes</span>
                     </div>
-                    <div class="menu-item" data-page="unidades" onclick="mostrarPagina('unidades')">
-                        <i class="fas fa-hospital"></i>
-                        <span>Unidades</span>
-                    </div>
                     <a class="menu-item" data-page="mapa" href="mapa.html">
                         <i class="fas fa-route"></i>
                         <span>Mapa e rotas</span>
                     </a>
-                    <div class="menu-item" data-page="config" onclick="mostrarPagina('config')">
-                        <i class="fas fa-cog"></i>
-                        <span>Configurações</span>
-                    </div>
                 </div>
                 
                 <div class="menu-section">
@@ -436,46 +428,6 @@
                 </div>
             </div>
             
-            <!-- Página: Unidades -->
-            <div class="content-area" id="pageUnidades">
-                <div class="p-6">
-                    <h2 class="mb-4"><i class="fas fa-hospital me-2" style="color: var(--info);"></i> Unidades de Saúde</h2>
-                    
-                    <div class="card">
-                        <div class="card-header">
-                            <h3>Unidades Cadastradas</h3>
-                        </div>
-                        <div class="card-body">
-                            <div class="alert alert-info">
-                                <i class="fas fa-info-circle"></i>
-                                <span>Selecione a unidade e cadastre locais, orientações e acessibilidade. O mapeamento gráfico é opcional; o telão utiliza somente a versão publicada.</span>
-                            </div>
-                            <p style="margin: 16px 0; color: var(--cinza-600);">O rascunho pode ser editado e testado sem alterar as orientações que já estão no ar.</p>
-                            <a href="mapa.html" class="btn btn-primary"><i class="fas fa-route"></i> Abrir Mapa e rotas</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Página: Configurações -->
-            <div class="content-area" id="pageConfig">
-                <div class="p-6">
-                    <h2 class="mb-4"><i class="fas fa-cog me-2" style="color: var(--cinza-500);"></i> Configurações do Sistema</h2>
-                    
-                    <div class="card">
-                        <div class="card-header">
-                            <h3>Parâmetros Gerais</h3>
-                        </div>
-                        <div class="card-body">
-                            <div class="alert alert-info">
-                                <i class="fas fa-info-circle"></i>
-                                <span>Funcionalidade em desenvolvimento.</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
             <!-- Página: Relatórios -->
             <div class="content-area" id="pageRelatorios">
                 <div class="p-6">
@@ -624,7 +576,7 @@
             
             const titulos = {
                 dashboard: 'Dashboard', usuarios: 'Gerenciar Usuários', funcionarios: 'Novo Funcionário',
-                pacientes: 'Pacientes', unidades: 'Unidades', config: 'Configurações', relatorios: 'Relatórios'
+                pacientes: 'Pacientes', relatorios: 'Relatórios'
             };
             document.getElementById('pageTitle').textContent = titulos[pagina] || pagina;
             
