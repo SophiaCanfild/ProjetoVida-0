@@ -18,6 +18,7 @@ const escHtml = Rx.esc;
 
 let examesAtendimento = [];     // exames adicionados no atendimento atual
 let documentosGerados = null;   // { paciente, receitas[], exames[] } após finalizar
+let atestadosAtendimento = [];   // atestados emitidos nesta consulta
 let previaHtmlAtual = '';
 let exameEmEdicao = null;       // chave do exame aberto no modal de status
 
@@ -37,6 +38,8 @@ function iniciarPrescricoes() {
 
   document.getElementById('exameNome').addEventListener('input', aoEscolherExame);
   document.getElementById('formExame').addEventListener('submit', adicionarExameDoFormulario);
+  const formAtestado = document.getElementById('formAtestado');
+  if (formAtestado) formAtestado.addEventListener('submit', emitirAtestado);
   document.getElementById('formStatusExame').addEventListener('submit', salvarStatusExame);
   document.getElementById('statusExameSelect').addEventListener('change', ajustarCamposStatus);
 
@@ -46,7 +49,7 @@ function iniciarPrescricoes() {
   });
 
   // Atualiza as páginas quando algo muda nesta aba, em outra aba ou no Supabase
-  ['receitas_emitidas', 'receita_atualizada', 'exames_registrados', 'exame_atualizado',
+  ['atestados_emitidos', 'receitas_emitidas', 'receita_atualizada', 'exames_registrados', 'exame_atualizado',
     'exame_solicitado_atualizado', 'consulta_atualizada', 'consulta_finalizada']
     .forEach(evt => DB.on(evt, atualizarPaginasPrescricao));
 }
@@ -111,6 +114,8 @@ function fecharModalAberto() {
 // ATENDIMENTO — estado
 // ============================================================
 function limparPrescricao() {
+  atestadosAtendimento = [];
+  renderizarAtestadosAtendimento();   // limpa a lista e o contador do botão
   document.getElementById('listaReceita').innerHTML = '';
   adicionarReceita({ semFoco: true });
   document.getElementById('receitaValidade').value = Rx.TIPOS_RECEITA.simples.validadePadrao;
@@ -390,7 +395,177 @@ function registrarPrescricao(consulta, prescricao) {
   receitas.forEach(r => r.itens.forEach(item => itensFoto.push(Object.assign({}, item, {
     receita_id: r.id, receita_numero: r.numero, receita_tipo: r.tipo, valida_ate: r.valida_ate
   }))));
-  return { receitas, exames, itensFoto, examesFoto: exames.map(e => Object.assign({}, e)) };
+  return { receitas, exames, itensFoto, examesFoto: exames.map(e => Object.assign({}, e)),
+    atestados: atestadosAtendimento.slice(),
+    atestadosFoto: atestadosAtendimento.map(a => Object.assign({}, a)) };
+}
+
+// ============================================================
+// ATESTADO — modal
+// ============================================================
+function abrirModalAtestado() {
+  if (!consultaSelecionada || !pacienteSelecionado) {
+    mostrarToast('Selecione um paciente na Fila de Espera para emitir atestado.', 'warning');
+    return;
+  }
+  document.getElementById('modalAtestadoPaciente').textContent =
+    pacienteSelecionado.nome + ' • CPF ' + Rx.formatarCpf(pacienteSelecionado.cpf);
+  limparFormAtestado();
+  renderizarAtestadosAtendimento();
+  abrirModal('modalAtestado');
+  setTimeout(() => document.getElementById('atestadoMotivo').focus(), 60);
+}
+
+function limparFormAtestado() {
+  const hoje = Rx.dataIso(new Date());   // data local (evita o fuso do toISOString)
+  document.getElementById('atestadoTipo').value = 'afastamento';
+  document.getElementById('atestadoData').value = hoje;
+  document.getElementById('atestadoInicio').value = hoje;
+  document.getElementById('atestadoFim').value = '';
+  document.getElementById('atestadoDias').value = '1';
+  document.getElementById('atestadoCid').value = (document.getElementById('cid10').value || '').trim();
+  document.getElementById('atestadoMotivo').value = '';
+  document.getElementById('atestadoObs').value = '';
+  atualizarPeriodoAtestado();
+}
+
+// Mostra/esconde o período e recalcula o fim a partir de início + dias
+function atualizarPeriodoAtestado() {
+  const tipo = document.getElementById('atestadoTipo').value;
+  const exigePeriodo = tipo === 'afastamento' || tipo === 'previsao_parto';
+  const grupo = document.getElementById('grupoPeriodoAtestado');
+  if (grupo) grupo.style.display = exigePeriodo ? '' : 'none';
+
+  const campoInicio = document.getElementById('atestadoInicio');
+  const campoFim = document.getElementById('atestadoFim');
+  const campoDias = document.getElementById('atestadoDias');
+  if (!campoInicio || !campoFim || !campoDias) return;
+
+  if (tipo === 'afastamento') {
+    campoInicio.readOnly = false;
+    campoFim.readOnly = true;
+    const inicio = campoInicio.value;
+    const dias = parseInt(campoDias.value, 10);
+    if (inicio && dias > 0) {
+      const d = new Date(inicio + 'T12:00:00');
+      d.setDate(d.getDate() + dias - 1);
+      campoFim.value = Rx.dataIso(d);
+    }
+  } else if (tipo === 'previsao_parto') {
+    campoInicio.readOnly = true;
+    campoInicio.value = '';
+    campoFim.readOnly = false;
+    campoDias.value = '';
+  } else {
+    campoInicio.value = '';
+    campoFim.value = '';
+    campoDias.value = '';
+  }
+}
+
+function renderizarAtestadosAtendimento() {
+  const badge = document.getElementById('badgeAtestados');
+  if (badge) {
+    badge.textContent = atestadosAtendimento.length;
+    badge.style.display = atestadosAtendimento.length ? '' : 'none';
+  }
+  const alvo = document.getElementById('listaAtestadosModal');
+  if (!alvo) return;
+  if (!atestadosAtendimento.length) {
+    alvo.innerHTML = '<div class="lista-vazia">Nenhum atestado emitido nesta consulta.</div>';
+    return;
+  }
+  alvo.innerHTML = atestadosAtendimento.map(function (a, i) {
+    const cfg = Rx.TIPOS_ATESTADO[a.tipo] || Rx.TIPOS_ATESTADO.afastamento;
+    return '<div class="doc-linha"><div class="doc-icone" style="background:#16a34a1A;color:#16a34a">' +
+      '<i class="fas fa-file-medical"></i></div>' +
+      '<div class="flex-1"><div class="doc-titulo">Atestado • ' + escHtml(cfg.rotulo) + ' • Nº ' + escHtml(a.numero) + '</div>' +
+      '<div class="doc-det">' + escHtml(a.motivo) + (a.dias ? ' • ' + a.dias + ' dia(s)' : '') +
+      (a.periodo_inicio && a.periodo_fim ? ' • ' + Rx.fmtData(a.periodo_inicio) + ' a ' + Rx.fmtData(a.periodo_fim) : '') +
+      '</div></div>' +
+      '<button type="button" class="btn btn-outline btn-sm" onclick="imprimirAtestadoGerado(' + i + ')">' +
+      '<i class="fas fa-print"></i> Imprimir</button></div>';
+  }).join('');
+}
+
+function emitirAtestado(e) {
+  e.preventDefault();
+  if (!consultaSelecionada || !pacienteSelecionado) {
+    mostrarToast('Selecione um paciente antes de emitir o atestado.', 'warning');
+    return;
+  }
+  const motivo = document.getElementById('atestadoMotivo').value.trim();
+  if (!motivo) {
+    mostrarToast('Descreva o motivo do atestado.', 'warning');
+    document.getElementById('atestadoMotivo').focus();
+    return;
+  }
+
+  const tipo = document.getElementById('atestadoTipo').value;
+  const u = getUsuarioLogado();
+  const dias = parseInt(document.getElementById('atestadoDias').value, 10);
+  const dados = {
+    tipo: tipo,
+    data_atendimento: document.getElementById('atestadoData').value || undefined,
+    periodo_inicio: tipo === 'afastamento' ? (document.getElementById('atestadoInicio').value || null) : null,
+    periodo_fim: (tipo === 'afastamento' || tipo === 'previsao_parto')
+      ? (document.getElementById('atestadoFim').value || null) : null,
+    dias: tipo === 'afastamento' ? (isNaN(dias) ? null : dias) : null,
+    cid10: document.getElementById('atestadoCid').value.trim() || null,
+    motivo: motivo,
+    observacoes: document.getElementById('atestadoObs').value.trim() || null,
+    medico_nome: u ? u.nome : '',
+    medico_crm: u ? (u.crm || '') : '',
+    unidade: consultaSelecionada.unidade
+  };
+
+  let gravados;
+  try {
+    gravados = DB.registrarAtestados(consultaSelecionada.id, [dados]);
+  } catch (err) {
+    mostrarToast('Erro ao emitir o atestado: ' + err.message, 'error');
+    return;
+  }
+  const registro = gravados[0] || Object.assign({ numero: DB.gerarNumeroDocumento('AT') }, dados);
+  atestadosAtendimento.push(registro);
+  renderizarAtestadosAtendimento();
+  mostrarToast('✅ Atestado nº ' + registro.numero + ' emitido e disponível no app do paciente.', 'success');
+
+  const indice = atestadosAtendimento.length - 1;
+  if (confirm('Atestado emitido. Deseja imprimir agora?')) imprimirAtestadoGerado(indice);
+  else limparFormAtestado();
+}
+
+function previsualizarAtestado() {
+  if (!consultaSelecionada || !pacienteSelecionado) {
+    mostrarToast('Selecione um paciente para pré-visualizar.', 'warning');
+    return;
+  }
+  const u = getUsuarioLogado();
+  const tipo = document.getElementById('atestadoTipo').value;
+  const dados = {
+    tipo: tipo,
+    data_atendimento: document.getElementById('atestadoData').value,
+    periodo_inicio: document.getElementById('atestadoInicio').value || null,
+    periodo_fim: document.getElementById('atestadoFim').value || null,
+    dias: parseInt(document.getElementById('atestadoDias').value, 10) || null,
+    cid10: document.getElementById('atestadoCid').value.trim() || null,
+    motivo: document.getElementById('atestadoMotivo').value.trim() || '—',
+    observacoes: document.getElementById('atestadoObs').value.trim() || null,
+    medico_nome: u ? u.nome : '', medico_crm: u ? (u.crm || '') : '',
+    unidade: consultaSelecionada.unidade
+  };
+  abrirPrevia(Rx.gerarDocumentoAtestado(dados, contextoDocumento(pacienteSelecionado, true)),
+    'Pré-visualização do atestado',
+    'O número do atestado é gerado ao emitir.');
+}
+
+function imprimirAtestadoGerado(indice) {
+  const a = atestadosAtendimento[indice] ||
+    (documentosGerados && documentosGerados.atestados && documentosGerados.atestados[indice]);
+  if (!a) return;
+  abrirPrevia(Rx.gerarDocumentoAtestado(a, contextoDocumento(pacienteSelecionado || (documentosGerados || {}).paciente)),
+    'Atestado nº ' + a.numero, '');
 }
 
 // ============================================================
@@ -622,7 +797,7 @@ function previsualizarPedidoExames() {
 // ============================================================
 function abrirModalDocumentos(docs) {
   documentosGerados = docs;
-  if (!docs || (!docs.receitas.length && !docs.exames.length)) return;
+  if (!docs || (!docs.receitas.length && !docs.exames.length && !(docs.atestados || []).length)) return;
   document.getElementById('documentosPaciente').textContent = docs.paciente ? docs.paciente.nome : '';
   const linhas = docs.receitas.map((r, i) => {
     const cfg = Rx.TIPOS_RECEITA[r.tipo] || Rx.TIPOS_RECEITA.simples;
@@ -638,6 +813,15 @@ function abrirModalDocumentos(docs) {
       '<div class="doc-det">' + docs.exames.length + ' exame(s)' + (urgentes ? ' • ' + urgentes + ' urgente(s)' : '') + '</div></div>' +
       '<button type="button" class="btn btn-outline btn-sm" onclick="imprimirPedidoGerado()"><i class="fas fa-print"></i> Imprimir</button></div>');
   }
+  (docs.atestados || []).forEach(function (a, i) {
+    const cfg = Rx.TIPOS_ATESTADO[a.tipo] || Rx.TIPOS_ATESTADO.afastamento;
+    linhas.push('<div class="doc-linha"><div class="doc-icone" style="background:#16a34a1A;color:#16a34a">' +
+      '<i class="fas fa-file-medical"></i></div>' +
+      '<div class="flex-1"><div class="doc-titulo">Atestado • ' + cfg.rotulo + ' • Nº ' + escHtml(a.numero) + '</div>' +
+      '<div class="doc-det">' + escHtml(a.motivo) + (a.dias ? ' • ' + a.dias + ' dia(s)' : '') + '</div></div>' +
+      '<button type="button" class="btn btn-outline btn-sm" onclick="imprimirAtestadoGerado(' + i + ')">' +
+      '<i class="fas fa-print"></i> Imprimir</button></div>');
+  });
   document.getElementById('listaDocumentos').innerHTML = linhas.join('');
   abrirModal('modalDocumentos');
 }
@@ -663,6 +847,9 @@ function imprimirTodosDocumentos() {
   const partes = [];
   if (documentosGerados.receitas.length) partes.push(Rx.gerarDocumentoReceitas(documentosGerados.receitas, ctx));
   if (documentosGerados.exames.length) partes.push(Rx.gerarDocumentoExames(pedidoDosExames(documentosGerados.exames), ctx));
+  (documentosGerados.atestados || []).forEach(function (a) {
+    partes.push(Rx.gerarDocumentoAtestado(a, ctx));
+  });
   if (!partes.length) return;
   // junta as folhas dos documentos num único arquivo de impressão
   const corpo = partes.map(h => h.slice(h.indexOf('<body>') + 6, h.lastIndexOf('</body>'))).join('');

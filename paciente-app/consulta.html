@@ -138,6 +138,26 @@
           </div>`;
       }).join('') || '<p class="suave">Nenhum exame solicitado.</p>';
 
+      const TIPOS_ATESTADO = {
+        afastamento: 'Afastamento', acompanhamento: 'Acompanhamento', comparecimento: 'Comparecimento',
+        previsao_parto: 'Previsão de parto', doacao_sangue: 'Doação de sangue', outros: 'Atestado'
+      };
+      const atestados = (Array.isArray(c.atestado) ? c.atestado : [])
+        .concat(DB.getAtestadosPorCpf ? DB.getAtestadosPorCpf(cpf).filter(a => a.consulta_id === c.id) : [])
+        .filter((a, i, lista) => a && a.numero && lista.findIndex(x => x.numero === a.numero) === i)
+        .map(a => `
+          <div class="exame-card">
+            <div class="e-icone">📄</div>
+            <div class="e-info">
+              <div class="e-nome">Atestado de ${esc(TIPOS_ATESTADO[a.tipo] || 'afastamento')}</div>
+              <div class="e-det">Motivo: ${esc(a.motivo || '—')}${a.cid10 ? ' • CID-10: ' + esc(a.cid10) : ''}</div>
+              <div class="e-det">Atendimento em ${esc(dataCurta(a.data_atendimento))}${a.periodo_inicio && a.periodo_fim ? ' • período: ' + esc(dataCurta(a.periodo_inicio)) + ' a ' + esc(dataCurta(a.periodo_fim)) : ''}${a.dias ? ' • ' + a.dias + ' dia(s)' : ''}</div>
+              ${a.observacoes ? '<div class="e-det">📌 ' + esc(a.observacoes) + '</div>' : ''}
+              <div class="e-det suave">Nº ${esc(a.numero)}</div>
+            </div>
+            <span class="e-status e-solicitado">Emitido</span>
+          </div>`).join('') || '';
+
       document.getElementById('conteudo').innerHTML = `
         <div style="display:flex; align-items:center; justify-content:space-between;">
           <h1>📋 Relatório da consulta</h1>
@@ -175,6 +195,12 @@
           <div class="card-titulo"><span>🧪 Exames solicitados</span></div>
           ${exames}
         </div>
+
+        ${atestados ? `
+        <div class="card">
+          <div class="card-titulo"><span>📄 Atestado</span></div>
+          ${atestados}
+        </div>` : ''}
 
         <div class="card">
           <div class="card-titulo"><span>📌 Orientações</span></div>

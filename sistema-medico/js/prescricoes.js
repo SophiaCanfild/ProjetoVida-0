@@ -282,6 +282,15 @@
     outros: ''
   };
 
+  const TIPOS_ATESTADO = {
+    afastamento:    { rotulo: 'Afastamento',       frase: 'necessitando de afastamento de suas atividades habituais' },
+    acompanhamento: { rotulo: 'Acompanhamento',    frase: 'necessitando de acompanhar pessoa enferma' },
+    comparecimento: { rotulo: 'Comparecimento',    frase: 'tendo comparecido a atendimento médico nesta unidade' },
+    previsao_parto: { rotulo: 'Previsão de parto', frase: 'com data provável do parto em' },
+    doacao_sangue:  { rotulo: 'Doação de sangue',  frase: 'tendo realizado doação de sangue' },
+    outros:         { rotulo: 'Outros',            frase: '' }
+  };
+
   const EXAMES = [
     { nome: 'Hemograma completo', categoria: 'laboratorial', preparo: 'Não requer jejum.', frequente: true },
     { nome: 'Glicemia de jejum', categoria: 'laboratorial', preparo: 'Jejum de 8 a 12 horas (água liberada).', frequente: true },
@@ -559,6 +568,7 @@
       '.posologia { font-size: 10.5pt; margin-top: 2px; }',
       '.obs { font-size: 9.5pt; color: #4b5563; font-style: italic; margin-top: 1px; }',
       '.orientacoes { font-size: 10pt; border-top: 1px dashed #cbd5e1; padding-top: 8px; margin-top: 8px; white-space: pre-wrap; }',
+      '.atestado-texto { font-size: 11.5pt; line-height: 1.75; text-align: justify; margin-top: 6px; }',
       '.assinatura { margin-top: 22px; display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; }',
       '.assinatura .local { font-size: 10pt; }',
       '.assinatura .ass { text-align: center; min-width: 78mm; }',
@@ -755,6 +765,53 @@
     return envolverDocumento('Solicitação de exames', [folha]);
   }
 
+  // atestado: { numero, tipo, data_atendimento, periodo_inicio, periodo_fim,
+  //             dias, cid10, motivo, observacoes, medico_nome, medico_crm,
+  //             unidade, emitida_em }
+  // ctx: { paciente, logoUrl, previa }
+  function gerarDocumentoAtestado(atestado, ctx) {
+    ctx = ctx || {};
+    const a = atestado || {};
+    const cfg = TIPOS_ATESTADO[a.tipo] || TIPOS_ATESTADO.afastamento;
+    const numero = a.numero || (ctx.previa ? 'gerado ao emitir' : '—');
+    const atendimento = a.data_atendimento ? fmtData(a.data_atendimento) : fmtData(new Date());
+    const temPeriodo = a.periodo_inicio && a.periodo_fim;
+
+    let frase = cfg.frase;
+    if (a.tipo === 'previsao_parto') frase = cfg.frase + ' <b>' + esc(fmtData(a.periodo_fim)) + '</b>';
+    if (a.tipo === 'afastamento' && temPeriodo) {
+      frase = 'necessitando de afastamento de suas atividades habituais' +
+        (a.dias ? ' pelo período de <b>' + a.dias + ' dia(s)</b>' : '') +
+        ', de <b>' + esc(fmtData(a.periodo_inicio)) + '</b> a <b>' + esc(fmtData(a.periodo_fim)) + '</b>';
+    }
+
+    const folha = '<section class="folha">' +
+      (ctx.previa ? '<div class="marca">PRÉ-VISUALIZAÇÃO</div>' : '') +
+      cabecalho(a.unidade, 'Documento do paciente', ctx) +
+      '<h1>ATESTADO MÉDICO</h1>' +
+      '<div class="meta"><span>Nº <b>' + esc(numero) + '</b></span>' +
+      '<span>Tipo: <b>' + esc(cfg.rotulo) + '</b></span>' +
+      '<span>Emissão: <b>' + esc(fmtData(a.emitida_em || new Date())) + '</b></span></div>' +
+      blocoPaciente(ctx.paciente) +
+      '<div class="corpo">' +
+      '<div class="atestado-texto">Atesto, para os devidos fins, que <b>' + esc((ctx.paciente || {}).nome || 'o(a) paciente') + '</b>' +
+      ', portador(a) do CPF nº ' + esc(formatarCpf((ctx.paciente || {}).cpf)) +
+      ', esteve sob atendimento médico nesta unidade de saúde no dia <b>' + esc(atendimento) + '</b>' +
+      ', sendo acometido(a) de <b>' + esc(a.motivo || '—') + '</b>' +
+      (a.cid10 ? ' (CID-10: ' + esc(a.cid10) + ')' : '') +
+      (frase ? ', ' + frase : '') + '.' +
+      '</div>' +
+      (a.observacoes ? '<div class="orientacoes"><b>Observações:</b> ' + esc(a.observacoes) + '</div>' : '') +
+      '<div class="aviso-paciente"><b>Ao paciente:</b> este atestado é um documento emitido pelo sistema Vida+ ' +
+      'e acompanha o atendimento realizado nesta unidade. Em caso de dúvida, procure a recepção com seu documento de identificação.</div>' +
+      '</div>' +
+      blocoAssinatura(a) +
+      '<div class="rodape">Documento emitido pelo sistema Vida+ • Atestado nº ' + esc(numero) +
+      (a.unidade ? ' • ' + esc(a.unidade) : '') + '</div>' +
+      '</section>';
+    return envolverDocumento('Atestado médico', [folha]);
+  }
+
   // Imprime um documento HTML sem abrir nova aba (iframe oculto)
   function imprimirHtml(html) {
     const frame = document.createElement('iframe');
@@ -774,14 +831,14 @@
   global.Prescricoes = {
     // dados
     TIPOS_RECEITA, CLASSES, MEDICAMENTOS, EXAMES, CATEGORIAS_EXAME, LOCAIS_EXAME, LOCAL_PADRAO,
-    VIAS_ADMINISTRACAO, FREQUENCIAS, DURACOES, STATUS_EXAME,
+    VIAS_ADMINISTRACAO, FREQUENCIAS, DURACOES, STATUS_EXAME, TIPOS_ATESTADO,
     // regras
     classificarMedicamento, verificarAlergias, agruparReceitas, buscarExameCatalogo,
     buscarMedicamentoCatalogo, numeroPorExtenso, quantidadePorExtenso, posologia,
     // unidade
     dadosUnidade, carregarUnidades,
     // documentos
-    gerarDocumentoReceitas, gerarDocumentoExames, imprimirHtml,
+    gerarDocumentoReceitas, gerarDocumentoExames, gerarDocumentoAtestado, imprimirHtml,
     // utilidades
     normalizar, esc, fmtData, fmtDataHora, dataIso, somarDias, idade, formatarCpf, textoCrm
   };

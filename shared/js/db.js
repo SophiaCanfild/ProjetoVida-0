@@ -111,7 +111,7 @@
     },
     consultas: {
       renomear: {},
-      colunas: ['id', 'paciente_id', 'cpf', 'unidade', 'senha', 'recepcao', 'triagem', 'diagnostico', 'cid10', 'conduta', 'orientacoes', 'receita', 'exames', 'medico_nome', 'medico_crm', 'status', 'guiche', 'nome_chamado', 'tipo_chamada', 'consultorio', 'chamado_em', 'criado_em', 'finalizado_em', 'cancelado_em']
+      colunas: ['id', 'paciente_id', 'cpf', 'unidade', 'senha', 'recepcao', 'triagem', 'diagnostico', 'cid10', 'conduta', 'orientacoes', 'receita', 'exames', 'atestado', 'medico_nome', 'medico_crm', 'status', 'guiche', 'nome_chamado', 'tipo_chamada', 'consultorio', 'chamado_em', 'criado_em', 'finalizado_em', 'cancelado_em']
     },
     agendamentos: {
       renomear: {},
@@ -125,6 +125,10 @@
       renomear: {},
       colunas: ['id', 'consulta_id', 'paciente_id', 'cpf', 'numero', 'tipo', 'vias', 'itens', 'orientacoes', 'validade_dias', 'valida_ate', 'alertas', 'medico_nome', 'medico_crm', 'unidade', 'emitida_em', 'criado_em']
     },
+    atestados: {
+      renomear: {},
+      colunas: ['id', 'consulta_id', 'paciente_id', 'cpf', 'numero', 'tipo', 'data_atendimento', 'periodo_inicio', 'periodo_fim', 'dias', 'cid10', 'motivo', 'observacoes', 'medico_nome', 'medico_crm', 'unidade', 'emitida_em', 'criado_em']
+    },
     exames_solicitados: {
       renomear: {},
       colunas: ['id', 'consulta_id', 'paciente_id', 'cpf', 'pedido', 'nome', 'categoria', 'prioridade', 'indicacao', 'cid10', 'orientacao', 'local_realizacao', 'status', 'resultado', 'realizado_em', 'resultado_em', 'cancelado_em', 'motivo_cancelamento', 'atualizado_por', 'medico_nome', 'medico_crm', 'unidade', 'solicitado_em', 'atualizado_em']
@@ -134,7 +138,7 @@
   // Tabelas criadas pela migração 20261025_receitas_exames.sql.
   // Se ainda não existirem no banco, o app avisa e segue funcionando
   // com a "foto" gravada em consultas.receita / consultas.exames.
-  const TABELAS_PRESCRICAO = ['receitas', 'exames_solicitados'];
+  const TABELAS_PRESCRICAO = ['receitas', 'exames_solicitados', 'atestados'];
   const MIGRACAO_PRESCRICAO = 'supabase/migrations/20261025_receitas_exames.sql';
 
   // tipo interno (app) <-> perfil do banco (CHECK do schema só aceita estes valores)
@@ -821,6 +825,7 @@
     c.orientacoes = dados.orientacoes;
     c.receita = dados.receita || [];
     c.exames = dados.exames || [];
+    c.atestado = dados.atestado || [];
     c.medico_nome = dados.medico_nome;
     c.medico_crm = dados.medico_crm;
 
@@ -828,7 +833,7 @@
     sbUpdate('consultas', {
       status: 'finalizado', finalizado_em: c.finalizado_em,
       diagnostico: c.diagnostico, cid10: c.cid10, conduta: c.conduta,
-      orientacoes: c.orientacoes, receita: c.receita, exames: c.exames,
+      orientacoes: c.orientacoes, receita: c.receita, exames: c.exames, atestado: c.atestado,
       medico_nome: c.medico_nome, medico_crm: c.medico_crm
     }, { id: consultaId });
 
@@ -1196,6 +1201,71 @@
     DB.emit('exames_registrados', novos);
     return novos;
   };
+
+  // ============================================================
+  // ATESTADOS — documentos emitidos pelo médico
+  // tipo: afastamento | acompanhamento | comparecimento |
+  //       previsao_parto | doacao_sangue | outros
+  // Atestado é documento: o app só INSERE (não altera/apaga).
+  // ============================================================
+  const TIPOS_ATESTADO = ['afastamento', 'acompanhamento', 'comparecimento', 'previsao_parto', 'doacao_sangue', 'outros'];
+
+  DB.registrarAtestados = function (consultaId, atestados) {
+    const c = DB.getConsultaPorId(consultaId);
+    if (!c) throw new Error('Consulta não encontrada');
+
+    const lista = ler('atestados') || [];
+    const momento = agora();
+    const novos = (atestados || [])
+      .filter(a => a && String(a.motivo || '').trim())
+      .map(a => {
+        const dias = parseInt(a.dias, 10);
+        return {
+          id: a.id || gerarId(),
+          consulta_id: c.id,
+          paciente_id: c.paciente_id,
+          cpf: c.cpf,
+          numero: a.numero || DB.gerarNumeroDocumento('AT'),
+          tipo: TIPOS_ATESTADO.indexOf(a.tipo) !== -1 ? a.tipo : 'afastamento',
+          data_atendimento: a.data_atendimento || dataLocalIso(new Date()),
+          periodo_inicio: a.periodo_inicio || null,
+          periodo_fim: a.periodo_fim || null,
+          dias: isNaN(dias) ? null : dias,
+          cid10: a.cid10 || c.cid10 || null,
+          motivo: String(a.motivo).trim(),
+          observacoes: a.observacoes || null,
+          medico_nome: a.medico_nome || c.medico_nome || null,
+          medico_crm: a.medico_crm || c.medico_crm || null,
+          unidade: a.unidade || c.unidade || unidadePadrao(),
+          emitida_em: a.emitida_em || momento,
+          criado_em: momento
+        };
+      })
+      .filter(n => !lista.some(x => x.id === n.id));
+
+    if (!novos.length) return [];
+    lista.unshift.apply(lista, novos);
+    gravar('atestados', lista);
+    sbInsert('atestados', novos);
+    DB.emit('atestados_emitidos', novos);
+    return novos;
+  };
+
+  DB.getAtestados = function () {
+    return (ler('atestados') || []).slice()
+      .sort((a, b) => new Date(b.emitida_em) - new Date(a.emitida_em));
+  };
+
+  DB.getAtestadosPorConsulta = function (consultaId) {
+    return DB.getAtestados().filter(a => a.consulta_id === consultaId);
+  };
+
+  // App do paciente: atestados do CPF informado
+  DB.getAtestadosPorCpf = function (cpf) {
+    const cpfLimpo = limparCpf(cpf);
+    return DB.getAtestados().filter(a => a.cpf === cpfLimpo);
+  };
+  DB.getAtestadosDoPaciente = DB.getAtestadosPorCpf;
 
   // Todos os exames (registro formal + foto das consultas), já com o
   // status mais recente. "indice" identifica exames antigos sem id.

@@ -93,6 +93,10 @@
         const exs = c.relatorio ? c.relatorio.exames : c.exames;
         const nMed = Array.isArray(meds) ? meds.length : 0;
         const nExam = Array.isArray(exs) ? exs.length : 0;
+        const nAtest = (Array.isArray(c.atestado) ? c.atestado.length : 0);
+        const totalAtest = nAtest + (DB.getAtestadosPorCpf
+          ? DB.getAtestadosPorCpf(cpf).filter(a => a.consulta_id === c.id && !(c.atestado || []).some(x => x.numero === a.numero)).length
+          : 0);
 
         return `
           <a class="item-historico"${link}>
@@ -103,7 +107,7 @@
               <div class="t">${queixa}</div>
               <div class="s">${UI.fmtDataHora(c.criado_em)} • ${c.unidade} • Senha ${c.senha}</div>
               ${c.status === 'finalizado'
-                ? `<div class="s">💊 ${nMed} medicamento(s) ${nExam ? '• 🧪 ' + nExam + ' exame(s)' : ''}</div>`
+                ? `<div class="s">💊 ${nMed} medicamento(s) ${nExam ? '• 🧪 ' + nExam + ' exame(s)' : ''}${totalAtest ? '• 📄 ' + totalAtest + ' atestado(s)' : ''}</div>`
                 : ''}
             </div>
             <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">

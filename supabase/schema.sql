@@ -354,6 +354,45 @@ CREATE TABLE IF NOT EXISTS public.exames_solicitados (
 );
 
 
+-- ------------------------------------------------------------
+-- 1.11 ATESTADOS MÉDICOS — atestado emitido pelo médico
+-- migração: supabase/migrations/20261122_atestados.sql
+-- MAPA_TABELAS.atestados em db.js
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.atestados (
+    id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    consulta_id      UUID         NOT NULL,
+    paciente_id      UUID,                                   -- FK → pacientes (passo 3)
+    cpf              VARCHAR(11)  NOT NULL,
+    numero           VARCHAR(30)  NOT NULL,                  -- ex.: AT-20261122-7KQ2M
+    tipo             VARCHAR(30)  NOT NULL DEFAULT 'afastamento',
+    -- afastamento | acompanhamento | comparecimento | previsao_parto | doacao_sangue | outros
+    data_atendimento DATE         NOT NULL DEFAULT CURRENT_DATE,
+    periodo_inicio   DATE,
+    periodo_fim      DATE,
+    dias             SMALLINT,
+    cid10            VARCHAR(10),
+    motivo           TEXT         NOT NULL,
+    observacoes      TEXT,
+    medico_nome      VARCHAR(160),
+    medico_crm       VARCHAR(30),
+    unidade          VARCHAR(80),
+    emitida_em       TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    criado_em        TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT atestados_numero_unico  UNIQUE (numero),
+    CONSTRAINT atestados_tipo_valido   CHECK (tipo IN
+        ('afastamento', 'acompanhamento', 'comparecimento', 'previsao_parto', 'doacao_sangue', 'outros')),
+    CONSTRAINT atestados_dias_positivo CHECK (dias IS NULL OR dias >= 0),
+    CONSTRAINT atestados_periodo_ordem CHECK (
+        periodo_inicio IS NULL OR periodo_fim IS NULL OR periodo_inicio <= periodo_fim)
+);
+
+CREATE INDEX IF NOT EXISTS idx_atestados_cpf      ON public.atestados (cpf);
+CREATE INDEX IF NOT EXISTS idx_atestados_consulta ON public.atestados (consulta_id);
+CREATE INDEX IF NOT EXISTS idx_atestados_data     ON public.atestados (data_atendimento);
+
+
 -- ============================================================
 -- FASE 2 — REPARO DE COLUNAS
 -- ------------------------------------------------------------
@@ -412,6 +451,7 @@ ALTER TABLE public.consultas ADD COLUMN IF NOT EXISTS conduta        TEXT;
 ALTER TABLE public.consultas ADD COLUMN IF NOT EXISTS orientacoes    TEXT;
 ALTER TABLE public.consultas ADD COLUMN IF NOT EXISTS receita        JSONB DEFAULT '[]'::jsonb;
 ALTER TABLE public.consultas ADD COLUMN IF NOT EXISTS exames         JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.consultas ADD COLUMN IF NOT EXISTS atestado      JSONB DEFAULT '[]'::jsonb;
 ALTER TABLE public.consultas ADD COLUMN IF NOT EXISTS medico_nome    VARCHAR(160);
 ALTER TABLE public.consultas ADD COLUMN IF NOT EXISTS medico_crm     VARCHAR(30);
 ALTER TABLE public.consultas ADD COLUMN IF NOT EXISTS status         VARCHAR(20) DEFAULT 'em_fila';
@@ -763,6 +803,7 @@ CREATE POLICY "demo configuracoes" ON public.configuracoes FOR ALL TO anon, auth
 -- Receita emitida é documento: o app só lê e inclui (não altera/apaga).
 -- Exame não é apagado: erro de pedido vira status "cancelado" com motivo.
 ALTER TABLE public.receitas           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.atestados          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.exames_solicitados ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "receitas leitura"               ON public.receitas;
@@ -770,6 +811,8 @@ DROP POLICY IF EXISTS "receitas inclusao"              ON public.receitas;
 DROP POLICY IF EXISTS "exames solicitados leitura"     ON public.exames_solicitados;
 DROP POLICY IF EXISTS "exames solicitados inclusao"    ON public.exames_solicitados;
 DROP POLICY IF EXISTS "exames solicitados atualizacao" ON public.exames_solicitados;
+DROP POLICY IF EXISTS "atestados leitura"  ON public.atestados;
+DROP POLICY IF EXISTS "atestados inclusao" ON public.atestados;
 
 -- Receitas: ler + incluir (sem política de UPDATE/DELETE = bloqueado)
 CREATE POLICY "receitas leitura"  ON public.receitas
@@ -784,6 +827,12 @@ CREATE POLICY "exames solicitados inclusao"    ON public.exames_solicitados
     FOR INSERT TO anon, authenticated WITH CHECK (TRUE);
 CREATE POLICY "exames solicitados atualizacao" ON public.exames_solicitados
     FOR UPDATE TO anon, authenticated USING (TRUE) WITH CHECK (TRUE);
+
+-- Atestados: ler + incluir (documento não é alterado nem apagado)
+CREATE POLICY "atestados leitura"  ON public.atestados
+    FOR SELECT TO anon, authenticated USING (TRUE);
+CREATE POLICY "atestados inclusao" ON public.atestados
+    FOR INSERT TO anon, authenticated WITH CHECK (TRUE);
 
 
 -- ============================================================
