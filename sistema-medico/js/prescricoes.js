@@ -766,8 +766,11 @@
   }
 
   // atestado: { numero, tipo, data_atendimento, periodo_inicio, periodo_fim,
-  //             dias, cid10, motivo, observacoes, medico_nome, medico_crm,
-  //             unidade, emitida_em }
+  //             dias, cid10, motivo, hora_inicio, hora_fim, observacoes,
+  //             medico_nome, medico_crm, unidade, emitida_em }
+  // motivo é opcional: sem ele, a frase é montada sem "acometido(a) de".
+  // hora_inicio / hora_fim só são usadas nos atestados de comparecimento
+  // e de acompanhamento (horário de permanência na unidade).
   // ctx: { paciente, logoUrl, previa }
   function gerarDocumentoAtestado(atestado, ctx) {
     ctx = ctx || {};
@@ -776,6 +779,18 @@
     const numero = a.numero || (ctx.previa ? 'gerado ao emitir' : '—');
     const atendimento = a.data_atendimento ? fmtData(a.data_atendimento) : fmtData(new Date());
     const temPeriodo = a.periodo_inicio && a.periodo_fim;
+    const motivo = String(a.motivo || '').trim();
+    const horaInicio = String(a.hora_inicio || '').slice(0, 5);
+    const horaFim = String(a.hora_fim || '').slice(0, 5);
+
+    let horario = '';
+    if (horaInicio && horaFim) {
+      horario = 'no horário das <b>' + esc(horaInicio) + '</b> às <b>' + esc(horaFim) + '</b>';
+    } else if (horaInicio) {
+      horario = 'a partir das <b>' + esc(horaInicio) + '</b>';
+    } else if (horaFim) {
+      horario = 'até as <b>' + esc(horaFim) + '</b>';
+    }
 
     let frase = cfg.frase;
     if (a.tipo === 'previsao_parto') frase = cfg.frase + ' <b>' + esc(fmtData(a.periodo_fim)) + '</b>';
@@ -784,6 +799,8 @@
         (a.dias ? ' pelo período de <b>' + a.dias + ' dia(s)</b>' : '') +
         ', de <b>' + esc(fmtData(a.periodo_inicio)) + '</b> a <b>' + esc(fmtData(a.periodo_fim)) + '</b>';
     }
+    // No comparecimento o próprio horário já diz o que aconteceu
+    if (a.tipo === 'comparecimento' && horario) frase = '';
 
     const folha = '<section class="folha">' +
       (ctx.previa ? '<div class="marca">PRÉ-VISUALIZAÇÃO</div>' : '') +
@@ -794,12 +811,16 @@
       '<span>Emissão: <b>' + esc(fmtData(a.emitida_em || new Date())) + '</b></span></div>' +
       blocoPaciente(ctx.paciente) +
       '<div class="corpo">' +
-      '<div class="atestado-texto">Atesto, para os devidos fins, que <b>' + esc((ctx.paciente || {}).nome || 'o(a) paciente') + '</b>' +
-      ', portador(a) do CPF nº ' + esc(formatarCpf((ctx.paciente || {}).cpf)) +
-      ', esteve sob atendimento médico nesta unidade de saúde no dia <b>' + esc(atendimento) + '</b>' +
-      ', sendo acometido(a) de <b>' + esc(a.motivo || '—') + '</b>' +
-      (a.cid10 ? ' (CID-10: ' + esc(a.cid10) + ')' : '') +
-      (frase ? ', ' + frase : '') + '.' +
+      '<div class="atestado-texto">' + [
+        'Atesto, para os devidos fins, que <b>' + esc((ctx.paciente || {}).nome || 'o(a) paciente') + '</b>' +
+        ', portador(a) do CPF nº ' + esc(formatarCpf((ctx.paciente || {}).cpf)) +
+        ', esteve sob atendimento médico nesta unidade de saúde no dia <b>' + esc(atendimento) + '</b>',
+        horario,
+        motivo ? 'sendo acometido(a) de <b>' + esc(motivo) + '</b>' +
+          (a.cid10 ? ' (CID-10: ' + esc(a.cid10) + ')' : '') : '',
+        (motivo || !a.cid10) ? '' : 'CID-10: <b>' + esc(a.cid10) + '</b>',
+        frase
+      ].filter(Boolean).join(', ') + '.' +
       '</div>' +
       (a.observacoes ? '<div class="orientacoes"><b>Observações:</b> ' + esc(a.observacoes) + '</div>' : '') +
       '<div class="aviso-paciente"><b>Ao paciente:</b> este atestado é um documento emitido pelo sistema Vida+ ' +

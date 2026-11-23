@@ -127,7 +127,7 @@
     },
     atestados: {
       renomear: {},
-      colunas: ['id', 'consulta_id', 'paciente_id', 'cpf', 'numero', 'tipo', 'data_atendimento', 'periodo_inicio', 'periodo_fim', 'dias', 'cid10', 'motivo', 'observacoes', 'medico_nome', 'medico_crm', 'unidade', 'emitida_em', 'criado_em']
+      colunas: ['id', 'consulta_id', 'paciente_id', 'cpf', 'numero', 'tipo', 'data_atendimento', 'periodo_inicio', 'periodo_fim', 'dias', 'cid10', 'motivo', 'hora_inicio', 'hora_fim', 'observacoes', 'medico_nome', 'medico_crm', 'unidade', 'emitida_em', 'criado_em']
     },
     exames_solicitados: {
       renomear: {},
@@ -1217,7 +1217,7 @@
     const lista = ler('atestados') || [];
     const momento = agora();
     const novos = (atestados || [])
-      .filter(a => a && String(a.motivo || '').trim())
+      .filter(a => !!a)   // o motivo do atestado é opcional
       .map(a => {
         const dias = parseInt(a.dias, 10);
         return {
@@ -1232,7 +1232,9 @@
           periodo_fim: a.periodo_fim || null,
           dias: isNaN(dias) ? null : dias,
           cid10: a.cid10 || c.cid10 || null,
-          motivo: String(a.motivo).trim(),
+          motivo: String(a.motivo || '').trim(),
+          hora_inicio: a.hora_inicio || null,   // comparecimento / acompanhamento
+          hora_fim: a.hora_fim || null,
           observacoes: a.observacoes || null,
           medico_nome: a.medico_nome || c.medico_nome || null,
           medico_crm: a.medico_crm || c.medico_crm || null,

@@ -413,7 +413,7 @@ function abrirModalAtestado() {
   limparFormAtestado();
   renderizarAtestadosAtendimento();
   abrirModal('modalAtestado');
-  setTimeout(() => document.getElementById('atestadoMotivo').focus(), 60);
+  setTimeout(() => document.getElementById('atestadoTipo').focus(), 60);
 }
 
 function limparFormAtestado() {
@@ -426,15 +426,57 @@ function limparFormAtestado() {
   document.getElementById('atestadoCid').value = (document.getElementById('cid10').value || '').trim();
   document.getElementById('atestadoMotivo').value = '';
   document.getElementById('atestadoObs').value = '';
+  document.getElementById('atestadoHoraInicio').value = '';
+  document.getElementById('atestadoHoraFim').value = '';
   atualizarPeriodoAtestado();
 }
 
-// Mostra/esconde o período e recalcula o fim a partir de início + dias
+// Tipos de atestado em que o horário de permanência faz sentido
+function atestadoUsaHorario(tipo) {
+  return tipo === 'comparecimento' || tipo === 'acompanhamento';
+}
+
+function horaAgora() {
+  const d = new Date();
+  return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+}
+
+function horarioAtestado(a) {
+  if (!a) return '';
+  if (a.hora_inicio && a.hora_fim) return a.hora_inicio + ' às ' + a.hora_fim;
+  return a.hora_inicio || a.hora_fim || '';
+}
+
+// Linha resumida do atestado (motivo agora é opcional)
+function descricaoAtestado(a) {
+  const partes = [];
+  if (a.motivo) partes.push(escHtml(a.motivo));
+  const horario = horarioAtestado(a);
+  if (horario) partes.push('⏱ ' + escHtml(horario));
+  if (a.dias) partes.push(a.dias + ' dia(s)');
+  if (a.periodo_inicio && a.periodo_fim) {
+    partes.push(Rx.fmtData(a.periodo_inicio) + ' a ' + Rx.fmtData(a.periodo_fim));
+  }
+  return partes.join(' • ');
+}
+
+// Mostra/esconde período e horário conforme o tipo, e recalcula o fim a partir de início + dias
 function atualizarPeriodoAtestado() {
   const tipo = document.getElementById('atestadoTipo').value;
   const exigePeriodo = tipo === 'afastamento' || tipo === 'previsao_parto';
   const grupo = document.getElementById('grupoPeriodoAtestado');
   if (grupo) grupo.style.display = exigePeriodo ? '' : 'none';
+
+  const grupoHorario = document.getElementById('grupoHorarioAtestado');
+  const campoHoraInicio = document.getElementById('atestadoHoraInicio');
+  const campoHoraFim = document.getElementById('atestadoHoraFim');
+  const exigeHorario = atestadoUsaHorario(tipo);
+  if (grupoHorario) grupoHorario.style.display = exigeHorario ? '' : 'none';
+  if (exigeHorario && campoHoraInicio && !campoHoraInicio.value) campoHoraInicio.value = horaAgora();
+  if (!exigeHorario && campoHoraInicio && campoHoraFim) {
+    campoHoraInicio.value = '';
+    campoHoraFim.value = '';
+  }
 
   const campoInicio = document.getElementById('atestadoInicio');
   const campoFim = document.getElementById('atestadoFim');
@@ -480,9 +522,7 @@ function renderizarAtestadosAtendimento() {
     return '<div class="doc-linha"><div class="doc-icone" style="background:#16a34a1A;color:#16a34a">' +
       '<i class="fas fa-file-medical"></i></div>' +
       '<div class="flex-1"><div class="doc-titulo">Atestado • ' + escHtml(cfg.rotulo) + ' • Nº ' + escHtml(a.numero) + '</div>' +
-      '<div class="doc-det">' + escHtml(a.motivo) + (a.dias ? ' • ' + a.dias + ' dia(s)' : '') +
-      (a.periodo_inicio && a.periodo_fim ? ' • ' + Rx.fmtData(a.periodo_inicio) + ' a ' + Rx.fmtData(a.periodo_fim) : '') +
-      '</div></div>' +
+      '<div class="doc-det">' + (descricaoAtestado(a) || escHtml(cfg.rotulo)) + '</div></div>' +
       '<button type="button" class="btn btn-outline btn-sm" onclick="imprimirAtestadoGerado(' + i + ')">' +
       '<i class="fas fa-print"></i> Imprimir</button></div>';
   }).join('');
@@ -495,13 +535,16 @@ function emitirAtestado(e) {
     return;
   }
   const motivo = document.getElementById('atestadoMotivo').value.trim();
-  if (!motivo) {
-    mostrarToast('Descreva o motivo do atestado.', 'warning');
-    document.getElementById('atestadoMotivo').focus();
+  const tipo = document.getElementById('atestadoTipo').value;
+  const usaHorario = atestadoUsaHorario(tipo);
+  const horaInicio = usaHorario ? (document.getElementById('atestadoHoraInicio').value || null) : null;
+  const horaFim = usaHorario ? (document.getElementById('atestadoHoraFim').value || null) : null;
+  if (horaInicio && horaFim && horaFim < horaInicio) {
+    mostrarToast('A hora de saída não pode ser anterior à hora de entrada.', 'warning');
+    document.getElementById('atestadoHoraFim').focus();
     return;
   }
 
-  const tipo = document.getElementById('atestadoTipo').value;
   const u = getUsuarioLogado();
   const dias = parseInt(document.getElementById('atestadoDias').value, 10);
   const dados = {
@@ -512,7 +555,9 @@ function emitirAtestado(e) {
       ? (document.getElementById('atestadoFim').value || null) : null,
     dias: tipo === 'afastamento' ? (isNaN(dias) ? null : dias) : null,
     cid10: document.getElementById('atestadoCid').value.trim() || null,
-    motivo: motivo,
+    motivo: motivo || null,
+    hora_inicio: horaInicio,
+    hora_fim: horaFim,
     observacoes: document.getElementById('atestadoObs').value.trim() || null,
     medico_nome: u ? u.nome : '',
     medico_crm: u ? (u.crm || '') : '',
@@ -550,7 +595,9 @@ function previsualizarAtestado() {
     periodo_fim: document.getElementById('atestadoFim').value || null,
     dias: parseInt(document.getElementById('atestadoDias').value, 10) || null,
     cid10: document.getElementById('atestadoCid').value.trim() || null,
-    motivo: document.getElementById('atestadoMotivo').value.trim() || '—',
+    motivo: document.getElementById('atestadoMotivo').value.trim() || null,
+    hora_inicio: atestadoUsaHorario(tipo) ? (document.getElementById('atestadoHoraInicio').value || null) : null,
+    hora_fim: atestadoUsaHorario(tipo) ? (document.getElementById('atestadoHoraFim').value || null) : null,
     observacoes: document.getElementById('atestadoObs').value.trim() || null,
     medico_nome: u ? u.nome : '', medico_crm: u ? (u.crm || '') : '',
     unidade: consultaSelecionada.unidade
@@ -818,7 +865,7 @@ function abrirModalDocumentos(docs) {
     linhas.push('<div class="doc-linha"><div class="doc-icone" style="background:#16a34a1A;color:#16a34a">' +
       '<i class="fas fa-file-medical"></i></div>' +
       '<div class="flex-1"><div class="doc-titulo">Atestado • ' + cfg.rotulo + ' • Nº ' + escHtml(a.numero) + '</div>' +
-      '<div class="doc-det">' + escHtml(a.motivo) + (a.dias ? ' • ' + a.dias + ' dia(s)' : '') + '</div></div>' +
+      '<div class="doc-det">' + (descricaoAtestado(a) || escHtml(cfg.rotulo)) + '</div></div>' +
       '<button type="button" class="btn btn-outline btn-sm" onclick="imprimirAtestadoGerado(' + i + ')">' +
       '<i class="fas fa-print"></i> Imprimir</button></div>');
   });
