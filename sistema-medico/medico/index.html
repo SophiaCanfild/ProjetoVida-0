@@ -189,10 +189,6 @@
                         <span>Consultas</span>
                         <span class="badge">2</span>
                     </div>
-                    <div class="menu-item" data-page="prontuario" onclick="mostrarPagina('prontuario')">
-                        <i class="fas fa-file-medical"></i>
-                        <span>Prontuário</span>
-                    </div>
                 </div>
                 
                 <div class="menu-section">
@@ -434,21 +430,6 @@
                                         </div>
                                     </form>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Página: Prontuário -->
-            <div class="content-area" id="pageProntuario">
-                <div class="p-6">
-                    <h2 class="mb-4"><i class="fas fa-file-medical me-2" style="color: var(--verde-500);"></i> Prontuário Eletrônico</h2>
-                    <div class="card">
-                        <div class="card-body">
-                            <div class="alert alert-info">
-                                <i class="fas fa-info-circle"></i>
-                                <span>Selecione um paciente na página de Consultas para visualizar ou criar prontuário.</span>
                             </div>
                         </div>
                     </div>
@@ -874,7 +855,7 @@
         function mostrarPagina(pagina) {
             document.querySelectorAll('.content-area').forEach(el => el.classList.remove('active'));
             document.getElementById('page' + pagina.charAt(0).toUpperCase() + pagina.slice(1)).classList.add('active');
-            const titulos = { consultas: 'Consultas do Dia', prontuario: 'Prontuário', historico: 'Histórico', busca: 'Buscar Paciente', receitas: 'Receitas', exames: 'Exames' };
+            const titulos = { consultas: 'Consultas do Dia', historico: 'Histórico', busca: 'Buscar Paciente', receitas: 'Receitas', exames: 'Exames' };
             document.getElementById('pageTitle').textContent = titulos[pagina] || pagina;
             document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
             document.querySelector(`.menu-item[data-page="${pagina}"]`)?.classList.add('active');
