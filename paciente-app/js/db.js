@@ -605,10 +605,46 @@
     return DB.getConsultas().find(c => c.id === id) || null;
   };
 
+  // ORDEM DO PROTOCOLO DE MANCHESTER — o mais grave primeiro:
+  // vermelho (emergência) → laranja (muito urgente) → amarelo (urgente)
+  // → verde (pouco urgente) → azul (não urgente).
+  const RISCO_ORDEM = { vermelho: 0, laranja: 1, amarelo: 2, verde: 3, azul: 4 };
+  const RISCO_SEM_TRIAGEM = 9;   // quem ainda não foi triado fica no fim
+
+  DB.pesoRisco = function (triagem) {
+    const classificacao = triagem && triagem.classificacao_risco;
+    if (!classificacao) return RISCO_SEM_TRIAGEM;
+    const peso = RISCO_ORDEM[String(classificacao).toLowerCase()];
+    return peso === undefined ? RISCO_SEM_TRIAGEM : peso;
+  };
+
+  // Ordena uma lista de consultas por risco (Manchester) e, no empate,
+  // pela ordem de chegada (quem esperou mais primeiro).
+  DB.ordenarPorRisco = function (consultas) {
+    return (consultas || []).slice().sort(function (a, b) {
+      const diferenca = DB.pesoRisco(a.triagem) - DB.pesoRisco(b.triagem);
+      if (diferenca !== 0) return diferenca;
+      return new Date(a.criado_em) - new Date(b.criado_em);
+    });
+  };
+
   DB.getFila = function () {
     return DB.getConsultas()
       .filter(c => c.status === 'em_fila' || c.status === 'chamado')
       .sort((a, b) => new Date(a.criado_em) - new Date(b.criado_em));
+  };
+
+  // MÉDICO: fila do atendimento — inclui quem já está em consulta.
+  // DB.getFila() continua existindo para o telão e a posição do paciente,
+  // onde "em_consulta" não conta mais como espera.
+  // Ordem de atendimento: quem já está em consulta fica no topo (para não
+  // "pular" enquanto o médico atende) e o restante segue o Manchester.
+  DB.getFilaAtendimento = function () {
+    const ativos = DB.getConsultas()
+      .filter(c => c.status === 'em_fila' || c.status === 'chamado' || c.status === 'em_consulta');
+    const emAtendimento = ativos.filter(c => c.status === 'em_consulta');
+    const aguardando = DB.ordenarPorRisco(ativos.filter(c => c.status !== 'em_consulta'));
+    return emAtendimento.concat(aguardando);
   };
 
   DB.getMinhaFila = function (cpf) {
@@ -620,7 +656,7 @@
     const ativa = ativas[0] || null;
     let posicao = 0;
     if (ativa) {
-      const fila = DB.getFila().filter(c => c.status === 'em_fila');
+      const fila = DB.ordenarPorRisco(DB.getFila().filter(c => c.status === 'em_fila'));
       posicao = fila.findIndex(c => c.id === ativa.id) + 1;
     }
     return { ativa, posicao };

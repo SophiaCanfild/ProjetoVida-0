@@ -187,7 +187,7 @@
                     <div class="menu-item active" data-page="consultas" onclick="mostrarPagina('consultas')">
                         <i class="fas fa-stethoscope"></i>
                         <span>Consultas</span>
-                        <span class="badge">2</span>
+                        <span class="badge" id="badgeFila">0</span>
                     </div>
                 </div>
                 
@@ -254,7 +254,10 @@
                         <!-- Lista de Espera -->
                         <div class="card">
                             <div class="card-header">
-                                <h3><i class="fas fa-list-ol me-2" style="color: var(--azul-500);"></i> Fila de Espera</h3>
+                                <div>
+                                    <h3><i class="fas fa-list-ol me-2" style="color: var(--azul-500);"></i> Fila de Espera</h3>
+                                    <div style="font-size: 0.75rem; color: var(--cinza-500); margin-top: 2px;">Ordenada pelo protocolo de Manchester — mais grave primeiro</div>
+                                </div>
                             </div>
                             <div class="consultorio-chamada">
                                 <label for="consultorioChamada">
@@ -847,8 +850,10 @@
         document.addEventListener('DOMContentLoaded', function() {
             carregarFilaEspera();
             carregarHistorico();
+            restaurarAtendimento();   // reabre o paciente que estava em atendimento
             if (DB.aguardarSincronizacao) DB.aguardarSincronizacao().then(function() {
                 carregarFilaEspera(); carregarHistorico();
+                restaurarAtendimento();
             });
             iniciarPrescricoes();
             configurarConsultorios(unidadeConsultorios);
@@ -860,7 +865,7 @@
             });
         });
         
-        DB.on('consulta_atualizada', () => carregarFilaEspera());
+        DB.on('consulta_atualizada', () => { carregarFilaEspera(); validarAtendimentoSelecionado(); });
         DB.on('paciente_atualizado', () => carregarFilaEspera());
         DB.on('triagem_realizada', () => carregarFilaEspera());
         DB.on('paciente_chamado', () => carregarFilaEspera());
@@ -1002,13 +1007,79 @@
             });
         }
 
+        // ---- Atendimento em andamento (não pode "sumir" ao clicar no paciente) ----
+        const CHAVE_ATENDIMENTO = 'vidamais_atendimento_medico';
+
+        function idUsuarioAtual() {
+            const u = getUsuarioLogado();
+            return u ? (u.cpf || u.nome || 'medico') : '';
+        }
+
+        function salvarAtendimentoAtual(consultaId) {
+            try {
+                if (consultaId) {
+                    localStorage.setItem(CHAVE_ATENDIMENTO, JSON.stringify({ usuario: idUsuarioAtual(), consulta_id: consultaId }));
+                } else {
+                    localStorage.removeItem(CHAVE_ATENDIMENTO);
+                }
+            } catch (e) { /* navegador em modo privado */ }
+        }
+
+        function atendimentoLembrado() {
+            try {
+                const bruto = localStorage.getItem(CHAVE_ATENDIMENTO);
+                if (!bruto) return null;
+                const dados = JSON.parse(bruto);
+                if (!dados || !dados.consulta_id) return null;
+                if (dados.usuario && idUsuarioAtual() && dados.usuario !== idUsuarioAtual()) return null;
+                return dados.consulta_id;
+            } catch (e) { return null; }
+        }
+
+        // Reabre o paciente que estava em atendimento antes de recarregar a página
+        function restaurarAtendimento() {
+            if (consultaSelecionada) return;
+            const id = atendimentoLembrado();
+            if (!id) return;
+            const consulta = DB.getConsultaPorId(id);
+            if (!consulta) return;   // ainda pode chegar na sincronização
+            const ativa = consulta.status === 'em_consulta' || consulta.status === 'chamado';
+            if (!ativa || !consulta.triagem || !DB.getPacientePorId(consulta.paciente_id)) {
+                salvarAtendimentoAtual(null);   // finalizada/cancelada: não reabre
+                return;
+            }
+            selecionarPaciente(id);
+        }
+
+        // Se a consulta aberta foi finalizada/cancelada em outro dispositivo, limpa a tela
+        function validarAtendimentoSelecionado() {
+            if (!consultaSelecionada) return;
+            const atual = DB.getConsultaPorId(consultaSelecionada.id);
+            if (atual && atual.status !== 'finalizado' && atual.status !== 'cancelado') return;
+            consultaSelecionada = null;
+            pacienteSelecionado = null;
+            salvarAtendimentoAtual(null);
+            document.getElementById('semPaciente').classList.remove('hidden');
+            document.getElementById('comPaciente').classList.add('hidden');
+            document.getElementById('pacienteStatus').className = 'badge badge-secondary';
+            document.getElementById('pacienteStatus').textContent = 'Selecione um paciente';
+            limparPrescricao();
+            mostrarToast('Este atendimento foi encerrado em outro dispositivo.', 'warning');
+        }
+
         function carregarFilaEspera() {
             const lista = document.getElementById('listaEspera');
-            const fila = DB.getFila().filter(c => c.triagem);
+            const fila = (DB.getFilaAtendimento ? DB.getFilaAtendimento() : DB.getFila()).filter(c => c.triagem);
+            const badgeFila = document.getElementById('badgeFila');
+            if (badgeFila) {
+                badgeFila.textContent = fila.length;
+                badgeFila.style.display = fila.length ? '' : 'none';
+            }
             if (!fila.length) {
                 lista.innerHTML = '<div style="padding:40px;text-align:center;color:var(--cinza-400)"><i class="fas fa-inbox" style="font-size:2rem;margin-bottom:10px"></i><p>Nenhum paciente aguardando consulta.</p></div>';
                 return;
             }
+            let ordem = 0;
             lista.innerHTML = fila.map(c => {
                 const p = DB.getPacientePorId(c.paciente_id);
                 const nome = p ? p.nome : 'Paciente';
@@ -1016,10 +1087,29 @@
                 const t = c.triagem;
                 const risco = t.classificacao_risco || 'verde';
                 const cores = {vermelho:'badge-vermelho',laranja:'badge-laranja',amarelo:'badge-amarelo',verde:'badge-verde',azul:'badge-azul'};
-                return `<div onclick="selecionarPaciente('${c.id}')" style="padding:16px;border-bottom:1px solid var(--cinza-100);cursor:pointer" onmouseover="this.style.background='var(--verde-50)'" onmouseout="this.style.background='transparent'"><div class="flex items-center gap-3"><div style="width:45px;height:45px;background:linear-gradient(135deg,var(--verde-400),var(--azul-400));border-radius:10px;display:flex;align-items:center;justify-content:center;color:white;font-weight:600">${ini}</div><div style="flex:1"><div style="font-weight:600;font-size:0.9375rem">${nome}</div><div style="font-size:0.8125rem;color:var(--cinza-500)">${t.queixa_principal||'Sem queixa'}</div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px"><span class="badge ${cores[risco]}">${risco}</span>${c.status==='em_fila'?`<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();chamarParaConsulta('${c.id}')"><i class="fas fa-bullhorn"></i> Chamar</button>`:''}${c.status==='chamado'?'<span class="badge badge-success">🔔 Chamado</span>':''}</div></div></div>`;
+                const emAtendimento = c.status === 'em_consulta';
+                const selecionado = consultaSelecionada && consultaSelecionada.id === c.id;
+                let acao = '<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();chamarParaConsulta(\'' + c.id + '\')"><i class="fas fa-bullhorn"></i> Chamar</button>';
+                if (c.status === 'chamado') acao = '<span class="badge badge-success">🔔 Chamado</span>';
+                if (emAtendimento) acao = '<button class="btn btn-success btn-sm" onclick="event.stopPropagation();selecionarPaciente(\'' + c.id + '\')"><i class="fas fa-rotate-right"></i> Retomar</button>';
+                const selo = emAtendimento ? '<span class="badge badge-warning">🩺 Em atendimento</span>' : '';
+                if (!emAtendimento) ordem += 1;
+                const posicao = emAtendimento ? ''
+                    : '<span class="badge badge-secondary" title="Ordem de atendimento (protocolo de Manchester)">' + ordem + 'º</span>';
+                const destaque = selecionado
+                    ? 'background:var(--verde-50);box-shadow: inset 4px 0 0 var(--verde-500);'
+                    : '';
+                return '<div onclick="selecionarPaciente(\'' + c.id + '\')" style="padding:16px;border-bottom:1px solid var(--cinza-100);cursor:pointer;' + destaque + '" onmouseover="this.style.background=\'var(--verde-50)\'" onmouseout="this.style.background=\'' + (selecionado ? 'var(--verde-50)' : 'transparent') + '\'">' +
+                    '<div class="flex items-center gap-3">' +
+                    '<div style="width:45px;height:45px;background:linear-gradient(135deg,var(--verde-400),var(--azul-400));border-radius:10px;display:flex;align-items:center;justify-content:center;color:white;font-weight:600">' + ini + '</div>' +
+                    '<div style="flex:1"><div style="font-weight:600;font-size:0.9375rem">' + nome + '</div>' +
+                    '<div style="font-size:0.8125rem;color:var(--cinza-500)">' + (t.queixa_principal || 'Sem queixa') + '</div></div>' +
+                    '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">' +
+                    posicao + selo + '<span class="badge ' + cores[risco] + '">' + risco + '</span>' + acao +
+                    '</div></div></div>';
             }).join('');
         }
-        
+
         async function chamarParaConsulta(consultaId) {
             if (chamadaEmAndamento) return;
             chamadaEmAndamento = true;
@@ -1066,6 +1156,7 @@
             pacienteSelecionado = DB.getPacientePorId(c.paciente_id);
             if (!pacienteSelecionado) return;
             DB.iniciarConsulta(consultaId);
+            salvarAtendimentoAtual(consultaId);   // sobrevive a um recarregamento da página
             let idade = '—';
             if (pacienteSelecionado.nascimento) {
                 const n = new Date(pacienteSelecionado.nascimento), h = new Date();
@@ -1092,6 +1183,7 @@
             if(al&&al.length&&al[0]!=='Nenhuma'){document.getElementById('alergiaAlert').classList.remove('hidden');document.getElementById('pacienteAlergias').textContent=al.join(', ');}
             else{document.getElementById('alergiaAlert').classList.add('hidden');}
             if (trocouPaciente) limparPrescricao(); else revalidarAlertasReceita();
+            carregarFilaEspera();   // atualiza o selo "Em atendimento" e o destaque da fila
         }
         
         // adicionarReceita(), receita e exames: ver ../js/medico-prescricoes.js
@@ -1125,6 +1217,7 @@
             document.getElementById('pacienteStatus').textContent='Selecione um paciente';
             ['diagnostico','cid10','hda','exameFisico','conduta'].forEach(id=>document.getElementById(id).value='');
             consultaSelecionada=null;pacienteSelecionado=null;
+            salvarAtendimentoAtual(null);
             limparPrescricao();
             carregarFilaEspera();
             abrirModalDocumentos({ paciente: pacienteAtendido, receitas: docs.receitas, exames: docs.exames, atestados: docs.atestados || [] });
