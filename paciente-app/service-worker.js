@@ -27,7 +27,7 @@
    Ao publicar nova versão do app, incremente CACHE_VERSION.
    ============================================================ */
 
-const CACHE_VERSION = 'vidaplus-paciente-v16';
+const CACHE_VERSION = 'vidaplus-paciente-v17';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 const RUNTIME_CACHE = CACHE_VERSION + '-runtime';
 

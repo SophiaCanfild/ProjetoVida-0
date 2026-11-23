@@ -145,18 +145,28 @@
       const atestados = (Array.isArray(c.atestado) ? c.atestado : [])
         .concat(DB.getAtestadosPorCpf ? DB.getAtestadosPorCpf(cpf).filter(a => a.consulta_id === c.id) : [])
         .filter((a, i, lista) => a && a.numero && lista.findIndex(x => x.numero === a.numero) === i)
-        .map(a => `
+        .map(a => {
+          const horaIni = (a.hora_inicio || '').slice(0, 5);
+          const horaFim = (a.hora_fim || '').slice(0, 5);
+          const horario = horaIni && horaFim ? horaIni + ' às ' + horaFim : (horaIni || horaFim || '');
+          const resumo = [
+            a.motivo ? 'Motivo: ' + esc(a.motivo) : '',
+            horario ? 'Horário: ' + esc(horario) : '',
+            a.cid10 ? 'CID-10: ' + esc(a.cid10) : ''
+          ].filter(Boolean).join(' • ');
+          return `
           <div class="exame-card">
             <div class="e-icone">📄</div>
             <div class="e-info">
               <div class="e-nome">Atestado de ${esc(TIPOS_ATESTADO[a.tipo] || 'afastamento')}</div>
-              <div class="e-det">Motivo: ${esc(a.motivo || '—')}${a.cid10 ? ' • CID-10: ' + esc(a.cid10) : ''}</div>
+              <div class="e-det">${resumo}</div>
               <div class="e-det">Atendimento em ${esc(dataCurta(a.data_atendimento))}${a.periodo_inicio && a.periodo_fim ? ' • período: ' + esc(dataCurta(a.periodo_inicio)) + ' a ' + esc(dataCurta(a.periodo_fim)) : ''}${a.dias ? ' • ' + a.dias + ' dia(s)' : ''}</div>
               ${a.observacoes ? '<div class="e-det">📌 ' + esc(a.observacoes) + '</div>' : ''}
               <div class="e-det suave">Nº ${esc(a.numero)}</div>
             </div>
             <span class="e-status e-solicitado">Emitido</span>
-          </div>`).join('') || '';
+          </div>`;
+        }).join('') || '';
 
       document.getElementById('conteudo').innerHTML = `
         <div style="display:flex; align-items:center; justify-content:space-between;">

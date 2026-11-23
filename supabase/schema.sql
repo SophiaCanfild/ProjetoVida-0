@@ -372,7 +372,9 @@ CREATE TABLE IF NOT EXISTS public.atestados (
     periodo_fim      DATE,
     dias             SMALLINT,
     cid10            VARCHAR(10),
-    motivo           TEXT         NOT NULL,
+    motivo           TEXT,                                   -- opcional: atestado pode sair sem motivo
+    hora_inicio      TIME,                                   -- comparecimento / acompanhamento
+    hora_fim         TIME,                                   -- comparecimento / acompanhamento
     observacoes      TEXT,
     medico_nome      VARCHAR(160),
     medico_crm       VARCHAR(30),
@@ -540,6 +542,11 @@ ALTER TABLE public.exames_solicitados ADD COLUMN IF NOT EXISTS medico_crm       
 ALTER TABLE public.exames_solicitados ADD COLUMN IF NOT EXISTS unidade              VARCHAR(80);
 ALTER TABLE public.exames_solicitados ADD COLUMN IF NOT EXISTS solicitado_em        TIMESTAMPTZ NOT NULL DEFAULT NOW();
 ALTER TABLE public.exames_solicitados ADD COLUMN IF NOT EXISTS atualizado_em        TIMESTAMPTZ NOT NULL DEFAULT NOW();
+
+-- ATESTADOS
+ALTER TABLE public.atestados ADD COLUMN IF NOT EXISTS hora_inicio TIME;
+ALTER TABLE public.atestados ADD COLUMN IF NOT EXISTS hora_fim    TIME;
+ALTER TABLE public.atestados ALTER COLUMN motivo DROP NOT NULL;   -- motivo passou a ser opcional
 
 
 -- ============================================================

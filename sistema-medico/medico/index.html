@@ -707,6 +707,20 @@
                         </div>
                     </div>
 
+                    <div id="grupoHorarioAtestado" style="display: none;">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="atestadoHoraInicio">Hora de entrada</label>
+                                <input type="time" class="form-input" id="atestadoHoraInicio">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="atestadoHoraFim">Hora de saída</label>
+                                <input type="time" class="form-input" id="atestadoHoraFim">
+                            </div>
+                        </div>
+                        <p class="secao-ajuda" style="margin-top: -8px;">Horário em que o paciente (ou o acompanhante) permaneceu na unidade. Aparece impresso no atestado.</p>
+                    </div>
+
                     <div class="form-row">
                         <div class="form-group">
                             <label class="form-label" for="atestadoCid">CID-10</label>
@@ -715,8 +729,8 @@
                     </div>
 
                     <div class="form-group">
-                        <label class="form-label" for="atestadoMotivo">Motivo / diagnóstico <span class="required">*</span></label>
-                        <textarea class="form-input" id="atestadoMotivo" rows="2" style="min-height: 64px;" placeholder="Ex.: quadro gripal com febre e dor de garganta"></textarea>
+                        <label class="form-label" for="atestadoMotivo">Motivo / diagnóstico (opcional)</label>
+                        <textarea class="form-input" id="atestadoMotivo" rows="2" style="min-height: 64px;" placeholder="Opcional — aparece no atestado apenas quando preenchido"></textarea>
                     </div>
 
                     <div class="form-group">
@@ -814,8 +828,8 @@
     <script src="../../shared/js/db.js?v=rotas-20261028"></script>
     <script src="../js/config.js"></script>
     <script src="../js/medico-consultorios.js?v=rotas-20261028"></script>
-    <script src="../js/prescricoes.js?v=atestado-20261122"></script>
-    <script src="../js/medico-prescricoes.js?v=atestado-20261122"></script>
+    <script src="../js/prescricoes.js?v=atestado-horario-20261123"></script>
+    <script src="../js/medico-prescricoes.js?v=atestado-horario-20261123"></script>
     <script>
         let consultaSelecionada = null;
         let pacienteSelecionado = null;
