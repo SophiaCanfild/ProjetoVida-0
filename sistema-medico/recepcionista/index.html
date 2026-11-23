@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="../css/global.css" rel="stylesheet">
+    <link href="../css/global.css?v=manchester-20261123" rel="stylesheet">
     <style>
         .content-area { display: none; }
         .content-area.active { display: block; }
@@ -426,7 +426,7 @@
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../../shared/js/config.js"></script>
-    <script src="../../shared/js/db.js"></script>
+    <script src="../../shared/js/db.js?v=manchester-20261123"></script>
     <script src="../js/config.js"></script>
     <script>
         // Verificar acesso
@@ -522,10 +522,30 @@
             `).join('');
         }
         
+        // Ordem do protocolo de Manchester — calculada aqui para não depender
+        // da versão do shared/js/db.js que o navegador tem em cache.
+        const ORDEM_RISCO_FILA = { vermelho: 0, laranja: 1, amarelo: 2, verde: 3, azul: 4 };
+        const ROTULOS_RISCO_FILA = {
+            vermelho: 'Emergência', laranja: 'Muito urgente', amarelo: 'Urgente',
+            verde: 'Pouco urgente', azul: 'Não urgente'
+        };
+
+        function ordenarFilaManchester(lista) {
+            return (lista || []).slice().sort(function (a, b) {
+                const riscoA = a.triagem && a.triagem.classificacao_risco;
+                const riscoB = b.triagem && b.triagem.classificacao_risco;
+                const pesoA = ORDEM_RISCO_FILA[String(riscoA || '').toLowerCase()];
+                const pesoB = ORDEM_RISCO_FILA[String(riscoB || '').toLowerCase()];
+                const diferenca = (pesoA === undefined ? 9 : pesoA) - (pesoB === undefined ? 9 : pesoB);
+                if (diferenca !== 0) return diferenca;
+                return new Date(a.criado_em) - new Date(b.criado_em);
+            });
+        }
+
         // Carregar fila (dados reais do DB compartilhado)
         function carregarFila() {
             const lista = document.getElementById('listaFila');
-            const fila = DB.ordenarPorRisco(DB.getFila());   // Manchester: mais grave primeiro
+            const fila = ordenarFilaManchester(DB.getFila());   // mais grave primeiro
             
             if (!fila.length) {
                 lista.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--cinza-400);"><i class="fas fa-inbox" style="font-size: 2rem; margin-bottom: 10px;"></i><p>Fila vazia — cadastre um paciente e inicie o atendimento.</p></div>';
@@ -540,7 +560,9 @@
                     : '<span class="badge badge-warning">Aguardando</span>';
                 const risco = c.triagem && c.triagem.classificacao_risco;
                 const cores = {vermelho:'badge-vermelho',laranja:'badge-laranja',amarelo:'badge-amarelo',verde:'badge-verde',azul:'badge-azul'};
-                const riscoBadge = risco ? '<span class="badge ' + (cores[risco] || 'badge-secondary') + '">' + risco + '</span>' : '';
+                const riscoBadge = risco
+                    ? '<span class="badge ' + (cores[risco] || 'badge-secondary') + '">' + (ROTULOS_RISCO_FILA[risco] || risco) + '</span>'
+                    : '';
                 
                 return `
                 <div style="padding: 16px 20px; border-bottom: 1px solid var(--cinza-100); display: flex; align-items: center; justify-content: space-between;">
@@ -578,7 +600,7 @@
         };
 
         function proximaDaFila() {
-            return DB.ordenarPorRisco(DB.getFila().filter(c => c.status === 'em_fila'))[0] || null;
+            return ordenarFilaManchester(DB.getFila().filter(c => c.status === 'em_fila'))[0] || null;
         }
 
         function carregarSenhas() {
@@ -587,7 +609,7 @@
             const botao = document.getElementById('btnChamarProxima');
             if (!numero || !info) return;
 
-            const fila = DB.ordenarPorRisco(DB.getFila().filter(c => c.status === 'em_fila'));
+            const fila = ordenarFilaManchester(DB.getFila().filter(c => c.status === 'em_fila'));
             const proxima = fila[0] || null;
 
             numero.textContent = proxima ? proxima.senha : '—';
