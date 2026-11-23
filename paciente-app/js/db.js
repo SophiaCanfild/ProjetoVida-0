@@ -611,6 +611,15 @@
       .sort((a, b) => new Date(a.criado_em) - new Date(b.criado_em));
   };
 
+  // MÉDICO: fila do atendimento — inclui quem já está em consulta.
+  // DB.getFila() continua existindo para o telão e a posição do paciente,
+  // onde "em_consulta" não conta mais como espera.
+  DB.getFilaAtendimento = function () {
+    return DB.getConsultas()
+      .filter(c => c.status === 'em_fila' || c.status === 'chamado' || c.status === 'em_consulta')
+      .sort((a, b) => new Date(a.criado_em) - new Date(b.criado_em));
+  };
+
   DB.getMinhaFila = function (cpf) {
     const cpfLimpo = limparCpf(cpf);
     const ativas = DB.getConsultas()
