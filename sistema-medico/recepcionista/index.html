@@ -525,7 +525,7 @@
         // Carregar fila (dados reais do DB compartilhado)
         function carregarFila() {
             const lista = document.getElementById('listaFila');
-            const fila = DB.getFila();
+            const fila = DB.ordenarPorRisco(DB.getFila());   // Manchester: mais grave primeiro
             
             if (!fila.length) {
                 lista.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--cinza-400);"><i class="fas fa-inbox" style="font-size: 2rem; margin-bottom: 10px;"></i><p>Fila vazia — cadastre um paciente e inicie o atendimento.</p></div>';
@@ -538,6 +538,9 @@
                 const statusBadge = c.status === 'chamado'
                     ? '<span class="badge badge-success">🔔 Chamado</span>'
                     : '<span class="badge badge-warning">Aguardando</span>';
+                const risco = c.triagem && c.triagem.classificacao_risco;
+                const cores = {vermelho:'badge-vermelho',laranja:'badge-laranja',amarelo:'badge-amarelo',verde:'badge-verde',azul:'badge-azul'};
+                const riscoBadge = risco ? '<span class="badge ' + (cores[risco] || 'badge-secondary') + '">' + risco + '</span>' : '';
                 
                 return `
                 <div style="padding: 16px 20px; border-bottom: 1px solid var(--cinza-100); display: flex; align-items: center; justify-content: space-between;">
@@ -551,6 +554,7 @@
                         </div>
                     </div>
                     <div class="flex items-center gap-3">
+                        ${riscoBadge}
                         ${statusBadge}
                         ${c.status === 'em_fila' ? `<button class="btn btn-primary btn-sm" onclick="chamarDaFila('${c.id}')"><i class="fas fa-bullhorn"></i> Chamar</button>` : ''}
                     </div>
@@ -574,7 +578,7 @@
         };
 
         function proximaDaFila() {
-            return DB.getFila().filter(c => c.status === 'em_fila')[0] || null;
+            return DB.ordenarPorRisco(DB.getFila().filter(c => c.status === 'em_fila'))[0] || null;
         }
 
         function carregarSenhas() {
@@ -583,7 +587,7 @@
             const botao = document.getElementById('btnChamarProxima');
             if (!numero || !info) return;
 
-            const fila = DB.getFila().filter(c => c.status === 'em_fila');
+            const fila = DB.ordenarPorRisco(DB.getFila().filter(c => c.status === 'em_fila'));
             const proxima = fila[0] || null;
 
             numero.textContent = proxima ? proxima.senha : '—';

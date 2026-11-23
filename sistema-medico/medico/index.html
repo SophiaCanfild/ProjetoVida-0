@@ -254,7 +254,10 @@
                         <!-- Lista de Espera -->
                         <div class="card">
                             <div class="card-header">
-                                <h3><i class="fas fa-list-ol me-2" style="color: var(--azul-500);"></i> Fila de Espera</h3>
+                                <div>
+                                    <h3><i class="fas fa-list-ol me-2" style="color: var(--azul-500);"></i> Fila de Espera</h3>
+                                    <div style="font-size: 0.75rem; color: var(--cinza-500); margin-top: 2px;">Ordenada pelo protocolo de Manchester — mais grave primeiro</div>
+                                </div>
                             </div>
                             <div class="consultorio-chamada">
                                 <label for="consultorioChamada">
@@ -1076,6 +1079,7 @@
                 lista.innerHTML = '<div style="padding:40px;text-align:center;color:var(--cinza-400)"><i class="fas fa-inbox" style="font-size:2rem;margin-bottom:10px"></i><p>Nenhum paciente aguardando consulta.</p></div>';
                 return;
             }
+            let ordem = 0;
             lista.innerHTML = fila.map(c => {
                 const p = DB.getPacientePorId(c.paciente_id);
                 const nome = p ? p.nome : 'Paciente';
@@ -1089,6 +1093,9 @@
                 if (c.status === 'chamado') acao = '<span class="badge badge-success">🔔 Chamado</span>';
                 if (emAtendimento) acao = '<button class="btn btn-success btn-sm" onclick="event.stopPropagation();selecionarPaciente(\'' + c.id + '\')"><i class="fas fa-rotate-right"></i> Retomar</button>';
                 const selo = emAtendimento ? '<span class="badge badge-warning">🩺 Em atendimento</span>' : '';
+                if (!emAtendimento) ordem += 1;
+                const posicao = emAtendimento ? ''
+                    : '<span class="badge badge-secondary" title="Ordem de atendimento (protocolo de Manchester)">' + ordem + 'º</span>';
                 const destaque = selecionado
                     ? 'background:var(--verde-50);box-shadow: inset 4px 0 0 var(--verde-500);'
                     : '';
@@ -1098,7 +1105,7 @@
                     '<div style="flex:1"><div style="font-weight:600;font-size:0.9375rem">' + nome + '</div>' +
                     '<div style="font-size:0.8125rem;color:var(--cinza-500)">' + (t.queixa_principal || 'Sem queixa') + '</div></div>' +
                     '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">' +
-                    selo + '<span class="badge ' + cores[risco] + '">' + risco + '</span>' + acao +
+                    posicao + selo + '<span class="badge ' + cores[risco] + '">' + risco + '</span>' + acao +
                     '</div></div></div>';
             }).join('');
         }
