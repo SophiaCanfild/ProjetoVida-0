@@ -666,30 +666,45 @@ select.form-input {
     color: var(--cinza-600);
 }
 
-/* Manchester */
+/* Manchester — cada risco com fundo/texto bem distintos
+   (laranja e amarelo ficavam praticamente iguais antes) */
 .badge-vermelho {
-    background: #FCEBEB;
-    color: #D64545;
+    background: #FEE2E2;
+    color: #B91C1C;
 }
 
 .badge-laranja {
-    background: #FDF3E2;
-    color: #C2540A;
+    background: #FFEDD5;
+    color: #C2410C;
 }
 
 .badge-amarelo {
-    background: #FDF8E3;
-    color: #A16207;
+    background: #FEF9C3;
+    color: #854D0E;
 }
 
 .badge-verde {
     background: #DCFCE7;
-    color: #16A34A;
+    color: #15803D;
 }
 
 .badge-azul {
     background: #E0F2FE;
     color: #0369A1;
+}
+
+/* Bolinha na cor do risco: diferencia mesmo para quem não distingue tons */
+.badge-vermelho::before,
+.badge-laranja::before,
+.badge-amarelo::before,
+.badge-verde::before,
+.badge-azul::before {
+    content: '';
+    flex: none;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
 }
 
 /* ============================================

@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="../css/global.css?v=rotas-20261028" rel="stylesheet">
+    <link href="../css/global.css?v=manchester-20261123" rel="stylesheet">
     <style>
         .content-area { display: none; }
         .content-area.active { display: block; }
@@ -826,11 +826,11 @@
         <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../../shared/js/config.js"></script>
     <script src="../../telao/config/mapa-hospital.js"></script>
-    <script src="../../shared/js/mapa-store.js?v=rotas-20261028"></script>
-    <script src="../../shared/js/equipe-consultorios.js?v=rotas-20261028"></script>
-    <script src="../../shared/js/db.js?v=rotas-20261028"></script>
+    <script src="../../shared/js/mapa-store.js?v=manchester-20261123"></script>
+    <script src="../../shared/js/equipe-consultorios.js?v=manchester-20261123"></script>
+    <script src="../../shared/js/db.js?v=manchester-20261123"></script>
     <script src="../js/config.js"></script>
-    <script src="../js/medico-consultorios.js?v=rotas-20261028"></script>
+    <script src="../js/medico-consultorios.js?v=manchester-20261123"></script>
     <script src="../js/prescricoes.js?v=atestado-horario-20261123"></script>
     <script src="../js/medico-prescricoes.js?v=atestado-horario-20261123"></script>
     <script>
@@ -1067,9 +1067,39 @@
             mostrarToast('Este atendimento foi encerrado em outro dispositivo.', 'warning');
         }
 
+        // ---- Ordenação pelo protocolo de Manchester ----
+        // Feita na própria página para não depender de qual versão do
+        // shared/js/db.js o navegador tem em cache.
+        const ORDEM_RISCO = { vermelho: 0, laranja: 1, amarelo: 2, verde: 3, azul: 4 };
+        const ROTULOS_RISCO = {
+            vermelho: 'Emergência', laranja: 'Muito urgente', amarelo: 'Urgente',
+            verde: 'Pouco urgente', azul: 'Não urgente'
+        };
+
+        function pesoRiscoConsulta(c) {
+            const classificacao = c && c.triagem && c.triagem.classificacao_risco;
+            const peso = ORDEM_RISCO[String(classificacao || '').toLowerCase()];
+            return peso === undefined ? 9 : peso;   // sem triagem vai para o fim
+        }
+
+        // Em atendimento no topo; o restante do mais grave para o mais leve
+        // e, no mesmo risco, quem chegou primeiro.
+        function filaDoMedico() {
+            return DB.getConsultas()
+                .filter(c => c.triagem && (c.status === 'em_fila' || c.status === 'chamado' || c.status === 'em_consulta'))
+                .sort(function (a, b) {
+                    const aAtendendo = a.status === 'em_consulta' ? 0 : 1;
+                    const bAtendendo = b.status === 'em_consulta' ? 0 : 1;
+                    if (aAtendendo !== bAtendendo) return aAtendendo - bAtendendo;
+                    const diferenca = pesoRiscoConsulta(a) - pesoRiscoConsulta(b);
+                    if (diferenca !== 0) return diferenca;
+                    return new Date(a.criado_em) - new Date(b.criado_em);
+                });
+        }
+
         function carregarFilaEspera() {
             const lista = document.getElementById('listaEspera');
-            const fila = (DB.getFilaAtendimento ? DB.getFilaAtendimento() : DB.getFila()).filter(c => c.triagem);
+            const fila = filaDoMedico();
             const badgeFila = document.getElementById('badgeFila');
             if (badgeFila) {
                 badgeFila.textContent = fila.length;
@@ -1087,6 +1117,7 @@
                 const t = c.triagem;
                 const risco = t.classificacao_risco || 'verde';
                 const cores = {vermelho:'badge-vermelho',laranja:'badge-laranja',amarelo:'badge-amarelo',verde:'badge-verde',azul:'badge-azul'};
+                const rotuloRisco = ROTULOS_RISCO[risco] || risco;
                 const emAtendimento = c.status === 'em_consulta';
                 const selecionado = consultaSelecionada && consultaSelecionada.id === c.id;
                 let acao = '<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();chamarParaConsulta(\'' + c.id + '\')"><i class="fas fa-bullhorn"></i> Chamar</button>';
@@ -1105,7 +1136,7 @@
                     '<div style="flex:1"><div style="font-weight:600;font-size:0.9375rem">' + nome + '</div>' +
                     '<div style="font-size:0.8125rem;color:var(--cinza-500)">' + (t.queixa_principal || 'Sem queixa') + '</div></div>' +
                     '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">' +
-                    posicao + selo + '<span class="badge ' + cores[risco] + '">' + risco + '</span>' + acao +
+                    posicao + selo + '<span class="badge ' + (cores[risco] || 'badge-secondary') + '">' + rotuloRisco + '</span>' + acao +
                     '</div></div></div>';
             }).join('');
         }
